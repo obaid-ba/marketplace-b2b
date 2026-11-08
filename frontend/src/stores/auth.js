@@ -1,54 +1,63 @@
-import { computed, ref } from 'vue'
-import { defineStore } from 'pinia'
+import { create } from 'zustand'
 import { http } from '@/api/http'
 import { tokenStorage } from '@/utils/tokenStorage'
 
-export const useAuthStore = defineStore('auth', () => {
-  const user = ref(null)
-  const token = ref(tokenStorage.get())
-  const loaded = ref(false)
-
-  const isAuthenticated = computed(() => Boolean(token.value && user.value))
-  const role = computed(() => user.value?.role ?? null)
+/**
+ * État de connexion partagé par toute l'application.
+ * Dans un composant : useAuthStore(selectUser). Hors composant : useAuthStore.getState().
+ */
+export const useAuthStore = create((set, get) => ({
+  user: null,
+  token: tokenStorage.get(),
+  loaded: false,
 
   /** Charge l'utilisateur à partir du jeton enregistré (appelé une fois au démarrage). */
-  async function fetchMe() {
-    if (!token.value) {
-      loaded.value = true
+  async fetchMe() {
+    if (!get().token) {
+      set({ loaded: true })
       return
     }
     try {
       const { data } = await http.get('/auth/me')
-      user.value = data
+      set({ user: data })
     } catch {
-      clear()
+      get().clear()
     } finally {
-      loaded.value = true
+      set({ loaded: true })
     }
-  }
+  },
 
-  async function login(email, password) {
+  async login(email, password) {
     const { data } = await http.post('/auth/login', { email, password, device_name: 'web' })
-    token.value = data.token
     tokenStorage.set(data.token)
-    user.value = data.user
-    loaded.value = true
+    set({ token: data.token, user: data.user, loaded: true })
     return data.user
-  }
+  },
 
-  async function logout() {
+  async logout() {
     try {
       await http.post('/auth/logout')
     } finally {
-      clear()
+      get().clear()
     }
-  }
+  },
 
-  function clear() {
-    user.value = null
-    token.value = null
+  clear() {
     tokenStorage.clear()
-  }
+    set({ user: null, token: null })
+  },
+}))
 
-  return { user, token, loaded, isAuthenticated, role, fetchMe, login, logout, clear }
-})
+// Sélecteurs (équivalent des getters) : le composant ne se re-rend que si la valeur change.
+export const selectUser = (state) => state.user
+export const selectRole = (state) => state.user?.role ?? null
+export const selectIsAuthenticated = (state) => Boolean(state.token && state.user)
+
+let loading = null
+
+/** Attend que l'utilisateur soit chargé ; un seul appel à /auth/me même si plusieurs routes le demandent. */
+export function ensureAuthLoaded() {
+  if (useAuthStore.getState().loaded) return Promise.resolve()
+  loading ??= useAuthStore.getState().fetchMe()
+  return loading
+}

@@ -33,7 +33,7 @@ jobs:
         run: php artisan test
 
   frontend:
-    name: Application Vue (tests + build)
+    name: Application React (tests + build)
     runs-on: ubuntu-latest
     defaults:
       run:

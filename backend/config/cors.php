@@ -1,6 +1,6 @@
 <?php
 
-// L'application Vue (web) et l'application mobile appellent l'API depuis une autre origine.
+// L'application React (web) et l'application mobile appellent l'API depuis une autre origine.
 return [
 
     'paths' => ['api/*'],

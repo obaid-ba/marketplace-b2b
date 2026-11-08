@@ -1,26 +1,30 @@
-import { homeRouteFor } from '@/utils/roles'
+import { homePathFor } from '@/utils/roles'
+import { PATHS, loginPath } from './paths'
 
 /**
  * Règles d'accès aux pages, séparées du routeur pour être testées facilement.
  *
- * meta.guest  : page réservée aux visiteurs non connectés (connexion, inscription)
- * meta.roles  : liste des rôles autorisés ; implique d'être connecté
+ * access.guest : page réservée aux visiteurs non connectés (connexion, inscription)
+ * access.roles : liste des rôles autorisés ; implique d'être connecté
  *
- * @returns true pour laisser passer, ou une redirection { name, query? }
+ * @param {string} fullPath  adresse demandée (chemin + paramètres)
+ * @param {{ guest?: boolean, roles?: string[] }} access
+ * @param {{ isAuthenticated: boolean, role: string | null }} auth
+ * @returns true pour laisser passer, ou l'adresse vers laquelle rediriger
  */
-export function resolveAccess(to, auth) {
-  const roles = to.meta?.roles
+export function resolveAccess(fullPath, access, auth) {
+  const roles = access?.roles
 
-  if (to.meta?.guest && auth.isAuthenticated) {
-    return { name: homeRouteFor(auth.role) }
+  if (access?.guest && auth.isAuthenticated) {
+    return homePathFor(auth.role)
   }
 
   if (roles?.length) {
     if (!auth.isAuthenticated) {
-      return { name: 'login', query: { redirect: to.fullPath } }
+      return loginPath(fullPath)
     }
     if (!roles.includes(auth.role)) {
-      return { name: 'forbidden' }
+      return PATHS.forbidden
     }
   }
 

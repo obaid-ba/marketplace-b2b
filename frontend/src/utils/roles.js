@@ -1,3 +1,5 @@
+import { PATHS } from '@/router/paths'
+
 // Mêmes valeurs que l'enum App\Enums\UserRole côté Laravel.
 export const ROLES = Object.freeze({
   SUPPLIER: 'supplier',
@@ -11,13 +13,13 @@ export const ROLE_LABELS = Object.freeze({
   [ROLES.ADMIN]: 'Administrateur',
 })
 
-const HOME_ROUTES = {
-  [ROLES.SUPPLIER]: 'supplier.dashboard',
-  [ROLES.BUYER]: 'buyer.dashboard',
-  [ROLES.ADMIN]: 'admin.dashboard',
+const HOME_PATHS = {
+  [ROLES.SUPPLIER]: PATHS.supplier,
+  [ROLES.BUYER]: PATHS.buyer,
+  [ROLES.ADMIN]: PATHS.admin,
 }
 
-/** Nom de la route du tableau de bord affiché après la connexion. */
-export function homeRouteFor(role) {
-  return HOME_ROUTES[role] ?? 'home'
+/** Adresse du tableau de bord affiché après la connexion. */
+export function homePathFor(role) {
+  return HOME_PATHS[role] ?? PATHS.home
 }

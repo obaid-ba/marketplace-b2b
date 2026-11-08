@@ -7,7 +7,7 @@ Le porteur de projet publie un besoin ou commande un produit, les fournisseurs r
 | Dossier | Contenu | Stack |
 |---|---|---|
 | `backend/` | API REST | Laravel 12, PHP 8.2+, MySQL, Sanctum (jetons Bearer) |
-| `frontend/` | Application web (et base de l'application mobile) | Vue 3, Vite, Vue Router, Pinia, Axios, Tailwind CSS 4 |
+| `frontend/` | Application web (et base de l'application mobile) | React 19, Vite, React Router, Zustand, Axios, Tailwind CSS 4 |
 | `docs/` | Décisions de l'équipe et conventions | Markdown |
 
 Backlog et sprints : Jira, projet **SCRUM**.
@@ -56,7 +56,7 @@ Mot de passe : `password`
 
 ```bash
 cd backend && php artisan test     # tests PHPUnit (base SQLite en mémoire)
-cd frontend && npm test            # tests Vitest
+cd frontend && npm test            # tests Vitest + Testing Library
 ```
 
 Les deux suites tournent automatiquement sur chaque pull request (GitHub Actions).
@@ -64,9 +64,9 @@ Les deux suites tournent automatiquement sur chaque pull request (GitHub Actions
 ## Architecture en bref
 
 - **Authentification** : `POST /api/auth/login` renvoie un jeton Sanctum, envoyé ensuite dans l'en-tête `Authorization: Bearer …`. Le même mécanisme sert au web et au mobile.
-- **Rôles** : `supplier` (fournisseur), `buyer` (porteur de projet), `admin`. Côté API, chaque groupe de routes est protégé par le middleware `role:` ; côté Vue, chaque route déclare `meta.roles`.
+- **Rôles** : `supplier` (fournisseur), `buyer` (porteur de projet), `admin`. Côté API, chaque groupe de routes est protégé par le middleware `role:` ; côté React, chaque espace est protégé par un `loader` de garde (`router/routes.jsx`, règles dans `router/guard.js`).
 - **Organisation du backend** : `Controllers/Api` (minces) → `Http/Requests` (validation) → `Services` (règles métier) → `Models`, réponses via `Http/Resources`.
-- **Organisation du frontend** : `api/http.js` (client unique, gestion des erreurs 401/403), `stores/` (Pinia), `router/` (gardes par rôle), `views/<espace>/`.
+- **Organisation du frontend** : `api/http.js` (client unique, gestion des erreurs 401/403), `stores/` (Zustand), `router/` (adresses, routes et gardes par rôle), `layouts/`, `components/`, `views/<espace>/`.
 
 ## Travailler ensemble
 
