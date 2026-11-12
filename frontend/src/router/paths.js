@@ -2,7 +2,10 @@
 export const PATHS = Object.freeze({
   home: '/',
   login: '/connexion',
+  verifyNotice: '/verification-email', // « Consultez votre boîte mail »
+  verifyEmail: '/email/verifier', // page ouverte par le lien reçu par e-mail
   supplier: '/fournisseur',
+  supplierPending: '/fournisseur/en-attente',
   buyer: '/porteur',
   admin: '/admin',
   forbidden: '/acces-refuse',

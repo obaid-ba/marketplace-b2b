@@ -1,7 +1,7 @@
 import { Link, Outlet, useNavigate } from 'react-router'
 import { selectRole, selectUser, useAuthStore } from '@/stores/auth'
 import { PATHS } from '@/router/paths'
-import { ROLE_LABELS, homePathFor } from '@/utils/roles'
+import { ROLE_LABELS, landingPathFor } from '@/utils/roles'
 
 export default function AppLayout() {
   const user = useAuthStore(selectUser)
@@ -18,7 +18,7 @@ export default function AppLayout() {
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link to={homePathFor(role)} className="text-lg font-semibold text-brand-700">
+          <Link to={landingPathFor(user)} className="text-lg font-semibold text-brand-700">
             Marketplace B2B
           </Link>
 

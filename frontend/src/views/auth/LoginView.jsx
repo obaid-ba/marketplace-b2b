@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useAuthStore } from '@/stores/auth'
 import { PATHS, safeRedirect } from '@/router/paths'
-import { homePathFor } from '@/utils/roles'
+import { landingPathFor } from '@/utils/roles'
 
 export default function LoginView() {
   const login = useAuthStore((state) => state.login)
@@ -23,7 +23,7 @@ export default function LoginView() {
     setFieldErrors({})
     try {
       const user = await login(form.email.trim(), form.password)
-      navigate(safeRedirect(searchParams.get('redirect')) ?? homePathFor(user.role))
+      navigate(safeRedirect(searchParams.get('redirect')) ?? landingPathFor(user))
     } catch (e) {
       setError(e.userMessage ?? 'Connexion impossible.')
       setFieldErrors(e.fieldErrors ?? {})
