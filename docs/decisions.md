@@ -12,6 +12,7 @@ L'énoncé demande de « noter les décisions techniques importantes » et de «
 | D4 | 2026-11-06 | Monorepo : `backend/` + `frontend/` dans un seul dépôt | Une seule PR peut toucher l'API et l'interface ; un seul historique pour le jury |
 | D5 | 2026-11-06 | Code en anglais, interface en français | Conventions Laravel/React en anglais ; utilisateurs francophones |
 | D6 | 2026-11-08 | Frontend : React 19 + React Router + Zustand à la place de Vue 3 + Vue Router + Pinia (Vite, Axios et Tailwind conservés) | Choix de l'équipe ; migration faite tôt, quand le front ne contenait que l'authentification et les tableaux de bord vides |
+| D7 | 2026-11-12 | Enums de statut : noms de cas en `UPPER_SNAKE` (`EMAIL_TO_VERIFY`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED`, `PENDING`…), comme dans les migrations et les seeders. `UserRole` garde ses cas `Supplier`/`Buyer`/`Admin` | La migration `users` et le seeder référencent déjà `UserStatus::ACTIVE` et `UserStatus::EMAIL_TO_VERIFY` : c'est la convention majoritaire des enums de statut du projet. Le modèle `User` et la factory utilisaient `Active`/`Suspended`, ce qui provoquait une erreur PHP à l'exécution |
 
 ## Règles métier (SCRUM-20)
 

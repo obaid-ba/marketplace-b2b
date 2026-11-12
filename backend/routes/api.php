@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\ReferenceController;
+use App\Http\Controllers\Api\SupplierRegistrationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,9 +18,26 @@ use Illuminate\Support\Facades\Route;
 Route::post('/auth/login', [AuthController::class, 'login'])
     ->middleware('throttle:login');
 
+// Inscription fournisseur en trois étapes (SCRUM-22).
+Route::post('/auth/register/supplier', [SupplierRegistrationController::class, 'store'])
+    ->middleware('throttle:register');
+Route::post('/auth/register/supplier/check-email', [SupplierRegistrationController::class, 'checkEmail'])
+    ->middleware('throttle:30,1');
+
+// Lien signé contenu dans l'e-mail de vérification.
+Route::get('/auth/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify');
+
+// Données de référence des formulaires.
+Route::get('/reference/regions', [ReferenceController::class, 'regions']);
+Route::get('/reference/categories', [ReferenceController::class, 'categories']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::post('/auth/email/verification-notification', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:6,1');
 
     // Espace fournisseur (S2+) : produits, demandes reçues, devis…
     Route::middleware('role:supplier')->prefix('supplier')->group(function () {

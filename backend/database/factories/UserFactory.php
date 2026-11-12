@@ -28,7 +28,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'role' => UserRole::Buyer,
-            'status' => UserStatus::Active,
+            'status' => UserStatus::ACTIVE,
             'remember_token' => Str::random(10),
         ];
     }
@@ -50,11 +50,14 @@ class UserFactory extends Factory
 
     public function suspended(): static
     {
-        return $this->state(fn () => ['status' => UserStatus::Suspended]);
+        return $this->state(fn () => ['status' => UserStatus::SUSPENDED]);
     }
 
     public function unverified(): static
     {
-        return $this->state(fn () => ['email_verified_at' => null]);
+        return $this->state(fn () => [
+            'email_verified_at' => null,
+            'status' => UserStatus::EMAIL_TO_VERIFY,
+        ]);
     }
 }

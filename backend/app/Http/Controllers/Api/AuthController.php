@@ -27,6 +27,12 @@ class AuthController extends Controller
             ]);
         }
 
+        if ($user->isAwaitingEmailVerification()) {
+            return response()->json([
+                'message' => 'Veuillez vérifier votre adresse e-mail avant de vous connecter.',
+            ], 403);
+        }
+
         if (! $user->isActive()) {
             return response()->json([
                 'message' => 'Ce compte est suspendu ou désactivé.',
