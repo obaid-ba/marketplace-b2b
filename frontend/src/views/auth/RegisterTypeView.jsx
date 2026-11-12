@@ -19,23 +19,25 @@ const CHOICES = [
 export default function RegisterTypeView() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-3xl">
+      <div className="card w-full max-w-2xl">
         <Link to={PATHS.home} className="text-sm text-brand-600">
           ← Accueil
         </Link>
         <h1 className="mt-3 text-2xl font-semibold">Créer un compte</h1>
-        <p className="mt-1 text-sm text-slate-500">Choisissez le type de compte qui vous correspond.</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Choisissez le type de compte qui vous correspond.
+        </p>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {CHOICES.map((choice) => (
             <Link
               key={choice.role}
               to={choice.to}
-              className="card block transition hover:border-brand-300 hover:shadow"
+              className="rounded-lg border border-slate-200 px-4 py-3 transition hover:border-brand-300 hover:shadow-sm"
             >
-              <h2 className="text-lg font-semibold">{choice.title}</h2>
-              <p className="mt-2 text-sm text-slate-600">{choice.description}</p>
-              <span className="mt-4 inline-block text-sm font-medium text-brand-600">Continuer →</span>
+              <span className="block font-medium text-brand-700">{choice.title}</span>
+              <span className="mt-1 block text-sm text-slate-600">{choice.description}</span>
+              <span className="mt-3 block text-sm font-medium text-brand-600">Continuer →</span>
             </Link>
           ))}
         </div>
