@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\Region;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,18 +15,32 @@ class BuyerRegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    private Region $tunis;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->tunis = Region::create(['name' => 'Tunis']);
+    }
+
     /**
-     * @return array<string, string>
+     * @return array<string, mixed>
      */
     private function payload(array $overrides = []): array
     {
         return array_merge([
-            'name' => 'Karim Ben Salah',
+            'first_name' => 'Karim',
+            'last_name' => 'Ben Salah',
             'email' => 'karim@exemple.tn',
+            'phone' => '+216 71 000 000',
             'password' => 'Password123',
             'password_confirmation' => 'Password123',
+            'buyer_type' => 'entreprise',
             'organization' => 'Société Karim & Fils',
             'sector' => 'Bâtiment',
+            'region_id' => $this->tunis->id,
+            'terms_accepted' => true,
         ], $overrides);
     }
 
@@ -42,9 +57,18 @@ class BuyerRegistrationTest extends TestCase
 
         $this->assertSame(UserRole::Buyer, $user->role);
         $this->assertSame(UserStatus::EMAIL_TO_VERIFY, $user->status);
+        $this->assertSame('Karim', $user->first_name);
+        $this->assertSame('Ben Salah', $user->last_name);
+        $this->assertSame('Karim Ben Salah', $user->name);
+        $this->assertSame('+216 71000000', $user->phone);
         $this->assertNull($user->email_verified_at);
-        $this->assertSame('Société Karim & Fils', $user->buyerProfile->organization);
-        $this->assertSame('Bâtiment', $user->buyerProfile->sector);
+
+        $profile = $user->buyerProfile;
+        $this->assertSame('entreprise', $profile->buyer_type);
+        $this->assertSame('Société Karim & Fils', $profile->organization);
+        $this->assertSame('Bâtiment', $profile->sector);
+        $this->assertSame($this->tunis->id, $profile->region_id);
+        $this->assertNotNull($profile->terms_accepted_at);
 
         Notification::assertSentTo($user, VerifyEmail::class);
     }
@@ -79,11 +103,29 @@ class BuyerRegistrationTest extends TestCase
             ->assertJsonValidationErrors(['password']);
     }
 
+    public function test_le_telephone_doit_contenir_huit_chiffres(): void
+    {
+        $this->postJson('/api/auth/register/buyer', $this->payload(['phone' => '12345']))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('phone');
+    }
+
     public function test_les_champs_obligatoires_sont_verifies(): void
     {
         $this->postJson('/api/auth/register/buyer', [])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'email', 'password', 'organization', 'sector'])
+            ->assertJsonValidationErrors([
+                'first_name',
+                'last_name',
+                'email',
+                'phone',
+                'password',
+                'buyer_type',
+                'organization',
+                'sector',
+                'region_id',
+                'terms_accepted',
+            ])
             ->assertJsonPath('errors.organization.0', "L'organisation ou le projet représenté est obligatoire.");
     }
 

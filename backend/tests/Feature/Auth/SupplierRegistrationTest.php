@@ -46,18 +46,30 @@ class SupplierRegistrationTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return array_merge([
+            'first_name' => 'Amina',
+            'last_name' => 'Trabelsi',
             'email' => 'amina@exemple.tn',
             'password' => 'Password123',
             'password_confirmation' => 'Password123',
+            'phone' => '+216 71 000 000',
             'company_name' => 'Amina Bâtiment SARL',
+            'legal_form' => 'SARL',
+            'tax_id' => '1234567A',
+            'rne_number' => 'RNE-2026-001',
             'sector' => 'Construction',
+            'description' => 'Entreprise générale de bâtiment.',
             'region_id' => $this->tunis->id,
+            'address' => '12 rue du marché',
+            'city' => 'Tunis',
+            'contact_name' => 'Amina Trabelsi',
+            'contact_role' => 'Gérante',
+            'contact_phone' => '+216 71 000 001',
             'coverage_regions' => [$this->tunis->id, $this->sfax->id],
             'categories' => [$this->btp->id, $this->informatique->id],
-            'description' => 'Entreprise générale de bâtiment.',
-            'phone' => '+216 71 000 000',
             'contact' => 'contact@amina.tn',
             'commercial_register' => UploadedFile::fake()->create('registre.pdf', 120, 'application/pdf'),
+            'tax_certificate' => UploadedFile::fake()->create('attestation.pdf', 120, 'application/pdf'),
+            'manager_id' => UploadedFile::fake()->create('cin.pdf', 120, 'application/pdf'),
             'certifications' => [
                 UploadedFile::fake()->create('certification.pdf', 80, 'application/pdf'),
             ],
@@ -80,12 +92,22 @@ class SupplierRegistrationTest extends TestCase
         $user = User::where('email', 'amina@exemple.tn')->firstOrFail();
 
         $this->assertSame(UserStatus::EMAIL_TO_VERIFY, $user->status);
+        $this->assertSame('Amina', $user->first_name);
+        $this->assertSame('Trabelsi', $user->last_name);
+        $this->assertSame('Amina Trabelsi', $user->name);
+        $this->assertSame('+216 71000000', $user->phone);
         $this->assertNull($user->email_verified_at);
         $this->assertTrue(Hash::check('Password123', $user->password));
 
         $profile = $user->supplierProfile;
         $this->assertNotNull($profile);
         $this->assertSame('Amina Bâtiment SARL', $profile->company_name);
+        $this->assertSame('SARL', $profile->legal_form);
+        $this->assertSame('1234567A', $profile->tax_id);
+        $this->assertSame('RNE-2026-001', $profile->rne_number);
+        $this->assertSame('12 rue du marché', $profile->address);
+        $this->assertSame('Tunis', $profile->city);
+        $this->assertSame('Amina Trabelsi', $profile->contact_name);
         $this->assertSame(ValidationStatus::PENDING, $profile->validation_status);
         $this->assertFalse($profile->is_published);
 
@@ -99,11 +121,13 @@ class SupplierRegistrationTest extends TestCase
         );
 
         $documents = $profile->documents;
-        $this->assertCount(2, $documents);
-        $this->assertSame(
-            [SupplierDocument::TYPE_COMMERCIAL_REGISTER, SupplierDocument::TYPE_CERTIFICATION],
-            $documents->pluck('type')->all()
-        );
+        $this->assertCount(4, $documents);
+        $this->assertSame([
+            SupplierDocument::TYPE_COMMERCIAL_REGISTER,
+            SupplierDocument::TYPE_TAX_CERTIFICATE,
+            SupplierDocument::TYPE_MANAGER_ID,
+            SupplierDocument::TYPE_CERTIFICATION,
+        ], $documents->pluck('type')->all());
         $this->assertTrue($documents->every(
             fn (SupplierDocument $document) => $document->status === ValidationStatus::PENDING
         ));
@@ -147,18 +171,26 @@ class SupplierRegistrationTest extends TestCase
 
     public function test_les_justificatifs_sont_obligatoires_et_doivent_etre_des_pdf_ou_des_images(): void
     {
+        Storage::fake('local');
+
         $this->post('/api/auth/register/supplier', $this->payload([
             'commercial_register' => null,
-            'certifications' => null,
+            'tax_certificate' => null,
+            'manager_id' => null,
         ]))
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['commercial_register', 'certifications']);
+            ->assertJsonValidationErrors(['commercial_register', 'tax_certificate', 'manager_id']);
 
         $this->post('/api/auth/register/supplier', $this->payload([
             'commercial_register' => UploadedFile::fake()->create('registre.exe', 10, 'application/octet-stream'),
         ]))
             ->assertStatus(422)
             ->assertJsonValidationErrors('commercial_register');
+
+        // Les certifications restent optionnelles.
+        $this->post('/api/auth/register/supplier', $this->payload([
+            'certifications' => null,
+        ]))->assertCreated();
     }
 
     public function test_la_disponibilite_d_une_adresse_e_mail_peut_etre_verifiee(): void

@@ -21,17 +21,26 @@ class BuyerRegistrationController extends Controller
     public function store(RegisterBuyerRequest $request): JsonResponse
     {
         $user = DB::transaction(function () use ($request) {
+            $firstName = $request->string('first_name')->toString();
+            $lastName = $request->string('last_name')->toString();
+
             $user = User::create([
-                'name' => $request->string('name')->toString(),
+                'name' => trim("{$firstName} {$lastName}"),
+                'first_name' => $firstName,
+                'last_name' => $lastName,
                 'email' => $request->string('email')->toString(),
+                'phone' => $request->string('phone')->toString(),
                 'password' => $request->string('password')->toString(),
                 'role' => UserRole::Buyer,
                 'status' => UserStatus::EMAIL_TO_VERIFY,
             ]);
 
             $user->buyerProfile()->create([
+                'buyer_type' => $request->string('buyer_type')->toString(),
                 'organization' => $request->string('organization')->toString(),
                 'sector' => $request->string('sector')->toString(),
+                'region_id' => $request->integer('region_id'),
+                'terms_accepted_at' => now(),
             ]);
 
             return $user;
