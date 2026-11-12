@@ -53,6 +53,7 @@ export const createRoutes = () => [
       // Pages publiques
       { path: PATHS.home, lazy: page(() => import('@/views/HomeView')) },
       { path: PATHS.login, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/LoginView')) },
+      { path: PATHS.register, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/RegisterView')) },
 
       // Espaces par rôle
       space(PATHS.supplier, ROLES.SUPPLIER, () => import('@/views/supplier/SupplierDashboard')),

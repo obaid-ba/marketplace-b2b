@@ -28,6 +28,11 @@ describe('routes', () => {
     expect(await screen.findByText('Se connecter')).toBeTruthy()
   })
 
+  it("affiche la page d'inscription fournisseur aux visiteurs", async () => {
+    visit('/inscription/fournisseur')
+    expect(await screen.findByRole('heading', { name: 'Inscription fournisseur' })).toBeTruthy()
+  })
+
   it('redirige un visiteur vers la connexion depuis un espace protégé', async () => {
     const router = visit('/fournisseur')
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeTruthy()

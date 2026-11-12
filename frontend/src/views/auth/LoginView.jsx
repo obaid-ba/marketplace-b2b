@@ -42,6 +42,12 @@ export default function LoginView() {
           Accédez à votre espace fournisseur, porteur de projet ou administrateur.
         </p>
 
+        {searchParams.get('verifie') === '1' && (
+          <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">
+            Votre adresse e-mail est vérifiée. Vous pouvez maintenant vous connecter.
+          </p>
+        )}
+
         <form className="mt-6 space-y-4" noValidate onSubmit={handleSubmit}>
           <div>
             <label htmlFor="email" className="mb-1 block text-sm font-medium">
@@ -86,7 +92,12 @@ export default function LoginView() {
           </button>
         </form>
 
-        {/* "Mot de passe oublié" et "S'inscrire" arrivent en S1 (SCRUM-21 à SCRUM-26) */}
+        <p className="mt-6 text-center text-sm text-slate-600">
+          Pas encore de compte ?{' '}
+          <Link to={PATHS.register} className="font-medium text-brand-600 hover:underline">
+            Inscrire mon entreprise
+          </Link>
+        </p>
       </div>
     </div>
   )

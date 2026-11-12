@@ -2,6 +2,7 @@
 export const PATHS = Object.freeze({
   home: '/',
   login: '/connexion',
+  register: '/inscription/fournisseur',
   supplier: '/fournisseur',
   buyer: '/porteur',
   admin: '/admin',

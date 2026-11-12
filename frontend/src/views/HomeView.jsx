@@ -16,9 +16,14 @@ export default function HomeView() {
             Mon espace
           </Link>
         ) : (
-          <Link to={PATHS.login} className="btn-primary">
-            Se connecter
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to={PATHS.register} className="btn-ghost">
+              Devenir fournisseur
+            </Link>
+            <Link to={PATHS.login} className="btn-primary">
+              Se connecter
+            </Link>
+          </div>
         )}
       </header>
 
