@@ -53,6 +53,11 @@ describe('routes', () => {
     )
   })
 
+  it("affiche le formulaire d'inscription porteur de projet", async () => {
+    visit('/inscription/porteur')
+    expect(await screen.findByRole('heading', { name: 'Inscription porteur de projet' })).toBeTruthy()
+  })
+
   it('redirige un visiteur vers la connexion depuis un espace protégé', async () => {
     const router = visit('/fournisseur')
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeTruthy()

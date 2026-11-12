@@ -80,7 +80,7 @@ export const createRoutes = () => [
       {
         path: PATHS.registerBuyer,
         loader: guard({ guest: true }),
-        lazy: page(() => import('@/views/auth/BuyerRegistrationPlaceholder')),
+        lazy: page(() => import('@/views/auth/RegisterBuyerView')),
       },
       { path: PATHS.register, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/RegisterView')) },
 
