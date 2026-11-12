@@ -88,7 +88,7 @@ export default function LoginView() {
 
         <p className="mt-6 text-center text-sm text-slate-600">
           Pas encore de compte ?{' '}
-          <Link to={PATHS.register} className="font-medium text-brand-600 hover:underline">
+          <Link to={PATHS.registerChoice} className="font-medium text-brand-600 hover:underline">
             Inscrire mon entreprise
           </Link>
         </p>

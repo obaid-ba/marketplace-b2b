@@ -42,6 +42,17 @@ describe('routes', () => {
     expect(await screen.findByRole('heading', { name: 'Inscription fournisseur' })).toBeTruthy()
   })
 
+  it('laisse choisir le type de compte avant de s inscrire', async () => {
+    visit('/inscription')
+    expect(await screen.findByRole('heading', { name: 'Créer un compte' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Je suis fournisseur/ }).getAttribute('href')).toBe(
+      '/inscription/fournisseur',
+    )
+    expect(screen.getByRole('link', { name: /Je suis porteur de projet/ }).getAttribute('href')).toBe(
+      '/inscription/porteur',
+    )
+  })
+
   it('redirige un visiteur vers la connexion depuis un espace protégé', async () => {
     const router = visit('/fournisseur')
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeTruthy()
