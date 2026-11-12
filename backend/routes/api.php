@@ -24,9 +24,10 @@ Route::post('/auth/register/supplier', [SupplierRegistrationController::class, '
 Route::post('/auth/register/supplier/check-email', [SupplierRegistrationController::class, 'checkEmail'])
     ->middleware('throttle:30,1');
 
-// Lien signé contenu dans l'e-mail de vérification.
+// Lien reçu par e-mail : pas besoin d'être connecté, la signature du lien suffit (SCRUM-24).
 Route::get('/auth/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
-    ->middleware(['signed', 'throttle:6,1'])
+    ->whereNumber('id')
+    ->middleware('throttle:6,1')
     ->name('verification.verify');
 
 // Données de référence des formulaires.
@@ -34,11 +35,15 @@ Route::get('/reference/regions', [ReferenceController::class, 'regions']);
 Route::get('/reference/categories', [ReferenceController::class, 'categories']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    // Accessibles même si l'e-mail n'est pas encore vérifié.
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
-    Route::post('/auth/email/verification-notification', [EmailVerificationController::class, 'resend'])
-        ->middleware('throttle:6,1');
+    Route::post('/auth/email/resend', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:verification-resend');
+});
 
+// Espaces métier : connecté ET adresse e-mail vérifiée.
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Espace fournisseur (S2+) : produits, demandes reçues, devis…
     Route::middleware('role:supplier')->prefix('supplier')->group(function () {
         Route::get('/ping', fn () => ['space' => 'supplier']);

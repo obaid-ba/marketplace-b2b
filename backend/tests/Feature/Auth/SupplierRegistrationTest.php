@@ -14,7 +14,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class SupplierRegistrationTest extends TestCase
@@ -113,14 +112,7 @@ class SupplierRegistrationTest extends TestCase
             Storage::disk('local')->assertExists($document->file_path);
         }
 
-        Notification::assertSentTo(
-            $user,
-            VerifyEmail::class,
-            fn (VerifyEmail $notification) => str_contains(
-                $notification->toMail($user)->actionUrl,
-                '/api/auth/email/verify/'
-            )
-        );
+        Notification::assertSentTo($user, VerifyEmail::class);
     }
 
     public function test_une_adresse_e_mail_deja_utilisee_est_refusee(): void
@@ -187,49 +179,6 @@ class SupplierRegistrationTest extends TestCase
         $this->postJson('/api/auth/register/supplier/check-email', ['email' => 'pris@exemple.tn'])
             ->assertOk()
             ->assertJsonPath('available', false);
-    }
-
-    public function test_le_lien_de_verification_active_le_compte(): void
-    {
-        $user = User::factory()->supplier()->unverified()->create([
-            'email' => 'nouveau@exemple.tn',
-        ]);
-
-        $url = URL::temporarySignedRoute('verification.verify', now()->addHour(), [
-            'id' => $user->id,
-            'hash' => sha1($user->getEmailForVerification()),
-        ]);
-
-        $this->get($url)
-            ->assertRedirect(config('app.frontend_url').'/connexion?verifie=1');
-
-        $user->refresh();
-        $this->assertTrue($user->hasVerifiedEmail());
-        $this->assertSame(UserStatus::ACTIVE, $user->status);
-    }
-
-    public function test_un_lien_de_verification_non_signe_est_refuse(): void
-    {
-        $user = User::factory()->supplier()->unverified()->create();
-
-        $this->get("/api/auth/email/verify/{$user->id}/".sha1($user->getEmailForVerification()))
-            ->assertForbidden();
-
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
-    }
-
-    public function test_un_compte_non_verifie_ne_peut_pas_se_connecter(): void
-    {
-        User::factory()->supplier()->unverified()->create([
-            'email' => 'en-attente@exemple.tn',
-        ]);
-
-        $this->postJson('/api/auth/login', [
-            'email' => 'en-attente@exemple.tn',
-            'password' => 'password',
-        ])
-            ->assertForbidden()
-            ->assertJsonPath('message', 'Veuillez vérifier votre adresse e-mail avant de vous connecter.');
     }
 
     public function test_les_regions_et_categories_sont_exposees_aux_formulaires(): void

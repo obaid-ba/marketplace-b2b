@@ -114,4 +114,15 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Vérification de l'adresse e-mail (SCRUM-24)
+    |--------------------------------------------------------------------------
+    | Durée de validité, en minutes, du lien envoyé par e-mail.
+    */
+
+    'verification' => [
+        'expire' => (int) env('AUTH_VERIFICATION_EXPIRE', 60),
+    ],
+
 ];

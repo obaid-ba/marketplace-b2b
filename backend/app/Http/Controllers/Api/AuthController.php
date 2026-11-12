@@ -13,7 +13,9 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Base de l'authentification (S0).
- * Inscription, vérification d'e-mail et mot de passe oublié arrivent en S1 (SCRUM-21 à SCRUM-26).
+ * Inscription et mot de passe oublié arrivent en S1 (SCRUM-21 à SCRUM-26).
+ * Un compte dont l'e-mail reste à vérifier peut se connecter (pour redemander le lien),
+ * mais n'accède pas aux espaces métier (middleware "verified", SCRUM-24).
  */
 class AuthController extends Controller
 {
@@ -27,13 +29,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($user->isAwaitingEmailVerification()) {
-            return response()->json([
-                'message' => 'Veuillez vérifier votre adresse e-mail avant de vous connecter.',
-            ], 403);
-        }
-
-        if (! $user->isActive()) {
+        if ($user->isBlocked()) {
             return response()->json([
                 'message' => 'Ce compte est suspendu ou désactivé.',
             ], 403);
@@ -45,13 +41,13 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => new UserResource($user),
+            'user' => new UserResource($user->load('supplierProfile')),
         ]);
     }
 
     public function me(Request $request): UserResource
     {
-        return new UserResource($request->user());
+        return new UserResource($request->user()->load('supplierProfile'));
     }
 
     public function logout(Request $request): JsonResponse

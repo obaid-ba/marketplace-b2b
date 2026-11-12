@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useAuthStore } from '@/stores/auth'
 import { PATHS, safeRedirect } from '@/router/paths'
-import { homePathFor } from '@/utils/roles'
+import { landingPathFor } from '@/utils/roles'
 
 export default function LoginView() {
   const login = useAuthStore((state) => state.login)
@@ -23,7 +23,7 @@ export default function LoginView() {
     setFieldErrors({})
     try {
       const user = await login(form.email.trim(), form.password)
-      navigate(safeRedirect(searchParams.get('redirect')) ?? homePathFor(user.role))
+      navigate(safeRedirect(searchParams.get('redirect')) ?? landingPathFor(user))
     } catch (e) {
       setError(e.userMessage ?? 'Connexion impossible.')
       setFieldErrors(e.fieldErrors ?? {})
@@ -41,12 +41,6 @@ export default function LoginView() {
         <p className="mt-1 text-sm text-slate-500">
           Accédez à votre espace fournisseur, porteur de projet ou administrateur.
         </p>
-
-        {searchParams.get('verifie') === '1' && (
-          <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">
-            Votre adresse e-mail est vérifiée. Vous pouvez maintenant vous connecter.
-          </p>
-        )}
 
         <form className="mt-6 space-y-4" noValidate onSubmit={handleSubmit}>
           <div>

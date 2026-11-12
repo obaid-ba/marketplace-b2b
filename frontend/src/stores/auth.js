@@ -11,7 +11,7 @@ export const useAuthStore = create((set, get) => ({
   token: tokenStorage.get(),
   loaded: false,
 
-  /** Charge l'utilisateur à partir du jeton enregistré (appelé une fois au démarrage). */
+  /** Charge l'utilisateur à partir du jeton enregistré (au démarrage, ou pour rafraîchir son état). */
   async fetchMe() {
     if (!get().token) {
       set({ loaded: true })
@@ -49,6 +49,11 @@ export const useAuthStore = create((set, get) => ({
     } finally {
       get().clear()
     }
+  },
+
+  /** Met à jour l'utilisateur connecté (ex. après la vérification de son e-mail). */
+  setUser(user) {
+    set({ user })
   },
 
   clear() {

@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use Database\Factories\UserFactory;
-use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -17,7 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, MustVerifyEmailTrait, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * @var list<string>
@@ -53,6 +52,12 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    /** @return HasOne<SupplierProfile, $this> */
+    public function supplierProfile(): HasOne
+    {
+        return $this->hasOne(SupplierProfile::class);
+    }
+
     public function hasRole(UserRole $role): bool
     {
         return $this->role === $role;
@@ -64,18 +69,27 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Le compte attend encore la vérification de son adresse e-mail.
+     * Un compte suspendu ou désactivé ne peut pas se connecter.
+     * Un compte dont l'e-mail reste à vérifier le peut, pour demander un nouveau lien (SCRUM-24),
+     * mais le middleware "verified" lui ferme les espaces fournisseur / porteur / admin.
      */
-    public function isAwaitingEmailVerification(): bool
+    public function isBlocked(): bool
     {
-        return $this->status === UserStatus::EMAIL_TO_VERIFY;
+        return in_array($this->status, [UserStatus::SUSPENDED, UserStatus::DEACTIVATED], true);
     }
 
     /**
-     * Profil fournisseur (un seul par compte).
+     * Vérification de l'e-mail : le compte passe aussi de « e-mail à vérifier » à « actif ».
+     * Un fournisseur reste ensuite « en attente » de validation sur son profil (SupplierProfile).
      */
-    public function supplierProfile(): HasOne
+    public function markEmailAsVerified(): bool
     {
-        return $this->hasOne(SupplierProfile::class);
+        $attributes = ['email_verified_at' => $this->freshTimestamp()];
+
+        if ($this->status === UserStatus::EMAIL_TO_VERIFY) {
+            $attributes['status'] = UserStatus::ACTIVE;
+        }
+
+        return $this->forceFill($attributes)->save();
     }
 }
