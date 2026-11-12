@@ -17,9 +17,9 @@ L'énoncé demande de « noter les décisions techniques importantes » et de «
 
 | # | Question | Décision | Date |
 |---|---|---|---|
-| R1 | À l'acceptation d'un devis, les autres sont-ils refusés et la demande clôturée ? | *à trancher* | |
-| R2 | Achat direct : une commande = un produit = un fournisseur ? | *à trancher* | |
-| R3 | Qui clôture la commande ? | *à trancher* | |
-| R4 | Dans quels statuts un litige peut-il être ouvert ? | *à trancher* | |
-| R5 | Mobile : PWA ou application dédiée ? | *à trancher* | |
-| R6 | Notifications WhatsApp / Messenger : incluses ou non ? | *à trancher* | |
+| R1 | À l'acceptation d'un devis, les autres sont-ils refusés et la demande clôturée ? | Oui. Le devis accepté passe à « accepté », tous les autres devis de la demande passent à « refusé » et la demande passe à « clôturée ». Aucun nouveau devis n'est possible sur une demande clôturée. *(Stories : SCRUM-46, 48)* | 2026-11-08 |
+| R2 | Achat direct : une commande = un produit = un fournisseur ? | Une commande = **plusieurs produits** = un seul fournisseur, sans panier. Une commande a donc un seul fournisseur et une ou plusieurs lignes (OrderItem). *(Stories : SCRUM-51, 57)* | 2026-11-08 |
+| R3 | Qui clôture la commande ? | L'acheteur clôture la commande en confirmant la réception. Pas de clôture automatique dans la première version. L'avis sur le fournisseur est ajouté après la clôture. *(Stories : SCRUM-56, 57, 64)* | 2026-11-08 |
+| R4 | Dans quels statuts un litige peut-il être ouvert ? | Uniquement par l'acheteur, à partir du statut « expédiée » (ou « confirmée » s'il n'y a pas de statut d'expédition) jusqu'à « livrée ». Impossible une fois la commande « clôturée ». *(Stories : SCRUM-67, 73)* | 2026-11-08 |
+| R5 | Mobile : PWA ou application dédiée ? | PWA (site installable sur le téléphone, responsive), pas d'application native. Raison : une seule base de code, livrable dans les délais. *(Story : SCRUM-88)* | 2026-11-08 |
+| R6 | Notifications WhatsApp / Messenger : incluses ou non ? | Canaux de base : notifications dans l'application + e-mail. WhatsApp : option prévue au dernier sprint, avec repli automatique sur l'e-mail si l'envoi échoue. Messenger : hors périmètre, documenté comme évolution possible. *(Story : SCRUM-62)* | 2026-11-08 |
