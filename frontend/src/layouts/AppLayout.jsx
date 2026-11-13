@@ -1,18 +1,11 @@
-import { Link, Outlet, useNavigate } from 'react-router'
+import { Link, Outlet } from 'react-router'
+import LogoutButton from '@/components/LogoutButton'
 import { selectRole, selectUser, useAuthStore } from '@/stores/auth'
-import { PATHS } from '@/router/paths'
 import { ROLE_LABELS, landingPathFor } from '@/utils/roles'
 
 export default function AppLayout() {
   const user = useAuthStore(selectUser)
   const role = useAuthStore(selectRole)
-  const logout = useAuthStore((state) => state.logout)
-  const navigate = useNavigate()
-
-  async function handleLogout() {
-    await logout()
-    navigate(PATHS.login)
-  }
 
   return (
     <div className="min-h-screen">
@@ -28,9 +21,7 @@ export default function AppLayout() {
               <p className="font-medium">{user?.name}</p>
               <p className="text-slate-500">{ROLE_LABELS[role]}</p>
             </div>
-            <button type="button" className="btn-ghost" onClick={handleLogout}>
-              Déconnexion
-            </button>
+            <LogoutButton />
           </div>
         </div>
       </header>
