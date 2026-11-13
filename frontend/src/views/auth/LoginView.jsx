@@ -86,7 +86,12 @@ export default function LoginView() {
           </button>
         </form>
 
-        {/* "Mot de passe oublié" et "S'inscrire" arrivent en S1 (SCRUM-21 à SCRUM-26) */}
+        <p className="mt-6 text-center text-sm text-slate-600">
+          Pas encore de compte ?{' '}
+          <Link to={PATHS.registerChoice} className="font-medium text-brand-600 hover:underline">
+            Inscrire mon entreprise
+          </Link>
+        </p>
       </div>
     </div>
   )

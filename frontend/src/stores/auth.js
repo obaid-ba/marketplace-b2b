@@ -34,6 +34,15 @@ export const useAuthStore = create((set, get) => ({
     return data.user
   },
 
+  /**
+   * Inscription d'un fournisseur (multipart : compte, entreprise, justificatifs).
+   * Le compte n'est pas connecté automatiquement : l'e-mail doit être vérifié.
+   */
+  async registerSupplier(payload) {
+    const { data } = await http.post('/auth/register/supplier', payload)
+    return data
+  },
+
   async logout() {
     try {
       await http.post('/auth/logout')

@@ -72,6 +72,17 @@ export const createRoutes = () => [
       // Pages publiques
       { path: PATHS.home, lazy: page(() => import('@/views/HomeView')) },
       { path: PATHS.login, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/LoginView')) },
+      {
+        path: PATHS.registerChoice,
+        loader: guard({ guest: true }),
+        lazy: page(() => import('@/views/auth/RegisterTypeView')),
+      },
+      {
+        path: PATHS.registerBuyer,
+        loader: guard({ guest: true }),
+        lazy: page(() => import('@/views/auth/BuyerRegistrationPlaceholder')),
+      },
+      { path: PATHS.register, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/RegisterView')) },
 
       // Vérification de l'adresse e-mail (SCRUM-24)
       {

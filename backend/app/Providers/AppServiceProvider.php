@@ -5,9 +5,9 @@ namespace App\Providers;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +27,11 @@ class AppServiceProvider extends ServiceProvider
         // 5 tentatives de connexion par minute et par couple e-mail + IP.
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)->by(strtolower((string) $request->input('email')).'|'.$request->ip());
+        });
+
+        // Inscriptions : protège la création de comptes et l'envoi d'e-mails.
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
         });
 
         // « Renvoyer le lien » : une fois par minute et par utilisateur.
