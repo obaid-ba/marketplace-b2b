@@ -25,6 +25,7 @@
   --color-info-soft: #e5f4fc;
   --color-accent: #b4540f; /* texte du badge « En attente » */
   --color-accent-soft: #fff0e6;
+  --color-accent-strong: #f58a3d; /* orange vif : étape « en cours », coches du panneau d'authentification */
   --color-danger: #e5484d; /* badge « Refusé », erreurs */
   --color-danger-soft: #fdecec;
 }

@@ -108,18 +108,22 @@ export const createRoutes = () => [
       },
       { path: PATHS.verifyEmail, loader: verifyEmailLoader, lazy: page(() => import('@/views/auth/EmailVerifiedView')) },
 
+      // Compte fournisseur en attente de validation (SCRUM-27) : hors de l'espace fournisseur,
+      // dans la mise en page d'authentification (maquette A5). Réservé à un fournisseur non validé.
+      {
+        path: PATHS.supplierPending,
+        loader: supplierOnly(true),
+        lazy: page(() => import('@/views/supplier/PendingAccountPage')),
+      },
+
       // Espaces par rôle
       space(
         PATHS.supplier,
         ROLES.SUPPLIER,
         () => import('@/views/supplier/SupplierDashboard'),
         [
-          {
-            path: PATHS.supplierPending,
-            loader: supplierOnly(true),
-            handle: { crumb: 'Compte en attente' },
-            lazy: page(() => import('@/views/supplier/SupplierPendingView')),
-          },
+          // Pages de vente à venir (produits F07, devis F13…) : leur ajouter loader: supplierOnly(false)
+          // pour renvoyer un fournisseur non validé vers « Compte en attente » (SCRUM-27).
           // Profil de l'entreprise (SCRUM-28) : ouvert aussi à un fournisseur pas encore validé,
           // qui peut compléter son profil sans pouvoir le publier.
           {

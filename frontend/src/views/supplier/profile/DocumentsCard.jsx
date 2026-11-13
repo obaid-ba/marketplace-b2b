@@ -1,17 +1,7 @@
 import { useRef, useState } from 'react'
 import StatusBadge from '@/components/StatusBadge'
+import { DOCUMENT_ACCEPT, DOCUMENT_TYPES, documentFileError } from '@/utils/supplierDocuments'
 import { FieldError, inputClass } from './Field'
-
-// Mêmes valeurs que SupplierDocument::TYPE_* côté Laravel.
-const DOCUMENT_TYPES = [
-  { value: 'registre de commerce', label: 'Registre de commerce' },
-  { value: 'attestation fiscale', label: 'Attestation fiscale' },
-  { value: 'cin gerant', label: 'CIN du gérant' },
-  { value: 'certification', label: 'Certification' },
-]
-
-const ACCEPTED = 'application/pdf,image/jpeg,image/png'
-const MAX_BYTES = 5 * 1024 * 1024
 
 /**
  * Documents justificatifs : liste + statut par document, et ajout d'un document
@@ -34,12 +24,9 @@ export default function DocumentsCard({ documents, adding, errors, onAdd, onOpen
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    if (!ACCEPTED.split(',').includes(file.type)) {
-      onLocalError({ file: ['Le document doit être un PDF ou une image (JPG, PNG).'] })
-      return
-    }
-    if (file.size > MAX_BYTES) {
-      onLocalError({ file: ['Le document ne doit pas dépasser 5 Mo.'] })
+    const fileError = documentFileError(file)
+    if (fileError) {
+      onLocalError({ file: [fileError] })
       return
     }
     const added = await onAdd(type, file)
@@ -116,7 +103,7 @@ export default function DocumentsCard({ documents, adding, errors, onAdd, onOpen
       <input
         ref={input}
         type="file"
-        accept={ACCEPTED}
+        accept={DOCUMENT_ACCEPT}
         className="sr-only"
         aria-label="Choisir un document"
         onChange={handleChange}
