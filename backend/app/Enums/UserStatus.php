@@ -4,7 +4,13 @@ namespace App\Enums;
 
 enum UserStatus: string
 {
-    case Active = 'active';
-    case Suspended = 'suspended';
-    case Deactivated = 'deactivated';
+    case EMAIL_TO_VERIFY = 'e-mail à vérifier';
+    case ACTIVE = 'actif';
+    case SUSPENDED = 'suspendu';
+    case DEACTIVATED = 'désactivé';
+
+    public static function values(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
 }

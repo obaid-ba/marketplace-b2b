@@ -11,7 +11,7 @@ export const useAuthStore = create((set, get) => ({
   token: tokenStorage.get(),
   loaded: false,
 
-  /** Charge l'utilisateur à partir du jeton enregistré (appelé une fois au démarrage). */
+  /** Charge l'utilisateur à partir du jeton enregistré (au démarrage, ou pour rafraîchir son état). */
   async fetchMe() {
     if (!get().token) {
       set({ loaded: true })
@@ -27,11 +27,31 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  async login(email, password) {
-    const { data } = await http.post('/auth/login', { email, password, device_name: 'web' })
-    tokenStorage.set(data.token)
+  /** remember = « Se souvenir de moi » : session plus longue et jeton conservé après fermeture du navigateur. */
+  async login(email, password, remember = false) {
+    const { data } = await http.post('/auth/login', { email, password, remember, device_name: 'web' })
+    tokenStorage.set(data.token, remember)
     set({ token: data.token, user: data.user, loaded: true })
     return data.user
+  },
+
+  /**
+   * Inscription d'un fournisseur (multipart : compte, entreprise, justificatifs).
+   * Le compte n'est pas connecté automatiquement : l'e-mail doit être vérifié.
+   */
+  async registerSupplier(payload) {
+    const { data } = await http.post('/auth/register/supplier', payload)
+    return data
+  },
+
+  /**
+   * Inscription d'un porteur de projet (JSON : compte + profil acheteur).
+   * Le compte n'est pas connecté automatiquement : l'e-mail doit être vérifié,
+   * puis il devient actif sans validation administrateur.
+   */
+  async registerBuyer(payload) {
+    const { data } = await http.post('/auth/register/buyer', payload)
+    return data
   },
 
   async logout() {
@@ -40,6 +60,11 @@ export const useAuthStore = create((set, get) => ({
     } finally {
       get().clear()
     }
+  },
+
+  /** Met à jour l'utilisateur connecté (ex. après la vérification de son e-mail). */
+  setUser(user) {
+    set({ user })
   },
 
   clear() {

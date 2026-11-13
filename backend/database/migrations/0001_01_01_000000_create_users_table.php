@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\UserStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -12,15 +13,15 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('phone', 30)->nullable();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->string('phone')->nullable();
             $table->string('password');
-            $table->string('role', 20)->index();                    // supplier | buyer | admin
-            $table->string('status', 20)->default('active')->index(); // active | suspended | deactivated
+            $table->enum('role', ['supplier', 'buyer', 'admin'])->default('buyer')->index();
+            $table->enum('status', UserStatus::values())->default(UserStatus::EMAIL_TO_VERIFY->value)->index();
+            $table->timestamp('email_verified_at')->nullable();
             $table->timestamp('last_login_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
-            $table->softDeletes();
+            $table->softDeletes(); // Règle #3 : Suppression douce sur users
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

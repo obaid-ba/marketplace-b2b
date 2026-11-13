@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\EnsureSupplierIsValidated;
 use App\Http\Middleware\EnsureUserHasRole;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -16,8 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Usage dans les routes : ->middleware('role:supplier') ou 'role:admin,buyer'
+        // 'supplier.validated' : pages de vente réservées aux fournisseurs validés (SCRUM-27).
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
+            'verified' => EnsureEmailIsVerified::class,
+            'supplier.validated' => EnsureSupplierIsValidated::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
