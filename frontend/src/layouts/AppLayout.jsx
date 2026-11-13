@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router'
 import LogoutButton from '@/components/LogoutButton'
+import { PATHS } from '@/router/paths'
 import { selectRole, selectUser, useAuthStore } from '@/stores/auth'
 import { ROLE_LABELS, landingPathFor } from '@/utils/roles'
 
@@ -21,6 +22,9 @@ export default function AppLayout() {
               <p className="font-medium">{user?.name}</p>
               <p className="text-slate-500">{ROLE_LABELS[role]}</p>
             </div>
+            <Link to={PATHS.account} className="btn-ghost">
+              Paramètres
+            </Link>
             <LogoutButton />
           </div>
         </div>

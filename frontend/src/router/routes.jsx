@@ -100,6 +100,17 @@ export const createRoutes = () => [
       },
       { path: PATHS.verifyEmail, loader: verifyEmailLoader, lazy: page(() => import('@/views/auth/EmailVerifiedView')) },
 
+      // Paramètres du compte (SCRUM-30) : désactivation ou suppression, ouvertes à
+      // tout utilisateur connecté, y compris tant que l'e-mail reste à vérifier.
+      {
+        path: PATHS.account,
+        loader: guard({ authenticated: true }),
+        lazy: page(() => import('@/layouts/AppLayout')),
+        children: [
+          { index: true, lazy: page(() => import('@/views/account/AccountSettingsView')) },
+        ],
+      },
+
       // Espaces par rôle
       space(PATHS.supplier, ROLES.SUPPLIER, () => import('@/views/supplier/SupplierDashboard'), [
         {

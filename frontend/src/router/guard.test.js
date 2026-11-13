@@ -14,6 +14,7 @@ const supplierDashboard = { roles: ['supplier'], supplierPending: false }
 const supplierPendingPage = { roles: ['supplier'], supplierPending: true }
 const buyerOnly = { roles: ['buyer'] }
 const guestOnly = { guest: true }
+const authenticatedOnly = { authenticated: true }
 const unverifiedOnly = { unverified: true }
 
 describe('resolveAccess', () => {
@@ -24,6 +25,13 @@ describe('resolveAccess', () => {
 
   it('renvoie un visiteur vers la connexion en gardant la page demandée', () => {
     expect(resolveAccess('/fournisseur', supplierOnly, guest)).toBe('/connexion?redirect=%2Ffournisseur')
+  })
+
+  it('ouvre une page connectée à un utilisateur dont l’e-mail reste à vérifier', () => {
+    expect(resolveAccess('/parametres', authenticatedOnly, buyer)).toBe(true)
+    expect(resolveAccess('/parametres', authenticatedOnly, unverifiedBuyer)).toBe(true)
+    expect(resolveAccess('/parametres', authenticatedOnly, pendingSupplier)).toBe(true)
+    expect(resolveAccess('/parametres', authenticatedOnly, guest)).toBe('/connexion?redirect=%2Fparametres')
   })
 
   it('autorise le bon rôle et refuse les autres', () => {

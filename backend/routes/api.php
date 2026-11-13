@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\EmailVerificationController;
@@ -52,6 +53,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/email/resend', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:verification-resend');
+
+    // Désactivation et suppression du compte (SCRUM-30) : confirmation par mot de passe,
+    // révocation de tous les jetons Sanctum. La suppression est douce (historique conservé).
+    Route::post('/account/deactivate', [AccountController::class, 'deactivate'])
+        ->middleware('throttle:6,1');
+    Route::delete('/account', [AccountController::class, 'destroy'])
+        ->middleware('throttle:6,1');
 });
 
 // Espaces métier : connecté ET adresse e-mail vérifiée.

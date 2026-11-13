@@ -5,18 +5,23 @@ import { PATHS, loginPath } from './paths'
  * Règles d'accès aux pages, séparées du routeur pour être testées facilement.
  *
  * access.guest           : page réservée aux visiteurs non connectés (connexion, inscription)
+ * access.authenticated   : page réservée à tout utilisateur connecté, même si son e-mail reste à vérifier
  * access.unverified      : page réservée à un utilisateur connecté dont l'e-mail reste à vérifier
  * access.roles           : liste des rôles autorisés ; implique d'être connecté avec un e-mail vérifié
  * access.supplierPending : page « Compte en attente de validation » (fournisseur pas encore validé)
  *
  * @param {string} fullPath  adresse demandée (chemin + paramètres)
- * @param {{ guest?: boolean, unverified?: boolean, roles?: string[], supplierPending?: boolean }} access
+ * @param {{ guest?: boolean, authenticated?: boolean, unverified?: boolean, roles?: string[], supplierPending?: boolean }} access
  * @param {object | null} user  utilisateur connecté (réponse de /auth/me) ou null
  * @returns true pour laisser passer, ou l'adresse vers laquelle rediriger
  */
 export function resolveAccess(fullPath, access, user) {
   if (access?.guest) {
     return user ? landingPathFor(user) : true
+  }
+
+  if (access?.authenticated) {
+    return user ? true : loginPath(fullPath)
   }
 
   if (access?.unverified) {

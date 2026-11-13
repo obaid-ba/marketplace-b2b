@@ -82,6 +82,13 @@ describe('routes', () => {
     visit('/nimporte-quoi')
     expect(await screen.findByText('Page introuvable')).toBeTruthy()
   })
+
+  it('ouvre les paramètres du compte à un utilisateur connecté', async () => {
+    signIn({ name: 'Karim', role: 'buyer' })
+    visit('/parametres')
+    expect(await screen.findByRole('heading', { name: 'Paramètres du compte' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Supprimer mon compte' })).toBeTruthy()
+  })
 })
 
 describe('vérification de l’e-mail (SCRUM-24)', () => {
