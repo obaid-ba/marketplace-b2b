@@ -53,6 +53,7 @@ class SupplierProfileFactory extends Factory
         return $this->state(fn () => [
             'validation_status' => ValidationStatus::REJECTED,
             'rejection_reason' => 'Registre de commerce illisible.',
+            'validated_at' => now(), // date de la décision de l'administrateur (validation ou refus)
             'is_published' => false,
         ]);
     }

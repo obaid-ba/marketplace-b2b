@@ -135,6 +135,9 @@ describe('vérification de l’e-mail (SCRUM-24)', () => {
 
   it('fournisseur en attente : le tableau de bord renvoie vers « Compte en attente de validation »', async () => {
     signIn({ name: 'Amel', role: 'supplier', supplier_validation_status: 'en attente' })
+    vi.mocked(http.get).mockResolvedValue({
+      data: { status: 'en attente', rejection_reason: null, steps: {}, is_published: false, documents: [] },
+    })
     visit('/fournisseur')
     expect(await screen.findByRole('heading', { name: 'Compte en attente de validation' })).toBeTruthy()
   })

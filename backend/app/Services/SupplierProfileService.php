@@ -94,18 +94,46 @@ class SupplierProfileService
         $path = $file->store("supplier-documents/{$profile->id}", self::DOCUMENT_DISK);
 
         try {
-            // Un nouveau document est toujours « en attente » : seul l'admin le valide.
-            return $profile->documents()->create([
-                'type' => $type,
-                'file_path' => $path,
-                'status' => ValidationStatus::PENDING,
-                'submitted_at' => now(),
-            ]);
+            return DB::transaction(function () use ($profile, $type, $path) {
+                // Un nouveau document est toujours « en attente » : seul l'admin le valide.
+                $document = $profile->documents()->create([
+                    'type' => $type,
+                    'file_path' => $path,
+                    'status' => ValidationStatus::PENDING,
+                    'submitted_at' => now(),
+                ]);
+
+                $this->resubmitIfRejected($profile);
+
+                return $document;
+            });
         } catch (Throwable $exception) {
             Storage::disk(self::DOCUMENT_DISK)->delete($path);
 
             throw $exception;
         }
+    }
+
+    /**
+     * Dossier refusé + nouveau justificatif envoyé : le dossier repasse « en attente » (SCRUM-27).
+     * L'ancienne décision (motif, auteur, date) est effacée ; les anciens documents restent
+     * dans l'historique avec leur statut. Un dossier en attente ou validé n'est pas modifié.
+     */
+    private function resubmitIfRejected(SupplierProfile $profile): void
+    {
+        if ($profile->validation_status !== ValidationStatus::REJECTED) {
+            return;
+        }
+
+        $profile->forceFill([
+            'validation_status' => ValidationStatus::PENDING,
+            'rejection_reason' => null,
+            'validated_by' => null,
+            'validated_at' => null,
+        ])->save();
+
+        // TODO SCRUM-99 : prévenir les administrateurs qu'un dossier refusé a été renvoyé
+        // (notification + entrée dans audit_logs une fois le modèle créé avec la validation admin).
     }
 
     /**

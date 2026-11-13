@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
 use App\Http\Controllers\Api\Supplier\SupplierProfileController;
+use App\Http\Controllers\Api\Supplier\SupplierValidationStatusController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -71,6 +72,17 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/documents', [SupplierDocumentController::class, 'store']);
         Route::get('/documents/{document}/download', [SupplierDocumentController::class, 'download'])
             ->whereNumber('document');
+
+        // État du dossier (SCRUM-27) : ouvert aussi à un fournisseur en attente ou refusé.
+        Route::get('/validation-status', [SupplierValidationStatusController::class, 'show']);
+
+        // Pages de vente : réservées aux fournisseurs validés par l'administrateur (SCRUM-27).
+        // Ajoutez ici les routes produits (F07 / SCRUM-34…) et devis (F13 / SCRUM-46…).
+        // Réponse sinon : 403 { "reason": "supplier_not_validated" }.
+        // Restent hors de ce groupe : profil, documents, état du dossier, déconnexion, notifications.
+        Route::middleware('supplier.validated')->group(function () {
+            //
+        });
     });
 
     // Espace porteur de projet (S3+) : demandes, comparaison des devis, commandes…

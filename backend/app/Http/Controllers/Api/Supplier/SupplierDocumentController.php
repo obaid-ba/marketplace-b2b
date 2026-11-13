@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Supplier;
 
+use App\Enums\ValidationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Supplier\StoreSupplierDocumentRequest;
 use App\Http\Resources\SupplierDocumentResource;
@@ -13,7 +14,8 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Documents justificatifs depuis le profil de l'entreprise (SCRUM-28).
+ * Documents justificatifs depuis le profil de l'entreprise (SCRUM-28)
+ * et renvoi de documents après un refus (SCRUM-27).
  */
 class SupplierDocumentController extends Controller
 {
@@ -25,6 +27,8 @@ class SupplierDocumentController extends Controller
         abort_if($profile === null, 404, 'Profil fournisseur introuvable.');
         Gate::authorize('update', $profile);
 
+        $wasRejected = $profile->validation_status === ValidationStatus::REJECTED;
+
         $document = $this->service->addDocument(
             $profile,
             $request->string('type')->toString(),
@@ -32,8 +36,12 @@ class SupplierDocumentController extends Controller
         );
 
         return response()->json([
-            'message' => 'Document ajouté. Il sera vérifié par un administrateur.',
+            'message' => $wasRejected
+                ? "Document envoyé. Votre dossier repasse en cours d'examen."
+                : 'Document ajouté. Il sera vérifié par un administrateur.',
             'document' => new SupplierDocumentResource($document),
+            // Dossier refusé : repasse « en attente » après l'envoi (SCRUM-27).
+            'validation_status' => $profile->validation_status->value,
         ], 201);
     }
 
