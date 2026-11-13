@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Resources\UserResource;
@@ -12,8 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Base de l'authentification (S0).
- * Inscription et mot de passe oublié arrivent en S1 (SCRUM-21 à SCRUM-26).
+ * Connexion, utilisateur connecté et déconnexion (SCRUM-25).
  * Un compte dont l'e-mail reste à vérifier peut se connecter (pour redemander le lien),
  * mais n'accède pas aux espaces métier (middleware "verified", SCRUM-24).
  */
@@ -23,26 +23,49 @@ class AuthController extends Controller
     {
         $user = User::where('email', strtolower($request->input('email')))->first();
 
+        // Même message que l'e-mail existe ou non : on ne révèle pas quels comptes existent.
         if (! $user || ! Hash::check($request->input('password'), $user->password)) {
             throw ValidationException::withMessages([
-                'email' => 'Identifiants incorrects.',
+                'email' => 'Adresse e-mail ou mot de passe incorrect.',
             ]);
         }
 
         if ($user->isBlocked()) {
             return response()->json([
-                'message' => 'Ce compte est suspendu ou désactivé.',
+                'message' => $user->status === UserStatus::SUSPENDED
+                    ? "Votre compte a été suspendu. Contactez l'administrateur de la plateforme pour en savoir plus."
+                    : "Ce compte a été désactivé. Contactez l'administrateur de la plateforme pour le réactiver.",
+                'reason' => $user->status === UserStatus::SUSPENDED ? 'suspended' : 'deactivated',
             ], 403);
         }
 
         $user->forceFill(['last_login_at' => now()])->save();
 
-        $token = $user->createToken($request->input('device_name', 'web'))->plainTextToken;
+        $token = $user->createToken(
+            $request->input('device_name', 'web'),
+            expiresAt: $this->tokenExpiry($request->boolean('remember')),
+        )->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'user' => new UserResource($user->load('supplierProfile')),
         ]);
+    }
+
+    /**
+     * « Se souvenir de moi » : la session dure jusqu'à la limite des jetons (sanctum.expiration, 7 jours).
+     * Sinon elle s'arrête après auth.login.session_hours heures (le front garde aussi le jeton
+     * en sessionStorage, effacé à la fermeture du navigateur).
+     */
+    private function tokenExpiry(bool $remember): ?\DateTimeInterface
+    {
+        if ($remember) {
+            $minutes = config('sanctum.expiration');
+
+            return $minutes ? now()->addMinutes((int) $minutes) : null;
+        }
+
+        return now()->addHours((int) config('auth.login.session_hours', 12));
     }
 
     public function me(Request $request): UserResource
