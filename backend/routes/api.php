@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\EmailVerificationController;
@@ -93,5 +94,16 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Back-office (S1+) : validation des fournisseurs, catégories, litiges…
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/ping', fn () => ['space' => 'admin']);
+
+        // Validation ou refus des nouveaux fournisseurs (SCRUM-31).
+        Route::get('/suppliers', [SupplierValidationController::class, 'index']);
+        Route::get('/suppliers/{supplier}', [SupplierValidationController::class, 'show'])
+            ->whereNumber('supplier');
+        Route::get('/suppliers/documents/{document}/download', [SupplierValidationController::class, 'downloadDocument'])
+            ->whereNumber('document');
+        Route::post('/suppliers/{supplier}/approve', [SupplierValidationController::class, 'approve'])
+            ->whereNumber('supplier');
+        Route::post('/suppliers/{supplier}/reject', [SupplierValidationController::class, 'reject'])
+            ->whereNumber('supplier');
     });
 });

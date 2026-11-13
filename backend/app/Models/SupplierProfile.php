@@ -100,4 +100,12 @@ class SupplierProfile extends Model
     {
         return $this->belongsToMany(Region::class, 'supplier_coverage_region', 'supplier_id', 'region_id');
     }
+
+    /**
+     * Administrateur ayant validé ou refusé le profil.
+     */
+    public function validator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validated_by');
+    }
 }
