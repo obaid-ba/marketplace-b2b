@@ -14,69 +14,26 @@ use Illuminate\Support\Facades\Hash;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Laissez à false pour garder les 33 tables vides au démarrage.
+     * Laissez à false pour garder les tables métier vides au démarrage.
      * Passez à true pour insérer les données de test Jira (96+ lignes).
+     * Les données de référence (régions, catégories) sont toujours insérées :
+     * les formulaires d'inscription ne fonctionnent pas sans elles.
      */
     public const SEED_DEMO_DATA = false;
 
     public function run(): void
     {
+        $now = now();
+
+        // Données de référence. Idempotent : un second `db:seed` ne crée pas de doublons.
+        $regionIds = $this->seedRegions($now);
+        $subCategoryIds = $this->seedCategories($now);
+
         if (! self::SEED_DEMO_DATA) {
             return;
         }
 
-        $now = now();
         $password = Hash::make('password'); // Règle #7 : mot de passe « password »
-
-        // 1. 24 Gouvernorats réels
-        $regions = [
-            'Ariana', 'Béja', 'Ben Arous', 'Bizerte', 'Gabès', 'Gafsa',
-            'Jendouba', 'Kairouan', 'Kasserine', 'Kébili', 'Le Kef', 'Mahdia',
-            'La Manouba', 'Médenine', 'Monastir', 'Nabeul', 'Sfax', 'Sidi Bouzid',
-            'Siliana', 'Sousse', 'Tataouine', 'Tozeur', 'Tunis', 'Zaghouan',
-        ];
-        $regionIds = [];
-        foreach ($regions as $name) {
-            $regionIds[] = DB::table('regions')->insertGetId([
-                'name' => $name,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-        }
-
-        // 2. 8 Catégories principales + sous-catégories
-        $categoriesTree = [
-            'BTP et matériaux' => ['Ciment et béton', 'Acier et ferraillage', 'Électricité bâtiment', 'Plomberie et sanitaire'],
-            'Informatique' => ['Ordinateurs et serveurs', 'Réseaux et sécurité', 'Développement logiciel', 'Périphériques'],
-            'Fournitures de bureau' => ['Papeterie', 'Mobilier de bureau', 'Consommables impression'],
-            'Agroalimentaire' => ['Matières premières', 'Conditionnement alimentaire', 'Produits laitiers et dérivés'],
-            'Textile' => ['Tissus industriels', 'Vêtements de travail et EPI', 'Accessoires textiles'],
-            'Services' => ['Comptabilité et audit', 'Conseil juridique', 'Nettoyage et gardiennage', 'Formation'],
-            'Équipements industriels' => ['Machines-outils', 'Pièces de rechange', 'Maintenance industrielle'],
-            'Logistique et transport' => ['Transport routier', 'Entreposage', 'Manutention et levage'],
-        ];
-
-        $subCategoryIds = [];
-        $pos = 1;
-        foreach ($categoriesTree as $parentName => $children) {
-            $parentId = DB::table('categories')->insertGetId([
-                'parent_id' => null,
-                'name' => $parentName,
-                'position' => $pos++,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-            $subPos = 1;
-            foreach ($children as $childName) {
-                $subCategoryIds[] = DB::table('categories')->insertGetId([
-                    'parent_id' => $parentId,
-                    'name' => $childName,
-                    'position' => $subPos++,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            }
-        }
 
         // 3. Administrateur (admin@marketplace.test)
         $adminId = DB::table('users')->insertGetId([
@@ -228,5 +185,83 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+    }
+
+    /**
+     * Les 24 gouvernorats tunisiens. Ne réinsère rien si les régions existent déjà.
+     *
+     * @return list<int>
+     */
+    private function seedRegions(\DateTimeInterface $now): array
+    {
+        if (DB::table('regions')->exists()) {
+            return DB::table('regions')->pluck('id')->all();
+        }
+
+        $regions = [
+            'Ariana', 'Béja', 'Ben Arous', 'Bizerte', 'Gabès', 'Gafsa',
+            'Jendouba', 'Kairouan', 'Kasserine', 'Kébili', 'Le Kef', 'Mahdia',
+            'La Manouba', 'Médenine', 'Monastir', 'Nabeul', 'Sfax', 'Sidi Bouzid',
+            'Siliana', 'Sousse', 'Tataouine', 'Tozeur', 'Tunis', 'Zaghouan',
+        ];
+
+        $regionIds = [];
+        foreach ($regions as $name) {
+            $regionIds[] = DB::table('regions')->insertGetId([
+                'name' => $name,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        return $regionIds;
+    }
+
+    /**
+     * Catégories principales et sous-catégories utilisées par les formulaires.
+     * Ne réinsère rien si des catégories existent déjà.
+     *
+     * @return list<int>
+     */
+    private function seedCategories(\DateTimeInterface $now): array
+    {
+        if (DB::table('categories')->exists()) {
+            return DB::table('categories')->whereNotNull('parent_id')->pluck('id')->all();
+        }
+
+        $categoriesTree = [
+            'BTP et matériaux' => ['Ciment et béton', 'Acier et ferraillage', 'Électricité bâtiment', 'Plomberie et sanitaire'],
+            'Informatique' => ['Ordinateurs et serveurs', 'Réseaux et sécurité', 'Développement logiciel', 'Périphériques'],
+            'Fournitures de bureau' => ['Papeterie', 'Mobilier de bureau', 'Consommables impression'],
+            'Agroalimentaire' => ['Matières premières', 'Conditionnement alimentaire', 'Produits laitiers et dérivés'],
+            'Textile' => ['Tissus industriels', 'Vêtements de travail et EPI', 'Accessoires textiles'],
+            'Services' => ['Comptabilité et audit', 'Conseil juridique', 'Nettoyage et gardiennage', 'Formation'],
+            'Équipements industriels' => ['Machines-outils', 'Pièces de rechange', 'Maintenance industrielle'],
+            'Logistique et transport' => ['Transport routier', 'Entreposage', 'Manutention et levage'],
+        ];
+
+        $subCategoryIds = [];
+        $pos = 1;
+        foreach ($categoriesTree as $parentName => $children) {
+            $parentId = DB::table('categories')->insertGetId([
+                'parent_id' => null,
+                'name' => $parentName,
+                'position' => $pos++,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $subPos = 1;
+            foreach ($children as $childName) {
+                $subCategoryIds[] = DB::table('categories')->insertGetId([
+                    'parent_id' => $parentId,
+                    'name' => $childName,
+                    'position' => $subPos++,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
+
+        return $subCategoryIds;
     }
 }

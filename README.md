@@ -27,11 +27,13 @@ cd backend
 composer install
 cp .env.example .env          # puis renseigner DB_DATABASE, DB_USERNAME, DB_PASSWORD
 php artisan key:generate
-php artisan migrate --seed    # crée les tables et les comptes de démonstration
+php artisan migrate --seed    # crée les tables, les régions et les catégories
 php artisan serve             # http://localhost:8000
 ```
 
 Créez d'abord la base vide : `CREATE DATABASE marketplace_b2b CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
+
+Le seeder insère toujours les données de référence (24 régions, catégories) nécessaires aux formulaires. Les comptes de démonstration ne sont créés que si `DatabaseSeeder::SEED_DEMO_DATA` passe à `true`.
 
 ### 2. Application web (frontend)
 
