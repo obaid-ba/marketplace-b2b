@@ -23,8 +23,11 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $fillable = [
         'name',
+        'first_name',
+        'last_name',
         'email',
         'phone',
+        'avatar',
         'password',
         'role',
         'status',
@@ -56,6 +59,12 @@ class User extends Authenticatable implements MustVerifyEmail
     public function supplierProfile(): HasOne
     {
         return $this->hasOne(SupplierProfile::class);
+    }
+
+    /** @return HasOne<BuyerProfile, $this> */
+    public function buyerProfile(): HasOne
+    {
+        return $this->hasOne(BuyerProfile::class);
     }
 
     public function hasRole(UserRole $role): bool

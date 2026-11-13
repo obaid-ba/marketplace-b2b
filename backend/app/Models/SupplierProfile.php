@@ -16,10 +16,25 @@ class SupplierProfile extends Model
     protected $fillable = [
         'user_id',
         'company_name',
+        'legal_form',
+        'tax_id',
+        'rne_number',
+        'founded_year',
+        'employees_count',
         'logo',
         'description',
         'sector',
         'region_id',
+        'address',
+        'city',
+        'website',
+        'professional_email',
+        'professional_phone',
+        'contact_name',
+        'contact_role',
+        'contact_phone',
+        'delivery_days',
+        'payment_terms',
         'contact',
         'is_published',
         'validation_status',
@@ -47,6 +62,14 @@ class SupplierProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Région du siège.
+     */
+    public function region(): BelongsTo
+    {
+        return $this->belongsTo(Region::class);
     }
 
     /**

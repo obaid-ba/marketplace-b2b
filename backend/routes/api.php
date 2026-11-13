@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
@@ -23,6 +24,10 @@ Route::post('/auth/register/supplier', [SupplierRegistrationController::class, '
     ->middleware('throttle:register');
 Route::post('/auth/register/supplier/check-email', [SupplierRegistrationController::class, 'checkEmail'])
     ->middleware('throttle:30,1');
+
+// Inscription porteur de projet (SCRUM-23).
+Route::post('/auth/register/buyer', [BuyerRegistrationController::class, 'store'])
+    ->middleware('throttle:register');
 
 // Lien reçu par e-mail : pas besoin d'être connecté, la signature du lien suffit (SCRUM-24).
 Route::get('/auth/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])

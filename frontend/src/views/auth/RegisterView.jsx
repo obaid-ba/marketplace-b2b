@@ -14,14 +14,39 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png']
 
 const EMPTY_FORM = {
+  first_name: '',
+  last_name: '',
   email: '',
+  phone: '',
   password: '',
   password_confirmation: '',
   company_name: '',
+  legal_form: '',
+  tax_id: '',
+  rne_number: '',
   sector: '',
+  description: '',
   region_id: '',
+  address: '',
+  city: '',
+  contact_name: '',
+  contact_role: '',
+  contact_phone: '',
   coverage_regions: [],
   categories: [],
+}
+
+const LEGAL_FORMS = [
+  'personne physique',
+  'SARL',
+  'SUARL',
+  'SA',
+  'auto-entrepreneur',
+  'coopérative',
+]
+
+function phoneIsValid(value) {
+  return /^\d{8}$/.test(value.replace(/\s/g, ''))
 }
 
 function emailIsValid(value) {
@@ -47,10 +72,27 @@ function fileError(file) {
 function stepForErrors(errors) {
   const keys = Object.keys(errors)
 
-  if (keys.some((key) => ['email', 'password', 'password_confirmation'].includes(key))) return 1
+  if (keys.some((key) => ['first_name', 'last_name', 'email', 'phone', 'password', 'password_confirmation'].includes(key))) {
+    return 1
+  }
   if (
     keys.some((key) =>
-      ['company_name', 'sector', 'region_id', 'coverage_regions', 'categories'].includes(key) ||
+      [
+        'company_name',
+        'legal_form',
+        'tax_id',
+        'rne_number',
+        'sector',
+        'description',
+        'region_id',
+        'address',
+        'city',
+        'contact_name',
+        'contact_role',
+        'contact_phone',
+        'coverage_regions',
+        'categories',
+      ].includes(key) ||
       key.startsWith('coverage_regions.') ||
       key.startsWith('categories.'),
     )
@@ -70,6 +112,8 @@ export default function RegisterView() {
   const [referencesLoading, setReferencesLoading] = useState(true)
   const [referencesError, setReferencesError] = useState('')
   const [commercialRegister, setCommercialRegister] = useState(null)
+  const [taxCertificate, setTaxCertificate] = useState(null)
+  const [managerId, setManagerId] = useState(null)
   const [certifications, setCertifications] = useState([])
   const [emailStatus, setEmailStatus] = useState(null)
   const [fieldErrors, setFieldErrors] = useState({})
@@ -154,8 +198,17 @@ export default function RegisterView() {
   function validateStepOne() {
     const errors = {}
 
+    if (!form.first_name.trim()) {
+      errors.first_name = ['Le prénom est obligatoire.']
+    }
+    if (!form.last_name.trim()) {
+      errors.last_name = ['Le nom est obligatoire.']
+    }
     if (!emailIsValid(form.email)) {
       errors.email = ['Saisissez une adresse e-mail valide.']
+    }
+    if (!phoneIsValid(form.phone)) {
+      errors.phone = ['Le téléphone doit contenir 8 chiffres (préfixe +216).']
     }
     if (!form.password) {
       errors.password = ['Le mot de passe est obligatoire.']
@@ -175,8 +228,25 @@ export default function RegisterView() {
     const errors = {}
 
     if (!form.company_name.trim()) errors.company_name = ["Le nom de l'entreprise est obligatoire."]
+    if (!form.legal_form) errors.legal_form = ['La forme juridique est obligatoire.']
+    if (!form.tax_id.trim()) errors.tax_id = ['Le matricule fiscal est obligatoire.']
+    if (!form.rne_number.trim()) errors.rne_number = ['Le numéro RNE est obligatoire.']
     if (!form.sector.trim()) errors.sector = ['Le secteur d’activité est obligatoire.']
+    if (!form.description.trim()) {
+      errors.description = ["La description de l'entreprise est obligatoire."]
+    }
     if (!form.region_id) errors.region_id = ['Sélectionnez la région du siège.']
+    if (!form.address.trim()) errors.address = ["L'adresse est obligatoire."]
+    if (!form.city.trim()) errors.city = ['La ville (délégation) est obligatoire.']
+    if (!form.contact_name.trim()) {
+      errors.contact_name = ['Le nom de la personne de contact est obligatoire.']
+    }
+    if (!form.contact_role.trim()) {
+      errors.contact_role = ['La fonction de la personne de contact est obligatoire.']
+    }
+    if (!form.contact_phone.trim()) {
+      errors.contact_phone = ['Le téléphone de la personne de contact est obligatoire.']
+    }
     if (!form.coverage_regions.length) errors.coverage_regions = ['Sélectionnez au moins une zone couverte.']
     if (!form.categories.length) errors.categories = ['Sélectionnez au moins une catégorie proposée.']
 
@@ -191,12 +261,17 @@ export default function RegisterView() {
       : 'Le registre de commerce est obligatoire.'
     if (registerError) errors.commercial_register = [registerError]
 
-    if (!certifications.length) {
-      errors.certifications = ['Ajoutez au moins une certification.']
-    } else {
-      const invalidFile = certifications.map(fileError).find(Boolean)
-      if (invalidFile) errors.certifications = [invalidFile]
-    }
+    const taxError = taxCertificate
+      ? fileError(taxCertificate)
+      : "L'attestation fiscale est obligatoire."
+    if (taxError) errors.tax_certificate = [taxError]
+
+    const managerError = managerId ? fileError(managerId) : 'La CIN du gérant est obligatoire.'
+    if (managerError) errors.manager_id = [managerError]
+
+    // Les certifications sont optionnelles, mais contrôlées si présentes.
+    const invalidFile = certifications.map(fileError).find(Boolean)
+    if (invalidFile) errors.certifications = [invalidFile]
 
     return errors
   }
@@ -232,15 +307,29 @@ export default function RegisterView() {
     setLoading(true)
     try {
       const payload = new FormData()
+      payload.append('first_name', form.first_name.trim())
+      payload.append('last_name', form.last_name.trim())
       payload.append('email', form.email.trim())
+      payload.append('phone', `+216 ${form.phone.replace(/\s/g, '')}`)
       payload.append('password', form.password)
       payload.append('password_confirmation', form.password_confirmation)
       payload.append('company_name', form.company_name.trim())
+      payload.append('legal_form', form.legal_form)
+      payload.append('tax_id', form.tax_id.trim())
+      payload.append('rne_number', form.rne_number.trim())
       payload.append('sector', form.sector.trim())
+      payload.append('description', form.description.trim())
       payload.append('region_id', form.region_id)
+      payload.append('address', form.address.trim())
+      payload.append('city', form.city.trim())
+      payload.append('contact_name', form.contact_name.trim())
+      payload.append('contact_role', form.contact_role.trim())
+      payload.append('contact_phone', form.contact_phone.trim())
       form.coverage_regions.forEach((id) => payload.append('coverage_regions[]', id))
       form.categories.forEach((id) => payload.append('categories[]', id))
       payload.append('commercial_register', commercialRegister)
+      payload.append('tax_certificate', taxCertificate)
+      payload.append('manager_id', managerId)
       certifications.forEach((file) => payload.append('certifications[]', file))
 
       const result = await registerSupplier(payload)
@@ -258,6 +347,16 @@ export default function RegisterView() {
   function handleRegisterFile(event) {
     setCommercialRegister(event.target.files?.[0] ?? null)
     clearFieldError('commercial_register')
+  }
+
+  function handleTaxCertificate(event) {
+    setTaxCertificate(event.target.files?.[0] ?? null)
+    clearFieldError('tax_certificate')
+  }
+
+  function handleManagerId(event) {
+    setManagerId(event.target.files?.[0] ?? null)
+    clearFieldError('manager_id')
   }
 
   function handleCertifications(event) {
@@ -338,6 +437,44 @@ export default function RegisterView() {
         <form className="mt-6 space-y-4" noValidate onSubmit={handleSubmit}>
           {step === 1 && (
             <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="first_name" className="mb-1 block text-sm font-medium">
+                    Prénom
+                  </label>
+                  <input
+                    id="first_name"
+                    type="text"
+                    autoComplete="given-name"
+                    className="input"
+                    required
+                    value={form.first_name}
+                    onChange={update('first_name')}
+                  />
+                  {fieldErrors.first_name && (
+                    <p className="mt-1 text-sm text-red-600">{fieldErrors.first_name[0]}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="last_name" className="mb-1 block text-sm font-medium">
+                    Nom
+                  </label>
+                  <input
+                    id="last_name"
+                    type="text"
+                    autoComplete="family-name"
+                    className="input"
+                    required
+                    value={form.last_name}
+                    onChange={update('last_name')}
+                  />
+                  {fieldErrors.last_name && (
+                    <p className="mt-1 text-sm text-red-600">{fieldErrors.last_name[0]}</p>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label htmlFor="email" className="mb-1 block text-sm font-medium">
                   Adresse e-mail
@@ -368,6 +505,33 @@ export default function RegisterView() {
                   </p>
                 )}
                 {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email[0]}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="mb-1 block text-sm font-medium">
+                  Téléphone
+                </label>
+                <div className="flex items-stretch gap-2">
+                  <span className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">
+                    +216
+                  </span>
+                  <input
+                    id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    className="input"
+                    required
+                    maxLength={8}
+                    placeholder="12 345 678"
+                    value={form.phone}
+                    onChange={update('phone')}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-slate-500">8 chiffres, sans l&apos;indicatif.</p>
+                {fieldErrors.phone && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.phone[0]}</p>
+                )}
               </div>
 
               <div>
@@ -441,6 +605,65 @@ export default function RegisterView() {
                 )}
               </div>
 
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="legal_form" className="mb-1 block text-sm font-medium">
+                    Forme juridique
+                  </label>
+                  <select
+                    id="legal_form"
+                    className="input"
+                    required
+                    value={form.legal_form}
+                    onChange={update('legal_form')}
+                  >
+                    <option value="">Sélectionnez…</option>
+                    {LEGAL_FORMS.map((form_) => (
+                      <option key={form_} value={form_}>
+                        {form_}
+                      </option>
+                    ))}
+                  </select>
+                  {fieldErrors.legal_form && (
+                    <p className="mt-1 text-sm text-red-600">{fieldErrors.legal_form[0]}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="tax_id" className="mb-1 block text-sm font-medium">
+                    Matricule fiscal
+                  </label>
+                  <input
+                    id="tax_id"
+                    type="text"
+                    className="input"
+                    required
+                    value={form.tax_id}
+                    onChange={update('tax_id')}
+                  />
+                  {fieldErrors.tax_id && (
+                    <p className="mt-1 text-sm text-red-600">{fieldErrors.tax_id[0]}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="rne_number" className="mb-1 block text-sm font-medium">
+                  Numéro RNE (registre de commerce)
+                </label>
+                <input
+                  id="rne_number"
+                  type="text"
+                  className="input"
+                  required
+                  value={form.rne_number}
+                  onChange={update('rne_number')}
+                />
+                {fieldErrors.rne_number && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.rne_number[0]}</p>
+                )}
+              </div>
+
               <div>
                 <label htmlFor="sector" className="mb-1 block text-sm font-medium">
                   Secteur d&apos;activité
@@ -455,6 +678,23 @@ export default function RegisterView() {
                 />
                 {fieldErrors.sector && (
                   <p className="mt-1 text-sm text-red-600">{fieldErrors.sector[0]}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="description" className="mb-1 block text-sm font-medium">
+                  Description de l&apos;entreprise
+                </label>
+                <textarea
+                  id="description"
+                  rows={3}
+                  className="input"
+                  required
+                  value={form.description}
+                  onChange={update('description')}
+                />
+                {fieldErrors.description && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.description[0]}</p>
                 )}
               </div>
 
@@ -481,6 +721,100 @@ export default function RegisterView() {
                   <p className="mt-1 text-sm text-red-600">{fieldErrors.region_id[0]}</p>
                 )}
               </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="address" className="mb-1 block text-sm font-medium">
+                    Adresse
+                  </label>
+                  <input
+                    id="address"
+                    type="text"
+                    autoComplete="street-address"
+                    className="input"
+                    required
+                    value={form.address}
+                    onChange={update('address')}
+                  />
+                  {fieldErrors.address && (
+                    <p className="mt-1 text-sm text-red-600">{fieldErrors.address[0]}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="city" className="mb-1 block text-sm font-medium">
+                    Ville (délégation)
+                  </label>
+                  <input
+                    id="city"
+                    type="text"
+                    className="input"
+                    required
+                    value={form.city}
+                    onChange={update('city')}
+                  />
+                  {fieldErrors.city && (
+                    <p className="mt-1 text-sm text-red-600">{fieldErrors.city[0]}</p>
+                  )}
+                </div>
+              </div>
+
+              <fieldset className="space-y-4">
+                <legend className="mb-2 text-sm font-medium">Personne de contact</legend>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="contact_name" className="mb-1 block text-sm font-medium">
+                      Nom et prénom
+                    </label>
+                    <input
+                      id="contact_name"
+                      type="text"
+                      className="input"
+                      required
+                      value={form.contact_name}
+                      onChange={update('contact_name')}
+                    />
+                    {fieldErrors.contact_name && (
+                      <p className="mt-1 text-sm text-red-600">{fieldErrors.contact_name[0]}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contact_role" className="mb-1 block text-sm font-medium">
+                      Fonction
+                    </label>
+                    <input
+                      id="contact_role"
+                      type="text"
+                      className="input"
+                      required
+                      value={form.contact_role}
+                      onChange={update('contact_role')}
+                    />
+                    {fieldErrors.contact_role && (
+                      <p className="mt-1 text-sm text-red-600">{fieldErrors.contact_role[0]}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="contact_phone" className="mb-1 block text-sm font-medium">
+                    Téléphone du contact
+                  </label>
+                  <input
+                    id="contact_phone"
+                    type="tel"
+                    className="input"
+                    required
+                    value={form.contact_phone}
+                    onChange={update('contact_phone')}
+                  />
+                  {fieldErrors.contact_phone && (
+                    <p className="mt-1 text-sm text-red-600">{fieldErrors.contact_phone[0]}</p>
+                  )}
+                </div>
+              </fieldset>
 
               <fieldset>
                 <legend className="mb-2 text-sm font-medium">Zones couvertes</legend>
@@ -590,8 +924,48 @@ export default function RegisterView() {
               </div>
 
               <div>
+                <label htmlFor="tax_certificate" className="mb-1 block text-sm font-medium">
+                  Attestation fiscale / patente
+                </label>
+                <input
+                  id="tax_certificate"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="block w-full text-sm text-slate-600"
+                  onChange={handleTaxCertificate}
+                />
+                <p className="mt-1 text-xs text-slate-500">PDF, JPG ou PNG — 5 Mo maximum.</p>
+                {taxCertificate && (
+                  <p className="mt-1 text-sm text-slate-700">Fichier choisi : {taxCertificate.name}</p>
+                )}
+                {fieldErrors.tax_certificate && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.tax_certificate[0]}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="manager_id" className="mb-1 block text-sm font-medium">
+                  CIN du gérant
+                </label>
+                <input
+                  id="manager_id"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="block w-full text-sm text-slate-600"
+                  onChange={handleManagerId}
+                />
+                <p className="mt-1 text-xs text-slate-500">PDF, JPG ou PNG — 5 Mo maximum.</p>
+                {managerId && (
+                  <p className="mt-1 text-sm text-slate-700">Fichier choisi : {managerId.name}</p>
+                )}
+                {fieldErrors.manager_id && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.manager_id[0]}</p>
+                )}
+              </div>
+
+              <div>
                 <label htmlFor="certifications" className="mb-1 block text-sm font-medium">
-                  Certifications
+                  Certifications (facultatif)
                 </label>
                 <input
                   id="certifications"
@@ -602,7 +976,8 @@ export default function RegisterView() {
                   onChange={handleCertifications}
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Une à cinq certifications, PDF, JPG ou PNG — 5 Mo maximum par fichier.
+                  Facultatif : jusqu&apos;à cinq certifications, PDF, JPG ou PNG — 5 Mo maximum par
+                  fichier.
                 </p>
                 {certifications.length > 0 && (
                   <ul className="mt-2 space-y-1">

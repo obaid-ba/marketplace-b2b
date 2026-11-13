@@ -31,10 +31,15 @@ class SupplierRegistrationController extends Controller
 
         try {
             [$user, $profile] = DB::transaction(function () use ($request, &$storedFiles) {
+                $firstName = $request->string('first_name')->toString();
+                $lastName = $request->string('last_name')->toString();
+
                 $user = User::create([
-                    'name' => $request->string('company_name')->toString(),
+                    'name' => trim("{$firstName} {$lastName}"),
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
                     'email' => $request->string('email')->toString(),
-                    'phone' => $request->input('phone'),
+                    'phone' => $request->string('phone')->toString(),
                     'password' => $request->string('password')->toString(),
                     'role' => UserRole::Supplier,
                     'status' => UserStatus::EMAIL_TO_VERIFY,
@@ -42,10 +47,18 @@ class SupplierRegistrationController extends Controller
 
                 $profile = $user->supplierProfile()->create([
                     'company_name' => $request->string('company_name')->toString(),
+                    'legal_form' => $request->string('legal_form')->toString(),
+                    'tax_id' => $request->string('tax_id')->toString(),
+                    'rne_number' => $request->string('rne_number')->toString(),
                     'sector' => $request->string('sector')->toString(),
+                    'description' => $request->string('description')->toString(),
                     'region_id' => $request->integer('region_id'),
+                    'address' => $request->string('address')->toString(),
+                    'city' => $request->string('city')->toString(),
+                    'contact_name' => $request->string('contact_name')->toString(),
+                    'contact_role' => $request->string('contact_role')->toString(),
+                    'contact_phone' => $request->string('contact_phone')->toString(),
                     'contact' => $request->input('contact'),
-                    'description' => $request->input('description'),
                     'is_published' => false,
                     'validation_status' => ValidationStatus::PENDING,
                 ]);
@@ -53,16 +66,23 @@ class SupplierRegistrationController extends Controller
                 $profile->categories()->sync($request->input('categories', []));
                 $profile->coverageRegions()->sync($request->input('coverage_regions', []));
 
-                $registerPath = $request->file('commercial_register')
-                    ->store("supplier-documents/{$profile->id}", 'local');
-                $storedFiles[] = $registerPath;
+                $requiredDocuments = [
+                    'commercial_register' => SupplierDocument::TYPE_COMMERCIAL_REGISTER,
+                    'tax_certificate' => SupplierDocument::TYPE_TAX_CERTIFICATE,
+                    'manager_id' => SupplierDocument::TYPE_MANAGER_ID,
+                ];
 
-                $profile->documents()->create([
-                    'type' => SupplierDocument::TYPE_COMMERCIAL_REGISTER,
-                    'file_path' => $registerPath,
-                    'status' => ValidationStatus::PENDING,
-                    'submitted_at' => now(),
-                ]);
+                foreach ($requiredDocuments as $field => $type) {
+                    $path = $request->file($field)->store("supplier-documents/{$profile->id}", 'local');
+                    $storedFiles[] = $path;
+
+                    $profile->documents()->create([
+                        'type' => $type,
+                        'file_path' => $path,
+                        'status' => ValidationStatus::PENDING,
+                        'submitted_at' => now(),
+                    ]);
+                }
 
                 foreach ($request->file('certifications', []) as $certification) {
                     $path = $certification->store("supplier-documents/{$profile->id}", 'local');

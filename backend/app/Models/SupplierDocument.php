@@ -10,6 +10,10 @@ class SupplierDocument extends Model
 {
     public const TYPE_COMMERCIAL_REGISTER = 'registre de commerce';
 
+    public const TYPE_TAX_CERTIFICATE = 'attestation fiscale';
+
+    public const TYPE_MANAGER_ID = 'cin gerant';
+
     public const TYPE_CERTIFICATION = 'certification';
 
     /**

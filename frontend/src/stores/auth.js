@@ -43,6 +43,16 @@ export const useAuthStore = create((set, get) => ({
     return data
   },
 
+  /**
+   * Inscription d'un porteur de projet (JSON : compte + profil acheteur).
+   * Le compte n'est pas connecté automatiquement : l'e-mail doit être vérifié,
+   * puis il devient actif sans validation administrateur.
+   */
+  async registerBuyer(payload) {
+    const { data } = await http.post('/auth/register/buyer', payload)
+    return data
+  },
+
   async logout() {
     try {
       await http.post('/auth/logout')
