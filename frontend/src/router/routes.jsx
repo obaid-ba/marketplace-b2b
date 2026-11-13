@@ -72,6 +72,14 @@ export const createRoutes = () => [
       // Pages publiques
       { path: PATHS.home, lazy: page(() => import('@/views/HomeView')) },
       { path: PATHS.login, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/LoginView')) },
+
+      // Mot de passe oublié (SCRUM-26). La page du lien reste ouverte à tous : on peut la recevoir déjà connecté.
+      {
+        path: PATHS.forgotPassword,
+        loader: guard({ guest: true }),
+        lazy: page(() => import('@/views/auth/ForgotPasswordView')),
+      },
+      { path: PATHS.resetPassword, lazy: page(() => import('@/views/auth/ResetPasswordView')) },
       {
         path: PATHS.registerChoice,
         loader: guard({ guest: true }),

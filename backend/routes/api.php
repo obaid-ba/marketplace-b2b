@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login'])
     ->middleware('throttle:login');
+
+// Mot de passe oublié (SCRUM-26).
+Route::post('/auth/forgot-password', [PasswordResetController::class, 'forgot'])
+    ->middleware('throttle:forgot-password');
+Route::post('/auth/reset-password', [PasswordResetController::class, 'reset'])
+    ->middleware('throttle:6,1');
 
 // Inscription fournisseur en trois étapes (SCRUM-22).
 Route::post('/auth/register/supplier', [SupplierRegistrationController::class, 'store'])

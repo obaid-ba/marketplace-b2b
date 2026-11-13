@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -10,6 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -39,7 +41,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(1)->by((string) $request->user()?->id);
         });
 
+        // « Mot de passe oublié » : 3 demandes par minute et par adresse IP (SCRUM-26).
+        RateLimiter::for('forgot-password', function (Request $request) {
+            return Limit::perMinute(3)->by($request->ip());
+        });
+
+        // Règles de robustesse des mots de passe (réinitialisation ; mêmes règles qu'à l'inscription).
+        Password::defaults(fn () => Password::min(8)->letters()->mixedCase()->numbers());
+
         $this->configureEmailVerification();
+        $this->configurePasswordReset();
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
@@ -80,6 +91,33 @@ class AppServiceProvider extends ServiceProvider
                 ->action('Confirmer mon adresse e-mail', $url)
                 ->line("Ce lien est valable {$minutes} minutes et ne peut être utilisé qu'une seule fois.")
                 ->line("Si vous n'avez pas créé de compte, ignorez simplement cet e-mail.")
+                ->salutation("L'équipe Marketplace B2B");
+        });
+    }
+
+    /**
+     * E-mail « Mot de passe oublié » (SCRUM-26) : le lien ouvre la page React « Nouveau mot de passe ».
+     */
+    private function configurePasswordReset(): void
+    {
+        ResetPassword::createUrlUsing(function (User $user, string $token) {
+            return config('app.frontend_url').'/mot-de-passe/nouveau?'.http_build_query([
+                'token' => $token,
+                'email' => $user->getEmailForPasswordReset(),
+            ]);
+        });
+
+        ResetPassword::toMailUsing(function (User $user, string $token) {
+            $url = call_user_func(ResetPassword::$createUrlCallback, $user, $token);
+            $minutes = (int) config('auth.passwords.users.expire', 60);
+
+            return (new MailMessage)
+                ->subject('Réinitialisation de votre mot de passe')
+                ->greeting("Bonjour {$user->name},")
+                ->line('Vous avez demandé à changer le mot de passe de votre compte Marketplace B2B.')
+                ->action('Choisir un nouveau mot de passe', $url)
+                ->line("Ce lien est valable {$minutes} minutes et ne peut être utilisé qu'une seule fois.")
+                ->line("Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé.")
                 ->salutation("L'équipe Marketplace B2B");
         });
     }
