@@ -41,13 +41,13 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => new UserResource($user->load('supplierProfile')),
+            'user' => new UserResource($user->load(['supplierProfile', 'buyerProfile'])),
         ]);
     }
 
     public function me(Request $request): UserResource
     {
-        return new UserResource($request->user()->load('supplierProfile'));
+        return new UserResource($request->user()->load(['supplierProfile', 'buyerProfile']));
     }
 
     public function logout(Request $request): JsonResponse

@@ -92,6 +92,17 @@ export const createRoutes = () => [
       },
       { path: PATHS.verifyEmail, loader: verifyEmailLoader, lazy: page(() => import('@/views/auth/EmailVerifiedView')) },
 
+      // Paramètres du compte (SCRUM-27) : ouverts à tout utilisateur connecté,
+      // y compris tant que la nouvelle adresse e-mail attend sa vérification.
+      {
+        path: PATHS.account,
+        loader: guard({ authenticated: true }),
+        lazy: page(() => import('@/layouts/AppLayout')),
+        children: [
+          { index: true, lazy: page(() => import('@/views/account/AccountSettingsView')) },
+        ],
+      },
+
       // Espaces par rôle
       space(PATHS.supplier, ROLES.SUPPLIER, () => import('@/views/supplier/SupplierDashboard'), [
         {

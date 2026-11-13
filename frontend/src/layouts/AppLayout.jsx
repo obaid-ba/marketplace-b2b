@@ -28,6 +28,9 @@ export default function AppLayout() {
               <p className="font-medium">{user?.name}</p>
               <p className="text-slate-500">{ROLE_LABELS[role]}</p>
             </div>
+            <Link to={PATHS.account} className="btn-ghost">
+              Paramètres
+            </Link>
             <button type="button" className="btn-ghost" onClick={handleLogout}>
               Déconnexion
             </button>

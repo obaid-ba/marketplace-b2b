@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\EmailVerificationController;
@@ -45,6 +46,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/email/resend', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:verification-resend');
+
+    // Paramètres du compte (SCRUM-27) : informations, mot de passe et adresse e-mail.
+    Route::get('/account', [AccountController::class, 'show']);
+    Route::patch('/account/profile', [AccountController::class, 'updateProfile']);
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])
+        ->middleware('throttle:6,1');
+    Route::patch('/account/email', [AccountController::class, 'updateEmail'])
+        ->middleware('throttle:6,1');
 });
 
 // Espaces métier : connecté ET adresse e-mail vérifiée.

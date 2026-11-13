@@ -1,4 +1,6 @@
+import { Link } from 'react-router'
 import { selectUser, useAuthStore } from '@/stores/auth'
+import { PATHS } from '@/router/paths'
 import { SUPPLIER_STATUS } from '@/utils/roles'
 
 /**
@@ -34,6 +36,10 @@ export default function SupplierPendingView() {
           </>
         )}
       </div>
+
+      <Link to={PATHS.account} className="btn-ghost mt-4 border border-slate-300">
+        Modifier mes informations personnelles
+      </Link>
     </div>
   )
 }
