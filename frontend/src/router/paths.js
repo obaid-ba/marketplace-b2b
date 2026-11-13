@@ -3,6 +3,7 @@ export const PATHS = Object.freeze({
   home: '/',
   login: '/connexion',
   forgotPassword: '/mot-de-passe-oublie',
+  resetPassword: '/mot-de-passe/nouveau', // page ouverte par le lien « Mot de passe oublié »
   registerChoice: '/inscription',
   register: '/inscription/fournisseur',
   registerBuyer: '/inscription/porteur',
