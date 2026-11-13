@@ -9,10 +9,19 @@ export const PATHS = Object.freeze({
   verifyEmail: '/email/verifier', // page ouverte par le lien reçu par e-mail
   supplier: '/fournisseur',
   supplierPending: '/fournisseur/en-attente',
+  supplierProfile: '/fournisseur/profil', // Profil de l'entreprise (SCRUM-28)
   buyer: '/porteur',
   admin: '/admin',
   forbidden: '/acces-refuse',
 })
+
+/**
+ * Fiche fournisseur publique (SCRUM-37, sprint S2).
+ * TODO SCRUM-37 : la route n'existe pas encore, le lien affiche la page 404 en attendant.
+ */
+export function supplierPublicPath(id) {
+  return `/fournisseurs/${id}`
+}
 
 /** Adresse de la page de connexion, en retenant la page à rouvrir ensuite. */
 export function loginPath(redirect) {
