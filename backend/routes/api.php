@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ReferenceController;
+use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
+use App\Http\Controllers\Api\Supplier\SupplierProfileController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +47,7 @@ Route::get('/auth/email/verify/{id}/{hash}', [EmailVerificationController::class
 // Données de référence des formulaires.
 Route::get('/reference/regions', [ReferenceController::class, 'regions']);
 Route::get('/reference/categories', [ReferenceController::class, 'categories']);
+Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // Accessibles même si l'e-mail n'est pas encore vérifié.
@@ -59,6 +62,15 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Espace fournisseur (S2+) : produits, demandes reçues, devis…
     Route::middleware('role:supplier')->prefix('supplier')->group(function () {
         Route::get('/ping', fn () => ['space' => 'supplier']);
+
+        // Profil de l'entreprise (SCRUM-28) : toujours le profil de l'utilisateur connecté.
+        Route::get('/profile', [SupplierProfileController::class, 'show']);
+        Route::put('/profile', [SupplierProfileController::class, 'update']);
+        Route::post('/profile/logo', [SupplierProfileController::class, 'updateLogo']);
+        Route::patch('/profile/publish', [SupplierProfileController::class, 'publish']);
+        Route::post('/documents', [SupplierDocumentController::class, 'store']);
+        Route::get('/documents/{document}/download', [SupplierDocumentController::class, 'download'])
+            ->whereNumber('document');
     });
 
     // Espace porteur de projet (S3+) : demandes, comparaison des devis, commandes…
