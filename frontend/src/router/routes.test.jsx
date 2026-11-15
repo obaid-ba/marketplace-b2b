@@ -82,6 +82,12 @@ describe('routes', () => {
     visit('/nimporte-quoi')
     expect(await screen.findByText('Page introuvable')).toBeTruthy()
   })
+
+  it('ouvre les paramètres du compte à un utilisateur connecté', async () => {
+    signIn({ name: 'Karim', first_name: 'Karim', last_name: 'Ben Salah', role: 'buyer' })
+    visit('/parametres')
+    expect(await screen.findByRole('heading', { name: 'Paramètres du compte' })).toBeTruthy()
+  })
 })
 
 describe('vérification de l’e-mail (SCRUM-24)', () => {
