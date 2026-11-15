@@ -25,15 +25,23 @@ function guard(access) {
   }
 }
 
-/** Espace réservé à un rôle : contrôle d'accès + mise en page commune + tableau de bord (+ autres pages). */
-function space(path, role, loadDashboard, children = []) {
+/**
+ * Espace réservé à un rôle : contrôle d'accès + mise en page + tableau de bord (+ autres pages).
+ * Le titre de chaque page (handle.crumb) alimente le fil d'Ariane de l'espace fournisseur.
+ */
+function space(path, role, loadDashboard, children = [], loadLayout = () => import('@/layouts/AppLayout')) {
   return {
     path,
     loader: guard({ roles: [role] }),
-    lazy: page(() => import('@/layouts/AppLayout')),
+    lazy: page(loadLayout),
     children: [
       // Fournisseur : tableau de bord seulement une fois validé par l'admin (voir guard.js).
-      { index: true, loader: role === ROLES.SUPPLIER ? supplierOnly(false) : undefined, lazy: page(loadDashboard) },
+      {
+        index: true,
+        loader: role === ROLES.SUPPLIER ? supplierOnly(false) : undefined,
+        handle: { crumb: 'Tableau de bord' },
+        lazy: page(loadDashboard),
+      },
       ...children,
     ],
   }
@@ -111,14 +119,32 @@ export const createRoutes = () => [
         ],
       },
 
+      // Compte fournisseur en attente de validation (SCRUM-27) : hors de l'espace fournisseur,
+      // dans la mise en page d'authentification (maquette A5). Réservé à un fournisseur non validé.
+      {
+        path: PATHS.supplierPending,
+        loader: supplierOnly(true),
+        lazy: page(() => import('@/views/supplier/PendingAccountPage')),
+      },
+
       // Espaces par rôle
-      space(PATHS.supplier, ROLES.SUPPLIER, () => import('@/views/supplier/SupplierDashboard'), [
-        {
-          path: PATHS.supplierPending,
-          loader: supplierOnly(true),
-          lazy: page(() => import('@/views/supplier/SupplierPendingView')),
-        },
-      ]),
+      space(
+        PATHS.supplier,
+        ROLES.SUPPLIER,
+        () => import('@/views/supplier/SupplierDashboard'),
+        [
+          // Pages de vente à venir (produits F07, devis F13…) : leur ajouter loader: supplierOnly(false)
+          // pour renvoyer un fournisseur non validé vers « Compte en attente » (SCRUM-27).
+          // Profil de l'entreprise (SCRUM-28) : ouvert aussi à un fournisseur pas encore validé,
+          // qui peut compléter son profil sans pouvoir le publier.
+          {
+            path: PATHS.supplierProfile,
+            handle: { crumb: "Profil de l'entreprise" },
+            lazy: page(() => import('@/views/supplier/CompanyProfilePage')),
+          },
+        ],
+        () => import('@/layouts/SupplierLayout'),
+      ),
       space(PATHS.buyer, ROLES.BUYER, () => import('@/views/buyer/BuyerDashboard')),
       space(PATHS.admin, ROLES.ADMIN, () => import('@/views/admin/AdminDashboard')),
 

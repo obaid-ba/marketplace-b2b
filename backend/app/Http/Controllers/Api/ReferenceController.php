@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\SupplierSector;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Region;
@@ -27,5 +28,13 @@ class ReferenceController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'parent_id', 'name', 'position'])
         );
+    }
+
+    /**
+     * Secteurs d'activité de la liste déroulante du profil fournisseur (SCRUM-28).
+     */
+    public function sectors(): JsonResponse
+    {
+        return response()->json(SupplierSector::values());
     }
 }
