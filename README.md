@@ -42,6 +42,18 @@ cp .env.example .env          # VITE_API_URL=http://localhost:8000/api
 npm run dev                   # http://localhost:5173
 ```
 
+### E-mails en développement (Mailpit)
+
+Par défaut (`MAIL_MAILER=log`), les e-mails ne partent pas : ils sont écrits dans `backend/storage/logs/laravel.log`.
+Pour les recevoir dans une boîte de test avec des liens cliquables (vérification d'e-mail, mot de passe oublié) :
+
+```bash
+docker run -d --name mailpit -p 8025:8025 -p 1025:1025 axllent/mailpit
+```
+
+Puis dans `backend/.env` : `MAIL_MAILER=smtp`, `MAIL_HOST=127.0.0.1`, `MAIL_PORT=1025`, et `php artisan config:clear`.
+Boîte de réception : http://localhost:8025. Aucun e-mail réel n'est envoyé.
+
 ### Comptes de démonstration
 
 Mot de passe : `password`
