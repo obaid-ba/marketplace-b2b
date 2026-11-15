@@ -260,4 +260,97 @@ class AccountSettingsTest extends TestCase
         $this->putJson('/api/account/password', [])->assertUnauthorized();
         $this->patchJson('/api/account/email', [])->assertUnauthorized();
     }
+
+    public function test_la_mise_a_jour_complete_du_compte_modifie_nom_telephone_et_profil(): void
+    {
+        Notification::fake();
+        $user = $this->buyer();
+
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/account', [
+                'first_name' => '  Salma ',
+                'last_name' => ' Trabelsi ',
+                'phone' => '98 123 456',
+                'email' => 'karim@exemple.tn',
+                'organization' => '  Nouvelle organisation ',
+                'sector' => ' Informatique ',
+            ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Vos informations ont été mises à jour.')
+            ->assertJsonPath('user.name', 'Salma Trabelsi')
+            ->assertJsonPath('user.phone', '+216 98123456')
+            ->assertJsonPath('user.buyer_profile.organization', 'Nouvelle organisation')
+            ->assertJsonPath('user.buyer_profile.sector', 'Informatique');
+
+        // L'adresse n'a pas changé : aucune nouvelle vérification n'est demandée.
+        Notification::assertNothingSent();
+        $this->assertNotNull($user->fresh()->email_verified_at);
+    }
+
+    public function test_la_mise_a_jour_complete_avec_un_nouvel_e_mail_demande_une_verification(): void
+    {
+        Notification::fake();
+        $user = $this->buyer();
+
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/account', [
+                'first_name' => 'Karim',
+                'last_name' => 'Ben Salah',
+                'phone' => '71000000',
+                'email' => '  Nouvelle@Exemple.TN ',
+                'organization' => 'Ancienne organisation',
+                'sector' => 'Bâtiment',
+            ])
+            ->assertOk()
+            ->assertJsonPath('user.email', 'nouvelle@exemple.tn')
+            ->assertJsonPath('user.email_verified', false)
+            ->assertJsonPath('user.status', UserStatus::EMAIL_TO_VERIFY->value)
+            ->assertJsonPath(
+                'message',
+                'Vos informations ont été mises à jour. Un lien de vérification a été envoyé à nouvelle@exemple.tn.',
+            );
+
+        $user->refresh();
+        $this->assertSame('nouvelle@exemple.tn', $user->email);
+        $this->assertNull($user->email_verified_at);
+        $this->assertSame(UserStatus::EMAIL_TO_VERIFY, $user->status);
+
+        Notification::assertSentTo($user, VerifyEmail::class);
+    }
+
+    public function test_la_mise_a_jour_complete_valide_les_champs(): void
+    {
+        $user = $this->buyer();
+        User::factory()->create(['email' => 'prise@exemple.tn']);
+
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/account', [
+                'first_name' => '',
+                'last_name' => '',
+                'phone' => '12345',
+                'email' => 'pas-une-adresse',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['first_name', 'last_name', 'phone', 'email', 'organization', 'sector']);
+
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/account', [
+                'first_name' => 'Karim',
+                'last_name' => 'Ben Salah',
+                'phone' => '71000000',
+                'email' => 'prise@exemple.tn',
+                'organization' => 'Ancienne organisation',
+                'sector' => 'Bâtiment',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('email')
+            ->assertJsonPath('errors.email.0', 'Un compte existe déjà avec cette adresse e-mail.');
+    }
+
+    public function test_la_mise_a_jour_complete_exige_une_connexion(): void
+    {
+        $this->putJson('/api/account', [])->assertUnauthorized();
+        $this->postJson('/api/account/deactivate', [])->assertUnauthorized();
+        $this->deleteJson('/api/account', [])->assertUnauthorized();
+    }
 }

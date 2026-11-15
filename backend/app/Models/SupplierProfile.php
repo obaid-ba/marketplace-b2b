@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\UserStatus;
 use App\Enums\ValidationStatus;
 use Database\Factories\SupplierProfileFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -78,6 +80,19 @@ class SupplierProfile extends Model
     }
 
     /**
+     * Profils visibles dans le catalogue et les recherches : publiés, dont le
+     * compte est actif et non supprimé. Un fournisseur désactivé ou supprimé
+     * (SCRUM-30 / SCRUM-98) disparaît donc aussi de ces listes.
+     *
+     * @param  Builder<SupplierProfile>  $query
+     */
+    public function scopeVisibleInCatalog(Builder $query): void
+    {
+        $query->where('is_published', true)
+            ->whereHas('user', fn (Builder $user) => $user->where('status', UserStatus::ACTIVE->value));
+    }
+
+    /**
      * Documents justificatifs du fournisseur.
      */
     public function documents(): HasMany
@@ -99,5 +114,13 @@ class SupplierProfile extends Model
     public function coverageRegions(): BelongsToMany
     {
         return $this->belongsToMany(Region::class, 'supplier_coverage_region', 'supplier_id', 'region_id');
+    }
+
+    /**
+     * Administrateur ayant validé ou refusé le profil.
+     */
+    public function validator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validated_by');
     }
 }
