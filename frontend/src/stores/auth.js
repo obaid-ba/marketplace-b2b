@@ -27,9 +27,10 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  async login(email, password) {
-    const { data } = await http.post('/auth/login', { email, password, device_name: 'web' })
-    tokenStorage.set(data.token)
+  /** remember = « Se souvenir de moi » : session plus longue et jeton conservé après fermeture du navigateur. */
+  async login(email, password, remember = false) {
+    const { data } = await http.post('/auth/login', { email, password, remember, device_name: 'web' })
+    tokenStorage.set(data.token, remember)
     set({ token: data.token, user: data.user, loaded: true })
     return data.user
   },

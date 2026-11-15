@@ -2,6 +2,8 @@
 export const PATHS = Object.freeze({
   home: '/',
   login: '/connexion',
+  forgotPassword: '/mot-de-passe-oublie',
+  resetPassword: '/mot-de-passe/nouveau', // page ouverte par le lien « Mot de passe oublié »
   registerChoice: '/inscription',
   register: '/inscription/fournisseur',
   registerBuyer: '/inscription/porteur',
@@ -10,10 +12,19 @@ export const PATHS = Object.freeze({
   account: '/parametres', // informations personnelles, e-mail et mot de passe
   supplier: '/fournisseur',
   supplierPending: '/fournisseur/en-attente',
+  supplierProfile: '/fournisseur/profil', // Profil de l'entreprise (SCRUM-28)
   buyer: '/porteur',
   admin: '/admin',
   forbidden: '/acces-refuse',
 })
+
+/**
+ * Fiche fournisseur publique (SCRUM-37, sprint S2).
+ * TODO SCRUM-37 : la route n'existe pas encore, le lien affiche la page 404 en attendant.
+ */
+export function supplierPublicPath(id) {
+  return `/fournisseurs/${id}`
+}
 
 /** Adresse de la page de connexion, en retenant la page à rouvrir ensuite. */
 export function loginPath(redirect) {

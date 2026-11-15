@@ -49,6 +49,11 @@ class UserResource extends JsonResource
                     'project_description' => $this->buyerProfile->project_description,
                 ] : null,
             ),
+            // Fournisseur uniquement : nom affiché dans l'en-tête de l'espace fournisseur (SCRUM-28).
+            'supplier_company_name' => $this->when(
+                $this->role === UserRole::Supplier,
+                fn () => $this->supplierProfile?->company_name,
+            ),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

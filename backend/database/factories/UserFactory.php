@@ -53,6 +53,11 @@ class UserFactory extends Factory
         return $this->state(fn () => ['status' => UserStatus::SUSPENDED]);
     }
 
+    public function deactivated(): static
+    {
+        return $this->state(fn () => ['status' => UserStatus::DEACTIVATED]);
+    }
+
     public function unverified(): static
     {
         return $this->state(fn () => [
