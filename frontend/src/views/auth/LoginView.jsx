@@ -1,35 +1,55 @@
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useAuthStore } from '@/stores/auth'
 import { PATHS, safeRedirect } from '@/router/paths'
-import { homePathFor } from '@/utils/roles'
+import { landingPathFor } from '@/utils/roles'
 
+/**
+ * Connexion (SCRUM-25) : redirection vers l'espace du rôle, message générique en cas d'erreur,
+ * message explicite pour un compte suspendu ou désactivé, « Se souvenir de moi ».
+ */
 export default function LoginView() {
   const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
 
-  const [form, setForm] = useState({ email: '', password: '' })
+  // Message laissé par une autre page (ex. « mot de passe modifié », SCRUM-26).
+  const notice = location.state?.notice ?? null
+
+  const [form, setForm] = useState({ email: location.state?.email ?? '', password: '', remember: false })
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(null) // { text, blocked }
   const [fieldErrors, setFieldErrors] = useState({})
 
-  const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }))
+  const update = (field) => (event) => {
+    const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value
+    setForm((current) => ({ ...current, [field]: value }))
+  }
 
   async function handleSubmit(event) {
     event.preventDefault()
     setLoading(true)
-    setError('')
+    setError(null)
     setFieldErrors({})
     try {
-      const user = await login(form.email.trim(), form.password)
-      navigate(safeRedirect(searchParams.get('redirect')) ?? homePathFor(user.role))
+      const user = await login(form.email.trim(), form.password, form.remember)
+      navigate(safeRedirect(searchParams.get('redirect')) ?? landingPathFor(user), { replace: true })
     } catch (e) {
-      setError(e.userMessage ?? 'Connexion impossible.')
-      setFieldErrors(e.fieldErrors ?? {})
+      const reason = e.response?.data?.reason
+      const errors = e.fieldErrors ?? {}
+      // Identifiants incorrects : un seul message général, sans pointer un champ en particulier.
+      const credentialsError = errors.email?.[0] === 'Adresse e-mail ou mot de passe incorrect.'
+      setError({
+        text: credentialsError ? errors.email[0] : (e.userMessage ?? 'Connexion impossible.'),
+        blocked: reason === 'suspended' || reason === 'deactivated',
+      })
+      setFieldErrors(credentialsError ? {} : errors)
       setLoading(false)
     }
   }
+
+  const hasFieldErrors = Object.keys(fieldErrors).length > 0
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
@@ -41,6 +61,12 @@ export default function LoginView() {
         <p className="mt-1 text-sm text-slate-500">
           Accédez à votre espace fournisseur, porteur de projet ou administrateur.
         </p>
+
+        {notice && (
+          <p className="mt-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700" role="status">
+            {notice}
+          </p>
+        )}
 
         <form className="mt-6 space-y-4" noValidate onSubmit={handleSubmit}>
           <div>
@@ -60,9 +86,14 @@ export default function LoginView() {
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium">
-              Mot de passe
-            </label>
+            <div className="mb-1 flex items-center justify-between">
+              <label htmlFor="password" className="block text-sm font-medium">
+                Mot de passe
+              </label>
+              <Link to={PATHS.forgotPassword} className="text-sm text-brand-600 hover:underline">
+                Mot de passe oublié ?
+              </Link>
+            </div>
             <input
               id="password"
               type="password"
@@ -75,9 +106,22 @@ export default function LoginView() {
             {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password[0]}</p>}
           </div>
 
-          {error && !Object.keys(fieldErrors).length && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-              {error}
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 accent-brand-600"
+              checked={form.remember}
+              onChange={update('remember')}
+            />
+            Se souvenir de moi
+          </label>
+
+          {error && !hasFieldErrors && (
+            <p
+              className={`rounded-lg px-3 py-2 text-sm ${error.blocked ? 'bg-amber-50 text-amber-800' : 'bg-red-50 text-red-700'}`}
+              role="alert"
+            >
+              {error.text}
             </p>
           )}
 
@@ -86,7 +130,12 @@ export default function LoginView() {
           </button>
         </form>
 
-        {/* "Mot de passe oublié" et "S'inscrire" arrivent en S1 (SCRUM-21 à SCRUM-26) */}
+        <p className="mt-6 text-center text-sm text-slate-600">
+          Pas encore de compte ?{' '}
+          <Link to={PATHS.registerChoice} className="font-medium text-brand-600 hover:underline">
+            Inscrire mon entreprise
+          </Link>
+        </p>
       </div>
     </div>
   )

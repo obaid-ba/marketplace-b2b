@@ -5,7 +5,8 @@ import { tokenStorage } from '@/utils/tokenStorage'
  * Client HTTP unique pour toute l'application.
  * - ajoute le jeton Bearer à chaque requête
  * - transforme les erreurs de l'API en messages lisibles (error.userMessage)
- * - prévient l'application en cas de 401 / 403 (voir onAuthError dans main.js)
+ * - prévient l'application en cas de 401 / 403 (voir onAuthError dans main.jsx),
+ *   sauf si la requête le refuse avec { skipAuthRedirect: true } (la page gère l'erreur elle-même)
  */
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api',
@@ -35,7 +36,7 @@ http.interceptors.response.use(
     error.userMessage = messageFor(error)
     error.fieldErrors = error.response?.data?.errors ?? {}
 
-    if (status === 401 || status === 403) {
+    if ((status === 401 || status === 403) && !error.config?.skipAuthRedirect) {
       authErrorHandler(status, error)
     }
 
