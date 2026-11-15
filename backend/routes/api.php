@@ -59,12 +59,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/email/resend', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:verification-resend');
 
-    // Paramètres du compte (SCRUM-27) : informations, mot de passe et adresse e-mail.
+    // Paramètres du compte (SCRUM-98) : informations (nom, téléphone, profil, e-mail),
+    // mot de passe, désactivation et suppression. La suppression est douce (historique conservé).
     Route::get('/account', [AccountController::class, 'show']);
+    Route::put('/account', [AccountController::class, 'updateAccount']);
     Route::patch('/account/profile', [AccountController::class, 'updateProfile']);
     Route::put('/account/password', [AccountController::class, 'updatePassword'])
         ->middleware('throttle:6,1');
     Route::patch('/account/email', [AccountController::class, 'updateEmail'])
+        ->middleware('throttle:6,1');
+    Route::post('/account/deactivate', [AccountController::class, 'deactivate'])
+        ->middleware('throttle:6,1');
+    Route::delete('/account', [AccountController::class, 'destroy'])
         ->middleware('throttle:6,1');
 });
 
