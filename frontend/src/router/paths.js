@@ -9,7 +9,7 @@ export const PATHS = Object.freeze({
   registerBuyer: '/inscription/porteur',
   verifyNotice: '/verification-email', // « Consultez votre boîte mail »
   verifyEmail: '/email/verifier', // page ouverte par le lien reçu par e-mail
-  account: '/parametres', // désactivation et suppression du compte
+  account: '/parametres', // informations personnelles, e-mail et mot de passe
   supplier: '/fournisseur',
   supplierPending: '/fournisseur/en-attente',
   supplierProfile: '/fournisseur/profil', // Profil de l'entreprise (SCRUM-28)

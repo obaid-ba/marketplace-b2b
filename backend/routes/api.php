@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AccountController;
+use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\EmailVerificationController;
@@ -58,8 +59,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/email/resend', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:verification-resend');
 
-    // Désactivation et suppression du compte (SCRUM-30) : confirmation par mot de passe,
-    // révocation de tous les jetons Sanctum. La suppression est douce (historique conservé).
+    // Paramètres du compte (SCRUM-98) : informations (nom, téléphone, profil, e-mail),
+    // mot de passe, désactivation et suppression. La suppression est douce (historique conservé).
+    Route::get('/account', [AccountController::class, 'show']);
+    Route::put('/account', [AccountController::class, 'updateAccount']);
+    Route::patch('/account/profile', [AccountController::class, 'updateProfile']);
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])
+        ->middleware('throttle:6,1');
+    Route::patch('/account/email', [AccountController::class, 'updateEmail'])
+        ->middleware('throttle:6,1');
     Route::post('/account/deactivate', [AccountController::class, 'deactivate'])
         ->middleware('throttle:6,1');
     Route::delete('/account', [AccountController::class, 'destroy'])
@@ -101,5 +109,16 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Back-office (S1+) : validation des fournisseurs, catégories, litiges…
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/ping', fn () => ['space' => 'admin']);
+
+        // Validation ou refus des nouveaux fournisseurs (SCRUM-31).
+        Route::get('/suppliers', [SupplierValidationController::class, 'index']);
+        Route::get('/suppliers/{supplier}', [SupplierValidationController::class, 'show'])
+            ->whereNumber('supplier');
+        Route::get('/suppliers/documents/{document}/download', [SupplierValidationController::class, 'downloadDocument'])
+            ->whereNumber('document');
+        Route::post('/suppliers/{supplier}/approve', [SupplierValidationController::class, 'approve'])
+            ->whereNumber('supplier');
+        Route::post('/suppliers/{supplier}/reject', [SupplierValidationController::class, 'reject'])
+            ->whereNumber('supplier');
     });
 });

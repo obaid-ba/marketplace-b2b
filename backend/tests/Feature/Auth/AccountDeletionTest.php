@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * SCRUM-30 : désactiver ou supprimer son compte.
+ * SCRUM-30 / SCRUM-98 : désactiver ou supprimer son compte.
  * Confirmation par mot de passe, suppression douce de l'historique et
  * disparition du catalogue, déconnexion immédiate de tous les appareils.
  */

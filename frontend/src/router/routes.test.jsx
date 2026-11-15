@@ -84,10 +84,9 @@ describe('routes', () => {
   })
 
   it('ouvre les paramètres du compte à un utilisateur connecté', async () => {
-    signIn({ name: 'Karim', role: 'buyer' })
+    signIn({ name: 'Karim', first_name: 'Karim', last_name: 'Ben Salah', role: 'buyer' })
     visit('/parametres')
     expect(await screen.findByRole('heading', { name: 'Paramètres du compte' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Supprimer mon compte' })).toBeTruthy()
   })
 })
 

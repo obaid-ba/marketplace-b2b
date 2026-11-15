@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * Confirmation par mot de passe avant une action irréversible sur le compte
- * (désactivation ou suppression, SCRUM-30).
+ * (désactivation ou suppression, SCRUM-30 / SCRUM-98).
  * Le mot de passe n'est jamais renvoyé dans la réponse d'erreur : seul un
  * message générique est affiché.
  */
