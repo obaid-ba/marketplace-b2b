@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import AuthCard from '@/components/AuthCard'
 import { resendVerificationEmail } from '@/api/emailVerification'
 import { selectUser, useAuthStore } from '@/stores/auth'
@@ -99,8 +99,12 @@ export default function VerifyEmailNoticeView() {
 
       <p className="text-center">
         Mauvaise adresse ?{' '}
+        <Link to={PATHS.account} className="text-brand-600 hover:underline">
+          Changer d&apos;adresse e-mail
+        </Link>{' '}
+        ou{' '}
         <button type="button" className="text-brand-600 hover:underline" onClick={handleLogout}>
-          Se déconnecter
+          se déconnecter
         </button>
       </p>
     </AuthCard>

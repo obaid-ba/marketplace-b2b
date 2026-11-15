@@ -97,6 +97,9 @@ export default function PendingAccountPage() {
           <Link to={PATHS.supplierProfile} className="btn-primary w-full py-2.5">
             Préparer mon profil (sans le publier)
           </Link>
+          <Link to={PATHS.account} className="btn-secondary w-full py-2.5">
+            Modifier mes informations personnelles
+          </Link>
           <button type="button" className="btn-secondary w-full py-2.5" onClick={handleLogout}>
             Se déconnecter
           </button>

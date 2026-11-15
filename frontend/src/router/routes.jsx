@@ -108,6 +108,17 @@ export const createRoutes = () => [
       },
       { path: PATHS.verifyEmail, loader: verifyEmailLoader, lazy: page(() => import('@/views/auth/EmailVerifiedView')) },
 
+      // Paramètres du compte (SCRUM-27) : ouverts à tout utilisateur connecté,
+      // y compris tant que la nouvelle adresse e-mail attend sa vérification.
+      {
+        path: PATHS.account,
+        loader: guard({ authenticated: true }),
+        lazy: page(() => import('@/layouts/AppLayout')),
+        children: [
+          { index: true, lazy: page(() => import('@/views/account/AccountSettingsView')) },
+        ],
+      },
+
       // Compte fournisseur en attente de validation (SCRUM-27) : hors de l'espace fournisseur,
       // dans la mise en page d'authentification (maquette A5). Réservé à un fournisseur non validé.
       {
