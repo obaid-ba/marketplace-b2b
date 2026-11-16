@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
+use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
@@ -114,7 +115,21 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         // Tableau de bord et statistiques (SCRUM-122 / F28, story SCRUM-70).
         Route::get('/dashboard', [AdminDashboardController::class, 'show']);
 
-        // Validation ou refus des nouveaux fournisseurs (SCRUM-31).
+        // Validation ou refus des nouveaux fournisseurs (SCRUM-31 / F05).
+        Route::get('/supplier-applications', [SupplierValidationController::class, 'index']);
+        Route::get('/supplier-applications/{supplier}', [SupplierValidationController::class, 'show'])
+            ->whereNumber('supplier');
+        Route::get('/supplier-applications/{supplier}/documents/{document}', [SupplierValidationController::class, 'showDocument'])
+            ->whereNumber('supplier')
+            ->whereNumber('document');
+        Route::get('/supplier-applications/documents/{document}/download', [SupplierValidationController::class, 'downloadDocument'])
+            ->whereNumber('document');
+        Route::post('/supplier-applications/{supplier}/approve', [SupplierValidationController::class, 'approve'])
+            ->whereNumber('supplier');
+        Route::post('/supplier-applications/{supplier}/reject', [SupplierValidationController::class, 'reject'])
+            ->whereNumber('supplier');
+
+        // Alias /admin/suppliers (rétrocompatibilité).
         Route::get('/suppliers', [SupplierValidationController::class, 'index']);
         Route::get('/suppliers/{supplier}', [SupplierValidationController::class, 'show'])
             ->whereNumber('supplier');
@@ -124,5 +139,13 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
             ->whereNumber('supplier');
         Route::post('/suppliers/{supplier}/reject', [SupplierValidationController::class, 'reject'])
             ->whereNumber('supplier');
+
+        // Gestion des catégories et sous-catégories (SCRUM-32 / F06).
+        Route::get('/categories', [CategoryController::class, 'index']);
+        Route::post('/categories', [CategoryController::class, 'store']);
+        Route::patch('/categories/reorder', [CategoryController::class, 'reorder']);
+        Route::put('/categories/{category}', [CategoryController::class, 'update'])->whereNumber('category');
+        Route::patch('/categories/{category}', [CategoryController::class, 'update'])->whereNumber('category');
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->whereNumber('category');
     });
 });

@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import {
   approveSupplier,
+  fetchAdminDocumentBlob,
   fetchAdminSuppliers,
-  openAdminDocument,
   rejectSupplier,
 } from '@/api/adminSuppliers'
 import { useAuthStore } from '@/stores/auth'
@@ -11,9 +11,9 @@ import AdminDashboard from './AdminDashboard'
 
 vi.mock('@/api/adminSuppliers', () => ({
   fetchAdminSuppliers: vi.fn(),
+  fetchAdminDocumentBlob: vi.fn(),
   approveSupplier: vi.fn(),
   rejectSupplier: vi.fn(),
-  openAdminDocument: vi.fn(),
 }))
 
 function mockSupplier(overrides = {}) {
@@ -28,10 +28,13 @@ function mockSupplier(overrides = {}) {
       email: 'ali@acme.test',
       phone: '+216 71 123 456',
     },
+    categories: [{ id: 1, name: 'BTP et matériaux' }],
+    coverageRegions: [{ id: 2, name: 'Tunis' }],
     documents: [
       {
         id: 10,
         type: 'registre de commerce',
+        file_path: 'supplier-documents/1/reg.pdf',
         file_name: 'Registre de commerce.pdf',
         status: 'en attente',
       },
@@ -40,8 +43,12 @@ function mockSupplier(overrides = {}) {
   }
 }
 
-describe('AdminDashboard (SCRUM-31)', () => {
+describe('AdminDashboard (SCRUM-31 / F05)', () => {
   beforeEach(() => {
+    // Mock URL.createObjectURL et revokeObjectURL pour jsdom
+    globalThis.URL.createObjectURL = vi.fn(() => 'blob:http://localhost/fake-doc')
+    globalThis.URL.revokeObjectURL = vi.fn()
+
     useAuthStore.setState({
       user: { id: 99, name: 'Admin Principal', role: 'admin' },
       token: 'admin-token',
@@ -59,7 +66,7 @@ describe('AdminDashboard (SCRUM-31)', () => {
     vi.mocked(rejectSupplier).mockResolvedValue({
       message: 'Le dossier fournisseur a été refusé.',
     })
-    vi.mocked(openAdminDocument).mockResolvedValue()
+    vi.mocked(fetchAdminDocumentBlob).mockResolvedValue(new Blob(['fake content'], { type: 'application/pdf' }))
   })
 
   afterEach(() => {
@@ -67,7 +74,7 @@ describe('AdminDashboard (SCRUM-31)', () => {
     vi.clearAllMocks()
   })
 
-  it('affiche la file des demandes avec le fournisseur et ses documents', async () => {
+  it('affiche la file des demandes avec le fournisseur, ses catégories et ses documents', async () => {
     render(<AdminDashboard />)
 
     expect(screen.getByText('Chargement des dossiers fournisseurs...')).toBeTruthy()
@@ -75,6 +82,8 @@ describe('AdminDashboard (SCRUM-31)', () => {
     await waitFor(() => {
       expect(screen.getByText('Acme SARL')).toBeTruthy()
       expect(screen.getByText('Ali Ben Salah')).toBeTruthy()
+      expect(screen.getByText('BTP et matériaux')).toBeTruthy()
+      expect(screen.getByText('Tunis')).toBeTruthy()
       expect(screen.getByText('Registre de commerce')).toBeTruthy()
     })
 
@@ -139,16 +148,25 @@ describe('AdminDashboard (SCRUM-31)', () => {
     })
   })
 
-  it('permet de consulter / télécharger un justificatif', async () => {
+  it('ouvre la visionneuse intégrée pour consulter le justificatif', async () => {
     render(<AdminDashboard />)
 
     await waitFor(() => {
       expect(screen.getByText('Acme SARL')).toBeTruthy()
     })
 
-    const downloadBtn = screen.getByRole('button', { name: 'Consulter / Télécharger' })
-    fireEvent.click(downloadBtn)
+    const previewBtn = screen.getByRole('button', { name: 'Consulter / Prévisualiser' })
+    fireEvent.click(previewBtn)
 
-    expect(openAdminDocument).toHaveBeenCalledWith(expect.objectContaining({ id: 10 }))
+    await waitFor(() => {
+      expect(fetchAdminDocumentBlob).toHaveBeenCalledWith(expect.objectContaining({ id: 10 }))
+      expect(screen.getByTitle('Registre de commerce')).toBeTruthy()
+    })
+
+    // Bouton fermer
+    const closeBtn = screen.getByRole('button', { name: 'Fermer la prévisualisation' })
+    fireEvent.click(closeBtn)
+
+    expect(screen.queryByTitle('Registre de commerce')).toBeNull()
   })
 })
