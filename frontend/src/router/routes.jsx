@@ -152,6 +152,11 @@ export const createRoutes = () => [
           handle: { crumb: 'Validation des fournisseurs' },
           lazy: page(() => import('@/views/admin/AdminDashboard')),
         },
+        {
+          path: PATHS.adminCategories,
+          handle: { crumb: 'Gestion des catégories' },
+          lazy: page(() => import('@/views/admin/CategoryManagementPage')),
+        },
       ]),
 
       // Erreurs
