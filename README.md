@@ -44,6 +44,19 @@ cp .env.example .env          # VITE_API_URL=http://localhost:8000/api
 npm run dev                   # http://localhost:5173
 ```
 
+### Dépannage : « Impossible de charger les régions »
+
+Ce message apparaît dans les formulaires d'inscription quand l'API ne peut pas lire les données de référence : le plus souvent, **MySQL/MariaDB n'est pas démarré** et Laravel répond `500`.
+
+1. Démarrez MySQL (XAMPP : panneau de contrôle ou `C:\xampp\mysql_start.bat`).
+2. Vérifiez que l'API répond :
+
+```bash
+curl http://localhost:8000/api/reference/regions
+```
+
+La réponse doit être un tableau JSON de **24 régions**. Si la base est vide, relancez `php artisan db:seed` depuis `backend/` (le seeder insère toujours les régions et les catégories).
+
 ### Comptes de démonstration
 
 Mot de passe : `password`
