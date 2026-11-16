@@ -147,7 +147,8 @@ class CategoryService
     public function delete(Category $category, User $admin): void
     {
         $childrenCount = $category->children()->count();
-        $productsCount = Product::query()->where('category_id', $category->id)->count();
+        // Les produits supprimés (suppression douce, SCRUM-34) gardent leur catégorie : ils comptent aussi.
+        $productsCount = Product::withTrashed()->where('category_id', $category->id)->count();
         $tendersCount = DB::table('tenders')->where('category_id', $category->id)->count();
 
         if ($childrenCount > 0) {

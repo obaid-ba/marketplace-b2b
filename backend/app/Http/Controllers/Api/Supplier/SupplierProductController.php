@@ -3,23 +3,72 @@
 namespace App\Http\Controllers\Api\Supplier;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Supplier\IndexSupplierProductsRequest;
 use App\Http\Requests\Supplier\ReorderProductImagesRequest;
 use App\Http\Requests\Supplier\SaveProductRequest;
 use App\Http\Requests\Supplier\StoreProductImagesRequest;
 use App\Http\Resources\SupplierProductResource;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * Produits du fournisseur connecté et validé (SCRUM-33 : ajouter / modifier, photos).
+ * Produits du fournisseur connecté et validé
+ * (SCRUM-33 : ajouter / modifier, photos ; SCRUM-34 : Mes produits, dépublier, supprimer).
  */
 class SupplierProductController extends Controller
 {
+    public const PER_PAGE = 10;
+
     public function __construct(private readonly ProductService $products) {}
+
+    /**
+     * Mes produits (SCRUM-34) : 10 par page, filtres statut et catégorie (sous-catégories incluses),
+     * nombre de vues, et compteurs par statut pour les onglets (indépendants du filtre de statut).
+     */
+    public function index(IndexSupplierProductsRequest $request): AnonymousResourceCollection
+    {
+        $supplier = $request->user()->supplierProfile;
+        abort_if($supplier === null, 403, 'Profil fournisseur introuvable.');
+
+        $base = Product::query()->where('supplier_id', $supplier->id);
+
+        if ($request->filled('category_id')) {
+            $categoryId = (int) $request->validated('category_id');
+            $ids = Category::query()->whereKey($categoryId)->orWhere('parent_id', $categoryId)->pluck('id');
+            $base->whereIn('category_id', $ids);
+        }
+
+        $counts = (clone $base)
+            ->toBase()
+            ->selectRaw('status, count(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $products = (clone $base)
+            ->when($request->filled('status'), fn ($query) => $query->where(
+                'status',
+                Product::statusFromApi($request->validated('status'))->value,
+            ))
+            ->with(['category:id,name,parent_id', 'mainImage'])
+            ->withCount('views')
+            ->latest()
+            ->orderByDesc('id')
+            ->paginate(self::PER_PAGE)
+            ->withQueryString();
+
+        $byStatus = collect(Product::API_STATUSES)
+            ->map(fn ($status) => (int) $counts->get($status->value, 0));
+
+        return SupplierProductResource::collection($products)->additional([
+            'counts' => ['all' => $byStatus->sum(), ...$byStatus->all()],
+        ]);
+    }
 
     public function store(SaveProductRequest $request): JsonResponse
     {
@@ -54,6 +103,39 @@ class SupplierProductController extends Controller
                 default => 'Brouillon enregistré.',
             },
             'product' => new SupplierProductResource($product->load(['category', 'images'])),
+        ]);
+    }
+
+    /**
+     * Dépublier (SCRUM-34) : le produit repasse en brouillon et quitte le catalogue.
+     */
+    public function unpublish(Request $request, Product $product): JsonResponse
+    {
+        Gate::authorize('update', $product);
+
+        $product = $this->products->unpublish($product);
+
+        return response()->json([
+            'message' => 'Produit dépublié : il n’apparaît plus dans le catalogue.',
+            'product' => new SupplierProductResource($product->load(['category', 'images'])),
+        ]);
+    }
+
+    /**
+     * Supprimer (SCRUM-34) : définitif, sauf pour un produit déjà commandé (suppression douce).
+     */
+    public function destroy(Request $request, Product $product): JsonResponse
+    {
+        Gate::authorize('delete', $product);
+
+        $title = $product->title;
+        $permanent = $this->products->delete($product);
+
+        return response()->json([
+            'message' => $permanent
+                ? "« {$title} » a été supprimé."
+                : "« {$title} » a déjà été commandé : il est retiré du catalogue et de vos produits, mais conservé dans l'historique des commandes.",
+            'permanent' => $permanent,
         ]);
     }
 

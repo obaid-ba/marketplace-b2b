@@ -86,6 +86,29 @@ class ProductService
     }
 
     /**
+     * Supprime un produit (SCRUM-34). Déjà commandé : suppression douce (retiré du catalogue et de
+     * « Mes produits », mais conservé pour l'historique des commandes). Sinon : suppression définitive
+     * avec ses photos.
+     *
+     * @return bool true si le produit a été supprimé définitivement
+     */
+    public function delete(Product $product): bool
+    {
+        if ($product->hasBeenOrdered()) {
+            $product->update(['status' => ProductStatus::DRAFT]);
+            $product->delete();
+
+            return false;
+        }
+
+        $paths = $product->images()->pluck('path')->all();
+        $product->forceDelete();
+        Storage::disk(ProductImage::DISK)->delete($paths);
+
+        return true;
+    }
+
+    /**
      * @param  list<UploadedFile>  $files
      */
     public function addImages(Product $product, array $files): Product

@@ -42,3 +42,24 @@ export async function deleteProductImage(id, imageId) {
   const { data } = await http.delete(`/supplier/products/${id}/images/${imageId}`)
   return data
 }
+
+/**
+ * Mes produits (SCRUM-34) : params { status, category_id, page }.
+ * Réponse : { data: [produit + views_count + main_image_url], meta, counts: { all, draft, published, withdrawn } }
+ */
+export async function fetchSupplierProducts(params = {}) {
+  const { data } = await http.get('/supplier/products', { params })
+  return data
+}
+
+/** Dépublier : le produit repasse en brouillon. */
+export async function unpublishSupplierProduct(id) {
+  const { data } = await http.patch(`/supplier/products/${id}/unpublish`)
+  return data
+}
+
+/** Supprimer : définitif, ou retiré seulement s'il a déjà été commandé. Renvoie { message, permanent }. */
+export async function deleteSupplierProduct(id) {
+  const { data } = await http.delete(`/supplier/products/${id}`)
+  return data
+}

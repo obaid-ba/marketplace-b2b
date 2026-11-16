@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Produit ou service proposé par un fournisseur (entité 8).
@@ -18,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Product extends Model
 {
     /** @use HasFactory<ProductFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const TYPE_PRODUCT = 'produit';
 
@@ -78,6 +80,22 @@ class Product extends Model
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * Consultations de la fiche produit (SCRUM-34 : nombre de vues, SCRUM-36 : enregistrement).
+     */
+    public function views(): HasMany
+    {
+        return $this->hasMany(ProductView::class);
+    }
+
+    /**
+     * Un produit déjà commandé n'est jamais supprimé physiquement (SCRUM-34).
+     */
+    public function hasBeenOrdered(): bool
+    {
+        return DB::table('order_items')->where('product_id', $this->id)->exists();
     }
 
     /**

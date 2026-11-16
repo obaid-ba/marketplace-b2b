@@ -107,6 +107,11 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         // Réponse sinon : 403 { "reason": "supplier_not_validated" }.
         // Restent hors de ce groupe : profil, documents, état du dossier, déconnexion, notifications.
         Route::middleware('supplier.validated')->group(function () {
+            // Mes produits : liste, dépublier, supprimer (SCRUM-34).
+            Route::get('/products', [SupplierProductController::class, 'index']);
+            Route::patch('/products/{product}/unpublish', [SupplierProductController::class, 'unpublish'])
+                ->whereNumber('product');
+            Route::delete('/products/{product}', [SupplierProductController::class, 'destroy'])->whereNumber('product');
             // Ajouter / modifier un produit ou un service et ses photos (SCRUM-33).
             Route::post('/products', [SupplierProductController::class, 'store']);
             Route::get('/products/{product}', [SupplierProductController::class, 'show'])->whereNumber('product');

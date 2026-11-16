@@ -148,6 +148,13 @@ export const createRoutes = () => [
             handle: { crumb: "Profil de l'entreprise" },
             lazy: page(() => import('@/views/supplier/CompanyProfilePage')),
           },
+          // Mes produits (SCRUM-34) : fournisseur validé uniquement.
+          {
+            path: PATHS.supplierProducts,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Mes produits' },
+            lazy: page(() => import('@/views/supplier/products/MyProductsPage')),
+          },
           // Ajouter / modifier un produit (SCRUM-33) : fournisseur validé uniquement.
           {
             path: PATHS.supplierProductNew,
