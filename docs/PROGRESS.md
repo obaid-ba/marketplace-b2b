@@ -19,6 +19,7 @@
   - Endpoint réel sur MySQL : **200 en 57 ms** (transaction de contrôle annulée).
   - Pint appliqué sur les fichiers PHP modifiés.
 - **Fichiers** : voir `docs/tasks/SCRUM-122.md` ; contrat API dans `docs/api/admin-dashboard.md`.
+- **PR** : [#16](https://github.com/obaid-ba/marketplace-b2b/pull/16) de `Dashboards` vers `develop` (3 commits, CI GitHub Actions verte).
 - **Reste** : export CSV/XLSX (Q7), jeu de données de performance (Q9), signalements d'avis (F29), smoke Playwright, autorisation push/PR (Q10).
 - **Remarque environnement** : MariaDB (XAMPP) s'est arrêtée en cours de session ; relancée pour la vérification finale. Aucune donnée modifiée.
 

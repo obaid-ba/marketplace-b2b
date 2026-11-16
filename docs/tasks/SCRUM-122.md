@@ -58,6 +58,7 @@ des courbes d'évolution et les files à traiter, puis exporter les indicateurs 
 - Frontend : `npm test` → **88 tests / 12 fichiers, tous verts** ; `npm run build` → OK (chunk dashboard 390 kB à cause de Recharts, chargé à la demande).
 - Vérification réelle MySQL : `GET /api/admin/dashboard` → **200 en 57 ms** sur la base `marketplace_b2b` (transaction de contrôle annulée, aucune donnée laissée).
 - Pint appliqué sur les fichiers PHP modifiés.
+- PR [#16](https://github.com/obaid-ba/marketplace-b2b/pull/16) ouverte vers `develop` ; les deux jobs GitHub Actions (API Laravel, React) sont verts.
 
 ## Interventions humaines
 
