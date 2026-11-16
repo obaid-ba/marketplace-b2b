@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Buyer\FavoriteSupplierController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EmailVerificationController;
@@ -129,6 +130,13 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Espace porteur de projet (S3+) : demandes, comparaison des devis, commandes…
     Route::middleware('role:buyer')->prefix('buyer')->group(function () {
         Route::get('/ping', fn () => ['space' => 'buyer']);
+    });
+
+    // Fournisseurs favoris du porteur de projet (SCRUM-39). Ajout / retrait idempotents.
+    Route::middleware('role:buyer')->prefix('favorites/suppliers')->group(function () {
+        Route::get('/', [FavoriteSupplierController::class, 'index']);
+        Route::post('/{supplier}', [FavoriteSupplierController::class, 'store'])->whereNumber('supplier');
+        Route::delete('/{supplier}', [FavoriteSupplierController::class, 'destroy'])->whereNumber('supplier');
     });
 
     // Back-office (S1+) : validation des fournisseurs, catégories, litiges…

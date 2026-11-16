@@ -171,7 +171,20 @@ export const createRoutes = () => [
         ],
         () => import('@/layouts/SupplierLayout'),
       ),
-      space(PATHS.buyer, ROLES.BUYER, () => import('@/views/buyer/BuyerDashboard')),
+      space(
+        PATHS.buyer,
+        ROLES.BUYER,
+        () => import('@/views/buyer/BuyerDashboard'),
+        [
+          // Fournisseurs favoris (SCRUM-39)
+          {
+            path: PATHS.buyerFavorites,
+            handle: { crumb: 'Fournisseurs favoris' },
+            lazy: page(() => import('@/views/buyer/FavoriteSuppliersPage')),
+          },
+        ],
+        () => import('@/layouts/BuyerLayout'),
+      ),
       space(
         PATHS.admin,
         ROLES.ADMIN,

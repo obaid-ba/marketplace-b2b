@@ -16,6 +16,7 @@ export const PATHS = Object.freeze({
   supplierProducts: '/fournisseur/produits', // Mes produits (SCRUM-34)
   supplierProductNew: '/fournisseur/produits/nouveau', // Ajouter un produit (SCRUM-33)
   buyer: '/porteur',
+  buyerFavorites: '/porteur/favoris', // Fournisseurs favoris (SCRUM-39)
   admin: '/admin',
   adminCategories: '/admin/categories', // Gestion des catégories (SCRUM-32)
   forbidden: '/acces-refuse',
