@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AccountController;
+use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
@@ -109,6 +110,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Back-office (S1+) : validation des fournisseurs, catégories, litiges…
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/ping', fn () => ['space' => 'admin']);
+
+        // Tableau de bord et statistiques (SCRUM-122 / F28, story SCRUM-70).
+        Route::get('/dashboard', [AdminDashboardController::class, 'show']);
 
         // Validation ou refus des nouveaux fournisseurs (SCRUM-31).
         Route::get('/suppliers', [SupplierValidationController::class, 'index']);
