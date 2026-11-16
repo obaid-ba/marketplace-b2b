@@ -2,16 +2,22 @@
 
 namespace Database\Seeders;
 
+use App\Enums\OrderStatus;
 use App\Enums\ProductStatus;
+use App\Enums\ReviewStatus;
 use App\Enums\UserStatus;
 use App\Enums\ValidationStatus;
+use App\Models\BuyerProfile;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Region;
+use App\Models\Review;
 use App\Models\SupplierProfile;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 /**
  * Données de démonstration du catalogue (sprint 2) : fournisseurs et produits des maquettes V1 à V4.
@@ -139,6 +145,8 @@ class CatalogueDemoSeeder extends Seeder
             );
         }
 
+        $this->seedBuyersAndReviews($suppliers, $password);
+
         // Un brouillon et un produit retiré par l'administrateur, jamais visibles dans le catalogue.
         Product::query()->updateOrCreate(
             ['supplier_id' => $suppliers['Atlas Emballages']->id, 'title' => 'Sacs kraft 25 kg (brouillon)'],
@@ -151,6 +159,83 @@ class CatalogueDemoSeeder extends Seeder
                 'unit' => null, 'stock' => 2, 'availability_days' => 30, 'status' => ProductStatus::WITHDRAWN,
                 'withdrawal_reason' => 'Photos ne correspondant pas au produit décrit.'],
         );
+    }
+
+    /**
+     * Avis : [fournisseur, prénom, nom, note, commentaire, réponse du fournisseur, il y a N jours].
+     */
+    private const REVIEWS = [
+        ['Atlas Emballages', 'Sana', 'Ben Salah', 5, 'Livraison rapide et carton conforme au plan. Je recommande.', 'Merci Sana, au plaisir de travailler à nouveau ensemble !', 3],
+        ['Atlas Emballages', 'Karim', 'Trabelsi', 4, 'Bon rapport qualité-prix, impression correcte.', null, 10],
+        ['Atlas Emballages', 'Leila', 'Mansour', 5, 'Équipe réactive, devis reçu en quelques heures.', null, 21],
+        ['Djerba Pack', 'Sana', 'Ben Salah', 4, 'Palettes solides, livraison à l’heure à Houmt Souk.', null, 7],
+        ['PalettesPlus', 'Karim', 'Trabelsi', 5, 'Service de palettisation impeccable.', 'Merci pour votre confiance.', 14],
+        ['TechNova Services', 'Leila', 'Mansour', 4, 'Intervention rapide sur notre réseau.', null, 30],
+    ];
+
+    /**
+     * Porteurs de projet de démonstration, commandes livrées et avis publiés.
+     * Sana Ben Salah (porteur@… existant ou sana@marketplace.test) a aussi des fournisseurs favoris (maquette B8).
+     *
+     * @param  array<string, SupplierProfile>  $suppliers
+     */
+    private function seedBuyersAndReviews(array $suppliers, string $password): void
+    {
+        $buyers = [];
+        foreach (self::REVIEWS as [$company, $first, $last, $rating, $comment, $reply, $daysAgo]) {
+            $key = "{$first} {$last}";
+            $buyers[$key] ??= $this->buyer($first, $last, $password);
+            $buyer = $buyers[$key];
+            $supplier = $suppliers[$company];
+
+            if (Review::query()->where('buyer_id', $buyer->id)->where('supplier_id', $supplier->id)->exists()) {
+                continue;
+            }
+
+            $date = now()->subDays($daysAgo);
+            $orderId = DB::table('orders')->insertGetId([
+                'buyer_id' => $buyer->id,
+                'supplier_id' => $supplier->id,
+                'origin' => 'catalogue',
+                'total' => 1000,
+                'status' => OrderStatus::CLOSED->value,
+                'created_at' => $date->copy()->subDays(10),
+                'updated_at' => $date,
+            ]);
+
+            $review = Review::query()->create([
+                'order_id' => $orderId,
+                'buyer_id' => $buyer->id,
+                'supplier_id' => $supplier->id,
+                'rating' => $rating,
+                'comment' => $comment,
+                'supplier_reply' => $reply,
+                'status' => ReviewStatus::PUBLISHED,
+            ]);
+            $review->forceFill(['created_at' => $date, 'updated_at' => $date])->save();
+        }
+
+        $buyers['Sana Ben Salah']->favoriteSuppliers()->syncWithoutDetaching(
+            collect(['Atlas Emballages', 'Djerba Pack', 'PalettesPlus', 'Oliveraie du Sahel', 'TechNova Services', 'ElectroSud'])
+                ->map(fn (string $company) => $suppliers[$company]->id)
+                ->all(),
+        );
+    }
+
+    private function buyer(string $first, string $last, string $password): BuyerProfile
+    {
+        $email = mb_strtolower(Str::ascii($first)).'@marketplace.test';
+        $user = User::query()->firstOrCreate(['email' => $email], [
+            'name' => "{$first} {$last}",
+            'first_name' => $first,
+            'last_name' => $last,
+            'password' => $password,
+            'role' => 'buyer',
+            'status' => UserStatus::ACTIVE->value,
+            'email_verified_at' => now(),
+        ]);
+
+        return $user->buyerProfile()->firstOrCreate([], ['organization' => "Projet de {$first} {$last}"]);
     }
 
     /**

@@ -83,7 +83,11 @@ export const createRoutes = () => [
       // Vitrine publique (sprint 2) : en-tête et pied de page communs, accessible sans connexion.
       {
         lazy: page(() => import('@/layouts/PublicLayout')),
-        children: [{ path: PATHS.catalog, lazy: page(() => import('@/views/catalog/CatalogView')) }],
+        children: [
+          { path: PATHS.catalog, lazy: page(() => import('@/views/catalog/CatalogView')) },
+          // Fiche publique d'un fournisseur (SCRUM-37)
+          { path: '/fournisseurs/:supplierId', lazy: page(() => import('@/views/suppliers/SupplierPublicPage')) },
+        ],
       },
       { path: PATHS.login, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/LoginView')) },
 

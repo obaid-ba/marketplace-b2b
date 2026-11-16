@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
 use App\Http\Controllers\Api\Supplier\SupplierProductController;
 use App\Http\Controllers\Api\Supplier\SupplierProfileController;
 use App\Http\Controllers\Api\Supplier\SupplierValidationStatusController;
+use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -62,6 +63,9 @@ Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
 Route::get('/categories', [CategoryController::class, 'index']);
 // Catalogue : recherche, filtres, tri, pagination (SCRUM-35).
 Route::get('/products', [ProductController::class, 'index'])->middleware('throttle:120,1');
+// Fiche publique d'un fournisseur et ses avis (SCRUM-37).
+Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])->whereNumber('supplier');
+Route::get('/suppliers/{supplier}/reviews', [SupplierController::class, 'reviews'])->whereNumber('supplier');
 
 Route::middleware('auth:sanctum')->group(function () {
     // Accessibles même si l'e-mail n'est pas encore vérifié.

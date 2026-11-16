@@ -94,6 +94,22 @@ class SupplierProfile extends Model
     }
 
     /**
+     * Produits et services du fournisseur (SCRUM-33).
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class, 'supplier_id');
+    }
+
+    /**
+     * Avis reçus (SCRUM-37 : affichés sur la fiche publique).
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'supplier_id');
+    }
+
+    /**
      * Documents justificatifs du fournisseur.
      */
     public function documents(): HasMany
