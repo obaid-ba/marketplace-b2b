@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class SupplierValidationController extends Controller
 {
     /**
-     * File des demandes fournisseurs, triée de la plus ancienne à la plus récente (SCRUM-31).
+     * File des demandes fournisseurs, triée de la plus ancienne à la plus récente (SCRUM-31 / F05).
      */
     public function index(Request $request): JsonResponse
     {
@@ -74,15 +74,33 @@ class SupplierValidationController extends Controller
     }
 
     /**
-     * Consultation / téléchargement d'un document justificatif envoyé par un fournisseur.
+     * Consultation sécurisée d'un document justificatif pour un dossier fournisseur.
+     */
+    public function showDocument(SupplierProfile $supplier, SupplierDocument $document): StreamedResponse|JsonResponse
+    {
+        return $this->serveDocument($document);
+    }
+
+    /**
+     * Téléchargement / streaming sécurisé d'un document justificatif (SCRUM-31 / F05).
      */
     public function downloadDocument(SupplierDocument $document): StreamedResponse|JsonResponse
+    {
+        return $this->serveDocument($document);
+    }
+
+    /**
+     * Sert le document justificatif stocké sur le disque privé.
+     */
+    private function serveDocument(SupplierDocument $document): StreamedResponse|JsonResponse
     {
         Gate::authorize('view', $document);
 
         foreach ([SupplierProfileService::DOCUMENT_DISK, 'public'] as $disk) {
-            if (Storage::disk($disk)->exists($document->file_path)) {
-                return Storage::disk($disk)->response(
+            /** @var \Illuminate\Filesystem\FilesystemAdapter $storage */
+            $storage = Storage::disk($disk);
+            if ($storage->exists($document->file_path)) {
+                return $storage->response(
                     $document->file_path,
                     SupplierDocumentResource::fileNameFor($document)
                 );
