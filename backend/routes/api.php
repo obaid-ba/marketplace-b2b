@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\AccountController;
+use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ReferenceController;
@@ -51,6 +53,10 @@ Route::get('/auth/email/verify/{id}/{hash}', [EmailVerificationController::class
 Route::get('/reference/regions', [ReferenceController::class, 'regions']);
 Route::get('/reference/categories', [ReferenceController::class, 'categories']);
 Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
+
+// Vitrine publique (S2) : accessible sans connexion.
+// Arborescence des catégories avec le nombre de produits visibles (SCRUM-32).
+Route::get('/categories', [CategoryController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // Accessibles même si l'e-mail n'est pas encore vérifié.
@@ -120,5 +126,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
             ->whereNumber('supplier');
         Route::post('/suppliers/{supplier}/reject', [SupplierValidationController::class, 'reject'])
             ->whereNumber('supplier');
+
+        // Gestion des catégories et sous-catégories (SCRUM-32).
+        Route::get('/categories', [AdminCategoryController::class, 'index']);
+        Route::post('/categories', [AdminCategoryController::class, 'store']);
+        Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->whereNumber('category');
+        Route::patch('/categories/{category}/move', [AdminCategoryController::class, 'move'])->whereNumber('category');
+        Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->whereNumber('category');
     });
 });

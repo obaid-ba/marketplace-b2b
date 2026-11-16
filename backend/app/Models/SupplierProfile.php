@@ -80,15 +80,16 @@ class SupplierProfile extends Model
     }
 
     /**
-     * Profils visibles dans le catalogue et les recherches : publiés, dont le
-     * compte est actif et non supprimé. Un fournisseur désactivé ou supprimé
-     * (SCRUM-30 / SCRUM-98) disparaît donc aussi de ces listes.
+     * Profils visibles dans le catalogue et les recherches : validés par l'administrateur,
+     * publiés, dont le compte est actif et non supprimé. Un fournisseur suspendu, désactivé
+     * ou supprimé (SCRUM-30 / SCRUM-98) disparaît donc aussi de ces listes.
      *
      * @param  Builder<SupplierProfile>  $query
      */
     public function scopeVisibleInCatalog(Builder $query): void
     {
-        $query->where('is_published', true)
+        $query->where('validation_status', ValidationStatus::VALIDATED->value)
+            ->where('is_published', true)
             ->whereHas('user', fn (Builder $user) => $user->where('status', UserStatus::ACTIVE->value));
     }
 
