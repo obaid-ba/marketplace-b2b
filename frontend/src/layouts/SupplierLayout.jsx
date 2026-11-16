@@ -8,7 +8,7 @@ import SpaceLayout from './SpaceLayout'
  */
 const NAV_ITEMS = [
   { label: 'Tableau de bord', to: PATHS.supplier, end: true },
-  { label: 'Mes produits' }, // SCRUM-34
+  { label: 'Mes produits', to: PATHS.supplierProductNew }, // liste « Mes produits » : SCRUM-34
   { label: 'Demandes reçues' }, // SCRUM-44
   { label: 'Mes devis' }, // SCRUM-46
   { label: 'Mes commandes' }, // SCRUM-58

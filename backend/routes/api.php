@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
+use App\Http\Controllers\Api\Supplier\SupplierProductController;
 use App\Http\Controllers\Api\Supplier\SupplierProfileController;
 use App\Http\Controllers\Api\Supplier\SupplierValidationStatusController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
@@ -106,7 +107,17 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         // Réponse sinon : 403 { "reason": "supplier_not_validated" }.
         // Restent hors de ce groupe : profil, documents, état du dossier, déconnexion, notifications.
         Route::middleware('supplier.validated')->group(function () {
-            //
+            // Ajouter / modifier un produit ou un service et ses photos (SCRUM-33).
+            Route::post('/products', [SupplierProductController::class, 'store']);
+            Route::get('/products/{product}', [SupplierProductController::class, 'show'])->whereNumber('product');
+            Route::put('/products/{product}', [SupplierProductController::class, 'update'])->whereNumber('product');
+            Route::post('/products/{product}/images', [SupplierProductController::class, 'storeImages'])
+                ->whereNumber('product');
+            Route::put('/products/{product}/images/order', [SupplierProductController::class, 'reorderImages'])
+                ->whereNumber('product');
+            Route::delete('/products/{product}/images/{image}', [SupplierProductController::class, 'destroyImage'])
+                ->whereNumber('product')
+                ->whereNumber('image');
         });
     });
 

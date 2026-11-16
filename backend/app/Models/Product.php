@@ -101,6 +101,33 @@ class Product extends Model
         return $type === 'service' ? self::TYPE_SERVICE : self::TYPE_PRODUCT;
     }
 
+    /** Statuts exposés par l'API (anglais) ↔ statuts stockés (ProductStatus, français). */
+    public const API_STATUSES = [
+        'draft' => ProductStatus::DRAFT,
+        'published' => ProductStatus::PUBLISHED,
+        'withdrawn' => ProductStatus::WITHDRAWN,
+    ];
+
+    public function apiStatus(): string
+    {
+        return array_search($this->status, self::API_STATUSES, true) ?: 'draft';
+    }
+
+    public static function statusFromApi(string $status): ProductStatus
+    {
+        return self::API_STATUSES[$status] ?? ProductStatus::DRAFT;
+    }
+
+    public function isWithdrawn(): bool
+    {
+        return $this->status === ProductStatus::WITHDRAWN;
+    }
+
+    public function isService(): bool
+    {
+        return $this->type === self::TYPE_SERVICE;
+    }
+
     /**
      * Seuls ces produits apparaissent côté public (catalogue, fiches, accueil, compteurs) :
      * produit publié d'un fournisseur validé, actif et dont le profil est publié.

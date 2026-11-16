@@ -13,6 +13,8 @@ export const PATHS = Object.freeze({
   supplier: '/fournisseur',
   supplierPending: '/fournisseur/en-attente',
   supplierProfile: '/fournisseur/profil', // Profil de l'entreprise (SCRUM-28)
+  supplierProducts: '/fournisseur/produits', // Mes produits (SCRUM-34)
+  supplierProductNew: '/fournisseur/produits/nouveau', // Ajouter un produit (SCRUM-33)
   buyer: '/porteur',
   admin: '/admin',
   adminCategories: '/admin/categories', // Gestion des catégories (SCRUM-32)
@@ -24,6 +26,11 @@ export const PATHS = Object.freeze({
 /** Fiche fournisseur publique (SCRUM-37). */
 export function supplierPublicPath(id) {
   return `/fournisseurs/${id}`
+}
+
+/** Modifier un produit (SCRUM-33). */
+export function supplierProductEditPath(id) {
+  return `/fournisseur/produits/${id}/modifier`
 }
 
 /** Fiche produit publique (SCRUM-36). */
