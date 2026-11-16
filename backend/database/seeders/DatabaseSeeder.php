@@ -16,12 +16,13 @@ class DatabaseSeeder extends Seeder
     /**
      * Laissez à false pour garder les 33 tables vides au démarrage.
      * Passez à true pour insérer les données de test Jira (96+ lignes).
+     * La variable d'environnement SEED_DEMO_DATA=true fait de même (utilisée par deploy/).
      */
     public const SEED_DEMO_DATA = false;
 
     public function run(): void
     {
-        if (! self::SEED_DEMO_DATA) {
+        if (! self::SEED_DEMO_DATA && ! filter_var(env('SEED_DEMO_DATA', false), FILTER_VALIDATE_BOOLEAN)) {
             return;
         }
 

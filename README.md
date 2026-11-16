@@ -18,6 +18,16 @@ Backlog et sprints : Jira, projet **SCRUM**.
 - MySQL 8 (ou MariaDB 10.6+)
 - Node.js 20 ou plus, npm
 
+## Démarrage rapide (Docker)
+
+Pour tout lancer en une commande, sans installer PHP, MySQL ni Node :
+
+```bash
+./deploy/start.sh   # web : http://localhost:5173 — API : http://localhost:8000 — e-mails : http://localhost:8025
+```
+
+Détails et commandes utiles : [`deploy/README.md`](deploy/README.md).
+
 ## Installation
 
 ### 1. API (backend)
