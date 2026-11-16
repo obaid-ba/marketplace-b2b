@@ -110,7 +110,21 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/ping', fn () => ['space' => 'admin']);
 
-        // Validation ou refus des nouveaux fournisseurs (SCRUM-31).
+        // Validation ou refus des nouveaux fournisseurs (SCRUM-31 / F05).
+        Route::get('/supplier-applications', [SupplierValidationController::class, 'index']);
+        Route::get('/supplier-applications/{supplier}', [SupplierValidationController::class, 'show'])
+            ->whereNumber('supplier');
+        Route::get('/supplier-applications/{supplier}/documents/{document}', [SupplierValidationController::class, 'showDocument'])
+            ->whereNumber('supplier')
+            ->whereNumber('document');
+        Route::get('/supplier-applications/documents/{document}/download', [SupplierValidationController::class, 'downloadDocument'])
+            ->whereNumber('document');
+        Route::post('/supplier-applications/{supplier}/approve', [SupplierValidationController::class, 'approve'])
+            ->whereNumber('supplier');
+        Route::post('/supplier-applications/{supplier}/reject', [SupplierValidationController::class, 'reject'])
+            ->whereNumber('supplier');
+
+        // Alias /admin/suppliers (rétrocompatibilité)
         Route::get('/suppliers', [SupplierValidationController::class, 'index']);
         Route::get('/suppliers/{supplier}', [SupplierValidationController::class, 'show'])
             ->whereNumber('supplier');

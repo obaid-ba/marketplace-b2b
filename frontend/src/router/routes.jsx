@@ -146,7 +146,13 @@ export const createRoutes = () => [
         () => import('@/layouts/SupplierLayout'),
       ),
       space(PATHS.buyer, ROLES.BUYER, () => import('@/views/buyer/BuyerDashboard')),
-      space(PATHS.admin, ROLES.ADMIN, () => import('@/views/admin/AdminDashboard')),
+      space(PATHS.admin, ROLES.ADMIN, () => import('@/views/admin/AdminDashboard'), [
+        {
+          path: PATHS.adminApplications,
+          handle: { crumb: 'Validation des fournisseurs' },
+          lazy: page(() => import('@/views/admin/AdminDashboard')),
+        },
+      ]),
 
       // Erreurs
       { path: PATHS.forbidden, lazy: page(() => import('@/views/errors/ForbiddenView')) },
