@@ -16,6 +16,7 @@ export const PATHS = Object.freeze({
   buyer: '/porteur',
   admin: '/admin',
   adminApplications: '/admin/fournisseurs',
+  adminCategories: '/admin/categories',
   forbidden: '/acces-refuse',
 })
 

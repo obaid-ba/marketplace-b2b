@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AccountController;
+use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
@@ -134,5 +135,13 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
             ->whereNumber('supplier');
         Route::post('/suppliers/{supplier}/reject', [SupplierValidationController::class, 'reject'])
             ->whereNumber('supplier');
+
+        // Gestion des catégories et sous-catégories (SCRUM-32 / F06).
+        Route::get('/categories', [CategoryController::class, 'index']);
+        Route::post('/categories', [CategoryController::class, 'store']);
+        Route::patch('/categories/reorder', [CategoryController::class, 'reorder']);
+        Route::put('/categories/{category}', [CategoryController::class, 'update'])->whereNumber('category');
+        Route::patch('/categories/{category}', [CategoryController::class, 'update'])->whereNumber('category');
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->whereNumber('category');
     });
 });
