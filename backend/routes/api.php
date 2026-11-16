@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Buyer\FavoriteSupplierController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReferenceController;
@@ -61,6 +62,8 @@ Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
 // Vitrine publique (S2) : accessible sans connexion.
 // Arborescence des catégories avec le nombre de produits visibles (SCRUM-32).
 Route::get('/categories', [CategoryController::class, 'index']);
+// Page d'accueil : chiffres, catégories, produits mis en avant (SCRUM-38), en cache 10 min.
+Route::get('/home', HomeController::class);
 // Catalogue : recherche, filtres, tri, pagination (SCRUM-35).
 Route::get('/products', [ProductController::class, 'index'])->middleware('throttle:120,1');
 // Fiche produit (SCRUM-36) : enregistre une consultation (ProductView).

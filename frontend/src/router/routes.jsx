@@ -78,12 +78,12 @@ export const createRoutes = () => [
     ErrorBoundary,
     children: [
       // Pages publiques
-      { path: PATHS.home, lazy: page(() => import('@/views/HomeView')) },
-
       // Vitrine publique (sprint 2) : en-tête et pied de page communs, accessible sans connexion.
       {
         lazy: page(() => import('@/layouts/PublicLayout')),
         children: [
+          // Page d'accueil (SCRUM-38)
+          { path: PATHS.home, lazy: page(() => import('@/views/HomeView')) },
           { path: PATHS.catalog, lazy: page(() => import('@/views/catalog/CatalogView')) },
           // Fiche détaillée d'un produit (SCRUM-36)
           { path: '/produits/:productId', lazy: page(() => import('@/views/products/ProductPage')) },
