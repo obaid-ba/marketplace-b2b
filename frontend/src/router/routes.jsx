@@ -146,18 +146,24 @@ export const createRoutes = () => [
         () => import('@/layouts/SupplierLayout'),
       ),
       space(PATHS.buyer, ROLES.BUYER, () => import('@/views/buyer/BuyerDashboard')),
-      space(PATHS.admin, ROLES.ADMIN, () => import('@/views/admin/AdminDashboard'), [
-        {
-          path: PATHS.adminApplications,
-          handle: { crumb: 'Validation des fournisseurs' },
-          lazy: page(() => import('@/views/admin/AdminDashboard')),
-        },
-        {
-          path: PATHS.adminCategories,
-          handle: { crumb: 'Gestion des catégories' },
-          lazy: page(() => import('@/views/admin/CategoryManagementPage')),
-        },
-      ]),
+      space(
+        PATHS.admin,
+        ROLES.ADMIN,
+        () => import('@/views/admin/AdminDashboardView'),
+        [
+          {
+            path: PATHS.adminSuppliers,
+            handle: { crumb: 'Validation des fournisseurs' },
+            lazy: page(() => import('@/views/admin/AdminDashboard')),
+          },
+          {
+            path: PATHS.adminCategories,
+            handle: { crumb: 'Gestion des catégories' },
+            lazy: page(() => import('@/views/admin/CategoryManagementPage')),
+          },
+        ],
+        () => import('@/layouts/AdminLayout'),
+      ),
 
       // Erreurs
       { path: PATHS.forbidden, lazy: page(() => import('@/views/errors/ForbiddenView')) },
