@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Produit ou service proposé par un fournisseur (entité 8).
@@ -68,6 +70,35 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Photos dans l'ordre d'affichage (la première est l'image principale).
+     */
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * Image principale seule (cartes du catalogue) : chargée en une requête pour toute une page.
+     */
+    public function mainImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)->ofMany(['position' => 'min', 'id' => 'min']);
+    }
+
+    /**
+     * Type exposé par l'API (« product » / « service ») ; la base stocke « produit » / « service ».
+     */
+    public function apiType(): string
+    {
+        return $this->type === self::TYPE_SERVICE ? 'service' : 'product';
+    }
+
+    public static function typeFromApi(string $type): string
+    {
+        return $type === 'service' ? self::TYPE_SERVICE : self::TYPE_PRODUCT;
     }
 
     /**

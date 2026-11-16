@@ -17,14 +17,26 @@ export const PATHS = Object.freeze({
   admin: '/admin',
   adminCategories: '/admin/categories', // Gestion des catégories (SCRUM-32)
   forbidden: '/acces-refuse',
+  catalog: '/catalogue', // Catalogue public (SCRUM-35)
+  howItWorks: '/#comment-ca-marche', // section de la page d'accueil (SCRUM-38)
 })
 
-/**
- * Fiche fournisseur publique (SCRUM-37, sprint S2).
- * TODO SCRUM-37 : la route n'existe pas encore, le lien affiche la page 404 en attendant.
- */
+/** Fiche fournisseur publique (SCRUM-37). */
 export function supplierPublicPath(id) {
   return `/fournisseurs/${id}`
+}
+
+/** Fiche produit publique (SCRUM-36). */
+export function productPath(id) {
+  return `/produits/${id}`
+}
+
+/** Catalogue filtré : catalogPath({ q: 'carton', category: 3 }) → « /catalogue?q=carton&category=3 ». */
+export function catalogPath(params = {}) {
+  const search = new URLSearchParams(
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+  ).toString()
+  return search ? `${PATHS.catalog}?${search}` : PATHS.catalog
 }
 
 /** Adresse de la page de connexion, en retenant la page à rouvrir ensuite. */

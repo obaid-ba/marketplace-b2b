@@ -79,6 +79,12 @@ export const createRoutes = () => [
     children: [
       // Pages publiques
       { path: PATHS.home, lazy: page(() => import('@/views/HomeView')) },
+
+      // Vitrine publique (sprint 2) : en-tête et pied de page communs, accessible sans connexion.
+      {
+        lazy: page(() => import('@/layouts/PublicLayout')),
+        children: [{ path: PATHS.catalog, lazy: page(() => import('@/views/catalog/CatalogView')) }],
+      },
       { path: PATHS.login, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/LoginView')) },
 
       // Mot de passe oublié (SCRUM-26). La page du lien reste ouverte à tous : on peut la recevoir déjà connecté.

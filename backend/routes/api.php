@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
 use App\Http\Controllers\Api\Supplier\SupplierProfileController;
@@ -57,6 +58,8 @@ Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
 // Vitrine publique (S2) : accessible sans connexion.
 // Arborescence des catégories avec le nombre de produits visibles (SCRUM-32).
 Route::get('/categories', [CategoryController::class, 'index']);
+// Catalogue : recherche, filtres, tri, pagination (SCRUM-35).
+Route::get('/products', [ProductController::class, 'index'])->middleware('throttle:120,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     // Accessibles même si l'e-mail n'est pas encore vérifié.
