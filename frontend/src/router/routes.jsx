@@ -85,6 +85,8 @@ export const createRoutes = () => [
         lazy: page(() => import('@/layouts/PublicLayout')),
         children: [
           { path: PATHS.catalog, lazy: page(() => import('@/views/catalog/CatalogView')) },
+          // Fiche détaillée d'un produit (SCRUM-36)
+          { path: '/produits/:productId', lazy: page(() => import('@/views/products/ProductPage')) },
           // Fiche publique d'un fournisseur (SCRUM-37)
           { path: '/fournisseurs/:supplierId', lazy: page(() => import('@/views/suppliers/SupplierPublicPage')) },
         ],

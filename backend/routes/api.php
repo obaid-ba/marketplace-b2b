@@ -63,6 +63,8 @@ Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
 Route::get('/categories', [CategoryController::class, 'index']);
 // Catalogue : recherche, filtres, tri, pagination (SCRUM-35).
 Route::get('/products', [ProductController::class, 'index'])->middleware('throttle:120,1');
+// Fiche produit (SCRUM-36) : enregistre une consultation (ProductView).
+Route::get('/products/{product}', [ProductController::class, 'show'])->whereNumber('product')->middleware('throttle:120,1');
 // Fiche publique d'un fournisseur et ses avis (SCRUM-37).
 Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])->whereNumber('supplier');
 Route::get('/suppliers/{supplier}/reviews', [SupplierController::class, 'reviews'])->whereNumber('supplier');
