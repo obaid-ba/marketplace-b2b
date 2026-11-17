@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useMatches, useNavigate } from 'react-router'
+import NotificationBell from '@/components/NotificationBell'
 import { selectUser, useAuthStore } from '@/stores/auth'
 import { PATHS } from '@/router/paths'
 import { initialsOf } from '@/utils/initials'
@@ -12,14 +13,15 @@ import { initialsOf } from '@/utils/initials'
 const NAV_ITEMS = [
   { label: 'Tableau de bord', to: PATHS.supplier, end: true },
   { label: 'Mes produits' }, // SCRUM-34
-  { label: 'Demandes reçues' }, // SCRUM-44
-  { label: 'Mes devis' }, // SCRUM-46
+  { label: 'Demandes reçues', to: PATHS.supplierTenders }, // SCRUM-44
+  { label: 'Mes devis', to: PATHS.supplierQuotes }, // SCRUM-46
   { label: 'Mes commandes' }, // SCRUM-58
   { label: 'Mes avis' }, // SCRUM-65
   { label: 'Messagerie' }, // SCRUM-59
-  { label: 'Notifications' }, // SCRUM-62
+  { label: 'Notifications', to: PATHS.supplierNotifications }, // SCRUM-62
   { label: "Profil de l'entreprise", to: PATHS.supplierProfile },
-  { label: 'Paramètres du compte' }, // SCRUM-29
+  { label: 'Préférences de notification', to: PATHS.notificationPreferences }, // SCRUM-63
+  { label: 'Paramètres du compte', to: PATHS.account }, // SCRUM-29
 ]
 
 function Dot({ active }) {
@@ -78,15 +80,6 @@ function Sidebar({ onNavigate }) {
         )}
       </ul>
     </nav>
-  )
-}
-
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
-      <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" strokeLinecap="round" />
-    </svg>
   )
 }
 
@@ -173,12 +166,7 @@ export default function SupplierLayout() {
             />
 
             {/* Centre de notifications : SCRUM-62 */}
-            <span
-              title="Notifications : bientôt disponibles"
-              className="grid h-9 w-9 place-items-center rounded-full bg-page text-muted"
-            >
-              <BellIcon />
-            </span>
+            <NotificationBell notificationsPath={PATHS.supplierNotifications} />
 
             <div className="flex items-center gap-3">
               <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">

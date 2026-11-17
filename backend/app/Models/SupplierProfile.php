@@ -123,4 +123,36 @@ class SupplierProfile extends Model
     {
         return $this->belongsTo(User::class, 'validated_by');
     }
+
+    /**
+     * Demandes reçues par ce fournisseur (SCRUM-44).
+     */
+    public function tenderRecipients(): HasMany
+    {
+        return $this->hasMany(TenderRecipient::class, 'supplier_id');
+    }
+
+    /**
+     * Devis envoyés par ce fournisseur (SCRUM-46).
+     */
+    public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class, 'supplier_id');
+    }
+
+    /**
+     * Commandes obtenues par ce fournisseur (SCRUM-48).
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'supplier_id');
+    }
+
+    /**
+     * Porteurs qui ont mis ce fournisseur en favori.
+     */
+    public function favoritedBy(): HasMany
+    {
+        return $this->hasMany(Favorite::class, 'supplier_id');
+    }
 }
