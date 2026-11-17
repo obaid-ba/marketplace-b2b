@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Buyer;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\FavoriteSupplierResource;
+use App\Http\Resources\TenderFavoriteSupplierResource;
 use App\Models\Quote;
 use App\Models\SupplierProfile;
 use App\Models\Tender;
@@ -41,7 +41,7 @@ class FavoriteController extends Controller
             }
         }
 
-        return FavoriteSupplierResource::collection($suppliers);
+        return TenderFavoriteSupplierResource::collection($suppliers);
     }
 
     public function store(Request $request): JsonResponse

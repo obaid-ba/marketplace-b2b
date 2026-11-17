@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Enums\OrderStatus;
 use App\Enums\ReviewStatus;
 use App\Enums\UserStatus;
+use App\Enums\ValidationStatus;
 use App\Models\SupplierProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,6 +29,8 @@ class AccountDeletionTest extends TestCase
             'company_name' => 'Société Exemple',
             'sector' => 'Informatique',
             'is_published' => true,
+            // Un profil n'est visible que si l'administrateur l'a validé (SCRUM-32 / scope visibleInCatalog).
+            'validation_status' => ValidationStatus::VALIDATED,
         ]);
 
         return $user;

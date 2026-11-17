@@ -9,7 +9,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Fournisseur favori proposé à l'invitation sur une demande (SCRUM-49).
+ * Carte « Fournisseur favori » (SCRUM-39, maquette B8) : uniquement des informations publiques.
  *
  * @mixin SupplierProfile
  */
@@ -24,22 +24,11 @@ class FavoriteSupplierResource extends JsonResource
             'id' => $this->id,
             'company_name' => $this->company_name,
             'logo_url' => $this->logo ? Storage::disk(SupplierProfileService::LOGO_DISK)->url($this->logo) : null,
-            'description' => $this->description,
-            'sector' => $this->sector,
-            'rating_avg' => (float) $this->rating_avg,
+            'region' => $this->region?->name,
+            'rating_avg' => round((float) $this->rating_avg, 1),
             'reviews_count' => (int) $this->reviews_count,
-            'delivery_days' => $this->delivery_days,
-            'payment_terms' => $this->payment_terms,
-            'region' => $this->whenLoaded('region', fn () => $this->region ? [
-                'id' => $this->region->id,
-                'name' => $this->region->name,
-            ] : null),
-            'categories' => $this->whenLoaded('categories', fn () => $this->categories->map(fn ($category) => [
-                'id' => $category->id,
-                'name' => $category->name,
-            ])->values()),
-            'invited' => (bool) ($this->invited ?? false),
-            'responded' => (bool) ($this->responded ?? false),
+            'categories' => $this->categories->pluck('name')->values(),
+            'favorited_at' => $this->pivot?->created_at?->toIso8601String(),
         ];
     }
 }

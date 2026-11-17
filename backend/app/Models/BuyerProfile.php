@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -67,11 +68,19 @@ class BuyerProfile extends Model
     }
 
     /**
-     * Fournisseurs favoris du porteur (SCRUM-49).
+     * Fournisseurs favoris du porteur (SCRUM-49), utilisés pour l'invitation sur une demande.
      */
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class, 'buyer_id');
+    }
+
+    /**
+     * Fournisseurs favoris (SCRUM-39). Unicité (buyer, supplier) garantie par la base.
+     */
+    public function favoriteSuppliers(): BelongsToMany
+    {
+        return $this->belongsToMany(SupplierProfile::class, 'favorites', 'buyer_id', 'supplier_id')->withTimestamps();
     }
 
     /**

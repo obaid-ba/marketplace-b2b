@@ -13,10 +13,13 @@ export const PATHS = Object.freeze({
   supplier: '/fournisseur',
   supplierPending: '/fournisseur/en-attente',
   supplierProfile: '/fournisseur/profil', // Profil de l'entreprise (SCRUM-28)
+  supplierProducts: '/fournisseur/produits', // Mes produits (SCRUM-34)
+  supplierProductNew: '/fournisseur/produits/nouveau', // Ajouter un produit (SCRUM-33)
   supplierTenders: '/fournisseur/demandes', // Demandes reçues (SCRUM-44)
   supplierQuotes: '/fournisseur/devis', // Mes devis (SCRUM-46)
   supplierNotifications: '/fournisseur/notifications',
   buyer: '/porteur',
+  buyerFavorites: '/porteur/favoris', // Fournisseurs favoris (SCRUM-39)
   buyerTenders: '/porteur/demandes', // Mes demandes (SCRUM-43)
   buyerTenderNew: '/porteur/demandes/nouvelle', // Publier une demande (SCRUM-41)
   buyerOrders: '/porteur/commandes',
@@ -25,16 +28,33 @@ export const PATHS = Object.freeze({
   admin: '/admin',
   adminSuppliers: '/admin/fournisseurs', // Validation des fournisseurs (SCRUM-31)
   adminApplications: '/admin/fournisseurs',
-  adminCategories: '/admin/categories',
+  adminCategories: '/admin/categories', // Gestion des catégories (SCRUM-32)
   forbidden: '/acces-refuse',
+  catalog: '/catalogue', // Catalogue public (SCRUM-35)
+  howItWorks: '/#comment-ca-marche', // section de la page d'accueil (SCRUM-38)
 })
 
-/**
- * Fiche fournisseur publique (SCRUM-37, sprint S2).
- * TODO SCRUM-37 : la route n'existe pas encore, le lien affiche la page 404 en attendant.
- */
+/** Fiche fournisseur publique (SCRUM-37). */
 export function supplierPublicPath(id) {
   return `/fournisseurs/${id}`
+}
+
+/** Modifier un produit (SCRUM-33). */
+export function supplierProductEditPath(id) {
+  return `/fournisseur/produits/${id}/modifier`
+}
+
+/** Fiche produit publique (SCRUM-36). */
+export function productPath(id) {
+  return `/produits/${id}`
+}
+
+/** Catalogue filtré : catalogPath({ q: 'carton', category: 3 }) → « /catalogue?q=carton&category=3 ». */
+export function catalogPath(params = {}) {
+  const search = new URLSearchParams(
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+  ).toString()
+  return search ? `${PATHS.catalog}?${search}` : PATHS.catalog
 }
 
 /** Adresse de la page de connexion, en retenant la page à rouvrir ensuite. */
