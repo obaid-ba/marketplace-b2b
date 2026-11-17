@@ -17,10 +17,10 @@ use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /**
- * Validation ou refus des nouveaux fournisseurs par l'administrateur (SCRUM-31).
+ * Validation ou refus des nouveaux fournisseurs par l'administrateur (SCRUM-31 / F05).
  *
  * Couvre les 5 critères d'acceptation Jira :
- * 1. File des demandes (triée created_at ASC, filtrable par statut, en attente par défaut)
+ * 1. File des demandes (/api/admin/supplier-applications, triée created_at ASC, filtrable par statut, en attente par défaut)
  * 2. Consultation et téléchargement des documents joints (supplier_documents)
  * 3. Acceptation (validation_status=validé, is_published=true, validated_by/at, documents, AuditLog, notification)
  * 4. Refus sans motif ou invalide rejeté en 422
@@ -51,18 +51,18 @@ class SupplierValidationTest extends TestCase
 
     public function test_un_visiteur_non_authentifie_recoit_401(): void
     {
-        $this->getJson('/api/admin/suppliers')->assertUnauthorized();
+        $this->getJson('/api/admin/supplier-applications')->assertUnauthorized();
     }
 
     public function test_un_fournisseur_ou_un_porteur_ne_peut_pas_acceder_au_backoffice(): void
     {
         $supplier = User::factory()->supplier()->create();
         Sanctum::actingAs($supplier);
-        $this->getJson('/api/admin/suppliers')->assertForbidden();
+        $this->getJson('/api/admin/supplier-applications')->assertForbidden();
 
         $buyer = User::factory()->buyer()->create();
         Sanctum::actingAs($buyer);
-        $this->getJson('/api/admin/suppliers')->assertForbidden();
+        $this->getJson('/api/admin/supplier-applications')->assertForbidden();
     }
 
     // --- Critère 1 : File des demandes triée et filtrable ---
@@ -82,7 +82,7 @@ class SupplierValidationTest extends TestCase
         // Un profil validé ne doit pas apparaître par défaut dans la file des demandes « en attente »
         SupplierProfile::factory()->validated()->create();
 
-        $response = $this->getJson('/api/admin/suppliers')->assertOk();
+        $response = $this->getJson('/api/admin/supplier-applications')->assertOk();
 
         $data = $response->json('data');
         $this->assertCount(2, $data);
@@ -99,23 +99,23 @@ class SupplierValidationTest extends TestCase
         SupplierProfile::factory()->rejected()->create();
 
         // Filtre validés (terme français et anglais)
-        $this->getJson('/api/admin/suppliers?status=validé')
+        $this->getJson('/api/admin/supplier-applications?status=validé')
             ->assertOk()
             ->assertJsonCount(1, 'data');
-        $this->getJson('/api/admin/suppliers?status=validated')
+        $this->getJson('/api/admin/supplier-applications?status=validated')
             ->assertOk()
             ->assertJsonCount(1, 'data');
 
         // Filtre refusés
-        $this->getJson('/api/admin/suppliers?status=refusé')
+        $this->getJson('/api/admin/supplier-applications?status=refusé')
             ->assertOk()
             ->assertJsonCount(1, 'data');
-        $this->getJson('/api/admin/suppliers?status=rejected')
+        $this->getJson('/api/admin/supplier-applications?status=rejected')
             ->assertOk()
             ->assertJsonCount(1, 'data');
 
         // Tous les statuts
-        $this->getJson('/api/admin/suppliers?status=all')
+        $this->getJson('/api/admin/supplier-applications?status=all')
             ->assertOk()
             ->assertJsonCount(3, 'data');
     }
@@ -137,16 +137,26 @@ class SupplierValidationTest extends TestCase
             'submitted_at' => now(),
         ]);
 
-        // Détail du fournisseur incluant la liste des documents
-        $this->getJson("/api/admin/suppliers/{$supplier->id}")
+        // Détail du dossier incluant la liste des documents
+        $this->getJson("/api/admin/supplier-applications/{$supplier->id}")
             ->assertOk()
             ->assertJsonPath('supplier.id', $supplier->id)
             ->assertJsonPath('supplier.company_name', $supplier->company_name)
             ->assertJsonCount(1, 'supplier.documents')
             ->assertJsonPath('supplier.documents.0.id', $document->id);
 
-        // Téléchargement du fichier
-        $downloadResponse = $this->get("/api/admin/suppliers/documents/{$document->id}/download");
+        // Streaming / consultation sécurisée du document via /supplier-applications/{supplier}/documents/{document}
+        $streamResponse = $this->get("/api/admin/supplier-applications/{$supplier->id}/documents/{$document->id}");
+        $streamResponse->assertOk();
+        $this->assertTrue(
+            str_contains(
+                (string) $streamResponse->headers->get('content-disposition'),
+                'Registre de commerce.pdf'
+            )
+        );
+
+        // Téléchargement sécurisé via /supplier-applications/documents/{document}/download
+        $downloadResponse = $this->get("/api/admin/supplier-applications/documents/{$document->id}/download");
         $downloadResponse->assertOk();
         $this->assertTrue(
             str_contains(
@@ -170,7 +180,7 @@ class SupplierValidationTest extends TestCase
             'submitted_at' => now(),
         ]);
 
-        $response = $this->postJson("/api/admin/suppliers/{$supplier->id}/approve")
+        $response = $this->postJson("/api/admin/supplier-applications/{$supplier->id}/approve")
             ->assertOk()
             ->assertJsonPath('message', 'Le dossier fournisseur a été validé avec succès.');
 
@@ -209,12 +219,12 @@ class SupplierValidationTest extends TestCase
         $supplier = SupplierProfile::factory()->pending()->create();
 
         // Motif absent
-        $this->postJson("/api/admin/suppliers/{$supplier->id}/reject", [])
+        $this->postJson("/api/admin/supplier-applications/{$supplier->id}/reject", [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['reason']);
 
         // Motif trop court (< 5 caractères)
-        $this->postJson("/api/admin/suppliers/{$supplier->id}/reject", [
+        $this->postJson("/api/admin/supplier-applications/{$supplier->id}/reject", [
             'reason' => 'non',
         ])
             ->assertUnprocessable()
@@ -235,7 +245,7 @@ class SupplierValidationTest extends TestCase
 
         $reason = 'Le registre de commerce est expiré et la CIN du gérant est illisible.';
 
-        $response = $this->postJson("/api/admin/suppliers/{$supplier->id}/reject", [
+        $response = $this->postJson("/api/admin/supplier-applications/{$supplier->id}/reject", [
             'reason' => $reason,
         ])
             ->assertOk()

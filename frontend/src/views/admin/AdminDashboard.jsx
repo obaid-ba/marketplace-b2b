@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   approveSupplier,
+  fetchAdminDocumentBlob,
   fetchAdminSuppliers,
-  openAdminDocument,
   rejectSupplier,
 } from '@/api/adminSuppliers'
 import StatusBadge from '@/components/StatusBadge'
@@ -28,9 +28,14 @@ export default function AdminDashboard() {
   const [error, setError] = useState(null)
   const [successNotice, setSuccessNotice] = useState(null)
 
-  // Actions d'approbation et de refus
+  // Actions d'approbation et de chargement
   const [actionLoadingId, setActionLoadingId] = useState(null)
-  const [documentLoadingId, setDocumentLoadingId] = useState(null)
+
+  // Visionneuse de document intégrée
+  const [viewerDoc, setViewerDoc] = useState(null)
+  const [viewerBlobUrl, setViewerBlobUrl] = useState(null)
+  const [viewerLoading, setViewerLoading] = useState(false)
+  const [viewerError, setViewerError] = useState(null)
 
   // Modale de refus
   const [rejectModalSupplier, setRejectModalSupplier] = useState(null)
@@ -50,7 +55,7 @@ export default function AdminDashboard() {
         total: data.total ?? (data.data?.length ?? 0),
       })
     } catch (err) {
-      setError(err.userMessage ?? 'Impossible de charger la liste des fournisseurs.')
+      setError(err.userMessage ?? 'Impossible de charger la liste des dossiers fournisseurs.')
     } finally {
       setLoading(false)
     }
@@ -67,7 +72,7 @@ export default function AdminDashboard() {
     setSuccessNotice(null)
     try {
       await approveSupplier(supplier.id)
-      setSuccessNotice(`Le dossier de « ${supplier.company_name} » a été validé avec succès.`)
+      setSuccessNotice(`Le dossier de l'entreprise « ${supplier.company_name} » a été validé avec succès.`)
       await loadSuppliers(activeTab, pagination.current_page)
     } catch (err) {
       setError(err.userMessage ?? 'Une erreur est survenue lors de la validation du dossier.')
@@ -103,7 +108,7 @@ export default function AdminDashboard() {
     setRejectError(null)
     try {
       await rejectSupplier(rejectModalSupplier.id, trimmed)
-      setSuccessNotice(`Le dossier de « ${rejectModalSupplier.company_name} » a été refusé.`)
+      setSuccessNotice(`Le dossier de l'entreprise « ${rejectModalSupplier.company_name} » a été refusé.`)
       closeRejectModal()
       await loadSuppliers(activeTab, pagination.current_page)
     } catch (err) {
@@ -113,16 +118,34 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleOpenDocument(doc) {
-    setDocumentLoadingId(doc.id)
-    setError(null)
-    try {
-      await openAdminDocument(doc)
-    } catch (err) {
-      setError(err.userMessage ?? 'Impossible d’ouvrir le document justificatif.')
-    } finally {
-      setDocumentLoadingId(null)
+  async function handleOpenViewer(doc) {
+    setViewerDoc(doc)
+    setViewerLoading(true)
+    setViewerError(null)
+    if (viewerBlobUrl) {
+      URL.revokeObjectURL(viewerBlobUrl)
+      setViewerBlobUrl(null)
     }
+
+    try {
+      const blob = await fetchAdminDocumentBlob(doc)
+      const url = URL.createObjectURL(blob)
+      setViewerBlobUrl(url)
+    } catch (err) {
+      setViewerError(err.userMessage ?? 'Impossible de charger le document pour la prévisualisation.')
+    } finally {
+      setViewerLoading(false)
+    }
+  }
+
+  function closeViewer() {
+    if (viewerBlobUrl) {
+      URL.revokeObjectURL(viewerBlobUrl)
+      setViewerBlobUrl(null)
+    }
+    setViewerDoc(null)
+    setViewerError(null)
+    setViewerLoading(false)
   }
 
   function documentLabel(type) {
@@ -137,7 +160,7 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">Validation des fournisseurs</h1>
           <p className="mt-0.5 text-sm text-muted">
-            Examinez les dossiers d'inscription des nouveaux fournisseurs (SCRUM-31).
+            Examinez les dossiers d'inscription des nouveaux fournisseurs (SCRUM-31 / F05).
           </p>
         </div>
         {user && (
@@ -219,7 +242,6 @@ export default function AdminDashboard() {
           {suppliers.map((supplier) => {
             const isApproved = supplier.validation_status === SUPPLIER_STATUS.VALIDATED
             const isRejected = supplier.validation_status === SUPPLIER_STATUS.REJECTED
-            const isPending = supplier.validation_status === SUPPLIER_STATUS.PENDING
             const isActionLoading = actionLoadingId === supplier.id
 
             return (
@@ -227,8 +249,8 @@ export default function AdminDashboard() {
                 key={supplier.id}
                 className="card flex flex-col justify-between gap-6 transition-all hover:border-slate-300 md:flex-row md:items-start"
               >
-                {/* Colonne gauche : infos entreprise et contact */}
-                <div className="space-y-3 md:max-w-2xl">
+                {/* Colonne gauche : infos complètes entreprise et contact */}
+                <div className="space-y-4 md:max-w-2xl">
                   <div className="flex flex-wrap items-center gap-3">
                     <h2 className="text-lg font-bold text-ink">{supplier.company_name}</h2>
                     <StatusBadge status={supplier.validation_status} />
@@ -237,6 +259,7 @@ export default function AdminDashboard() {
                     </span>
                   </div>
 
+                  {/* Grille détaillée des informations */}
                   <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
                     {supplier.user && (
                       <div>
@@ -252,7 +275,7 @@ export default function AdminDashboard() {
                     )}
                     {supplier.user?.phone && (
                       <div>
-                        <span className="text-muted">Tél :</span>{' '}
+                        <span className="text-muted">Téléphone :</span>{' '}
                         <span className="font-medium text-ink">{supplier.user.phone}</span>
                       </div>
                     )}
@@ -260,6 +283,24 @@ export default function AdminDashboard() {
                       <div>
                         <span className="text-muted">Région :</span>{' '}
                         <span className="font-medium text-ink">{supplier.region.name}</span>
+                      </div>
+                    )}
+                    {supplier.city && (
+                      <div>
+                        <span className="text-muted">Ville :</span>{' '}
+                        <span className="font-medium text-ink">{supplier.city}</span>
+                      </div>
+                    )}
+                    {supplier.address && (
+                      <div>
+                        <span className="text-muted">Adresse :</span>{' '}
+                        <span className="font-medium text-ink">{supplier.address}</span>
+                      </div>
+                    )}
+                    {supplier.legal_form && (
+                      <div>
+                        <span className="text-muted">Forme juridique :</span>{' '}
+                        <span className="font-medium text-ink">{supplier.legal_form}</span>
                       </div>
                     )}
                     {supplier.tax_id && (
@@ -270,14 +311,8 @@ export default function AdminDashboard() {
                     )}
                     {supplier.rne_number && (
                       <div>
-                        <span className="text-muted">RNE :</span>{' '}
+                        <span className="text-muted">N° RNE :</span>{' '}
                         <span className="font-medium text-ink">{supplier.rne_number}</span>
-                      </div>
-                    )}
-                    {supplier.legal_form && (
-                      <div>
-                        <span className="text-muted">Forme juridique :</span>{' '}
-                        <span className="font-medium text-ink">{supplier.legal_form}</span>
                       </div>
                     )}
                     {supplier.sector && (
@@ -286,9 +321,60 @@ export default function AdminDashboard() {
                         <span className="font-medium text-ink">{supplier.sector}</span>
                       </div>
                     )}
+                    {supplier.website && (
+                      <div>
+                        <span className="text-muted">Site web :</span>{' '}
+                        <a
+                          href={supplier.website.startsWith('http') ? supplier.website : `https://${supplier.website}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-brand-600 hover:underline"
+                        >
+                          {supplier.website}
+                        </a>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Motif de refus affiché si refusé */}
+                  {/* Catégories de produits/services */}
+                  {supplier.categories && supplier.categories.length > 0 && (
+                    <div>
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                        Catégories :
+                      </span>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {supplier.categories.map((cat) => (
+                          <span
+                            key={cat.id}
+                            className="inline-flex items-center rounded-md bg-info-soft px-2 py-0.5 text-xs font-medium text-info"
+                          >
+                            {cat.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Zones de couverture */}
+                  {supplier.coverageRegions && supplier.coverageRegions.length > 0 && (
+                    <div>
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                        Zones de couverture :
+                      </span>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {supplier.coverageRegions.map((reg) => (
+                          <span
+                            key={reg.id}
+                            className="inline-flex items-center rounded-md border border-line bg-page px-2 py-0.5 text-xs text-muted"
+                          >
+                            {reg.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Motif de refus si statut refusé */}
                   {isRejected && supplier.rejection_reason && (
                     <div className="rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-sm text-rose-800">
                       <p className="font-medium">Motif du refus :</p>
@@ -296,7 +382,7 @@ export default function AdminDashboard() {
                     </div>
                   )}
 
-                  {/* Décision précédente si validé */}
+                  {/* Détail validation si validé */}
                   {isApproved && supplier.validated_at && (
                     <div className="text-xs text-muted">
                       Dossier validé {formatRelativeDate(supplier.validated_at)}
@@ -304,7 +390,7 @@ export default function AdminDashboard() {
                     </div>
                   )}
 
-                  {/* Documents justificatifs */}
+                  {/* Documents justificatifs envoyés */}
                   <div className="pt-2">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
                       Documents justificatifs ({supplier.documents?.length ?? 0})
@@ -317,13 +403,13 @@ export default function AdminDashboard() {
                             className="inline-flex items-center gap-2 rounded-lg border border-line bg-page px-3 py-1.5 text-xs text-ink"
                           >
                             <span className="font-medium">{documentLabel(doc.type)}</span>
+                            <StatusBadge status={doc.status} />
                             <button
                               type="button"
-                              disabled={documentLoadingId === doc.id}
-                              onClick={() => handleOpenDocument(doc)}
-                              className="font-semibold text-brand-600 hover:text-brand-700 hover:underline disabled:opacity-50"
+                              onClick={() => handleOpenViewer(doc)}
+                              className="font-semibold text-brand-600 hover:text-brand-700 hover:underline"
                             >
-                              {documentLoadingId === doc.id ? 'Ouverture...' : 'Consulter / Télécharger'}
+                              Consulter / Prévisualiser
                             </button>
                           </li>
                         ))}
@@ -363,6 +449,76 @@ export default function AdminDashboard() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Visionneuse de document intégrée (Modale avec iframe ou img) */}
+      {viewerDoc && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="viewer-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+        >
+          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-2xl border border-line bg-surface p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <div>
+                <h2 id="viewer-title" className="text-lg font-bold text-ink">
+                  {documentLabel(viewerDoc.type)}
+                </h2>
+                <p className="text-xs text-muted">
+                  Justificatif fourni par le fournisseur
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {viewerBlobUrl && (
+                  <a
+                    href={viewerBlobUrl}
+                    download={viewerDoc.file_name ?? `${viewerDoc.type}.pdf`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-secondary text-xs"
+                  >
+                    Télécharger
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={closeViewer}
+                  className="rounded-lg p-1.5 text-muted hover:bg-page hover:text-ink"
+                  aria-label="Fermer la prévisualisation"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto py-4">
+              {viewerLoading ? (
+                <div className="py-20 text-center text-sm text-muted">
+                  Chargement sécurisé du document...
+                </div>
+              ) : viewerError ? (
+                <div className="rounded-lg bg-rose-50 p-4 text-center text-sm text-rose-700">
+                  {viewerError}
+                </div>
+              ) : viewerBlobUrl ? (
+                viewerDoc.file_path?.match(/\.(jpg|jpeg|png|webp)$/i) ? (
+                  <img
+                    src={viewerBlobUrl}
+                    alt={documentLabel(viewerDoc.type)}
+                    className="max-h-[600px] w-auto mx-auto rounded-lg object-contain shadow-xs"
+                  />
+                ) : (
+                  <iframe
+                    src={viewerBlobUrl}
+                    title={documentLabel(viewerDoc.type)}
+                    className="h-[600px] w-full rounded-lg border border-line"
+                  />
+                )
+              ) : null}
+            </div>
+          </div>
         </div>
       )}
 

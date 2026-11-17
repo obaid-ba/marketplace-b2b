@@ -194,8 +194,14 @@ export const createRoutes = () => [
       space(
         PATHS.admin,
         ROLES.ADMIN,
-        () => import('@/views/admin/AdminDashboard'),
+        () => import('@/views/admin/AdminDashboardView'),
         [
+          // Validation des fournisseurs (SCRUM-31 / SCRUM-99)
+          {
+            path: PATHS.adminSuppliers,
+            handle: { crumb: 'Validation des fournisseurs' },
+            lazy: page(() => import('@/views/admin/AdminDashboard')),
+          },
           // Gestion des catégories et sous-catégories (SCRUM-32)
           {
             path: PATHS.adminCategories,

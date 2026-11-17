@@ -3,18 +3,17 @@ import { PATHS } from '@/router/paths'
 import SpaceLayout from './SpaceLayout'
 
 /**
- * Mise en page « Administration » (maquettes AD1 à AD8).
- * Le tableau de bord actuel de l'administrateur est la file de validation des fournisseurs (SCRUM-31).
+ * Mise en page du back-office administrateur (maquettes AD1 à AD8).
+ * Les entrées des fonctionnalités à venir sont affichées mais inactives (« Bientôt disponible »).
  */
 const NAV_ITEMS = [
-  { label: 'Tableau de bord' }, // SCRUM-75
-  { label: 'Gestion des utilisateurs' }, // SCRUM-74
-  { label: 'Validation des fournisseurs', to: PATHS.admin, end: true },
-  { label: 'Contrôle du catalogue' }, // SCRUM-73
-  { label: 'Gestion des catégories', to: PATHS.adminCategories },
-  { label: 'Gestion des litiges' }, // SCRUM-69
-  { label: 'Avis signalés' }, // SCRUM-66
-  { label: 'Statistiques et export' }, // SCRUM-77
+  { label: 'Tableau de bord', to: PATHS.admin, end: true }, // SCRUM-122
+  { label: 'Validation fournisseurs', to: PATHS.adminSuppliers }, // SCRUM-31 / SCRUM-99
+  { label: 'Gestion des catégories', to: PATHS.adminCategories }, // SCRUM-32
+  { label: 'Contrôle du catalogue' }, // F29 / SCRUM-123
+  { label: 'Avis signalés' }, // F29 / SCRUM-123
+  { label: 'Litiges' }, // F23 / S5
+  { label: 'Paramètres du compte', to: PATHS.account },
 ]
 
 export default function AdminLayout() {
@@ -25,7 +24,7 @@ export default function AdminLayout() {
       title="Administration"
       homePath={PATHS.admin}
       navItems={NAV_ITEMS}
-      displayName={user?.name}
+      displayName={user?.name ?? 'Administrateur'}
     />
   )
 }
