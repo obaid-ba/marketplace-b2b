@@ -2,11 +2,10 @@
 
 namespace App\Http\Resources;
 
+use App\Contracts\MediaStorage;
 use App\Models\Product;
-use App\Services\SupplierProfileService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Fiche produit publique (SCRUM-36) : photos ordonnées, catégorie et parent (fil d'Ariane),
@@ -44,7 +43,7 @@ class ProductDetailResource extends JsonResource
             'supplier' => [
                 'id' => $supplier->id,
                 'company_name' => $supplier->company_name,
-                'logo_url' => $supplier->logo ? Storage::disk(SupplierProfileService::LOGO_DISK)->url($supplier->logo) : null,
+                'logo_url' => app(MediaStorage::class)->url($supplier->logo),
                 'region' => $supplier->region?->name,
                 'rating_avg' => round((float) $supplier->rating_avg, 1),
                 'reviews_count' => (int) $supplier->reviews_count,

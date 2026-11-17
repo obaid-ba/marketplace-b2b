@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Contracts\MediaStorage;
 use App\Models\User;
+use App\Services\Media\CloudinaryMediaStorage;
+use App\Services\Media\LocalMediaStorage;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -18,11 +21,20 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Stockage des fichiers envoyés : Cloudinary en production, disques Laravel en local.
+        $this->app->singleton(MediaStorage::class, fn () => config('media.driver') === 'cloudinary'
+            ? new CloudinaryMediaStorage()
+            : new LocalMediaStorage());
     }
 
     public function boot(): void
     {
+        // Derrière Render (et la plupart des hébergeurs), le TLS est terminé par le proxy :
+        // on force les URLs générées en HTTPS pour éviter les contenus mixtes et les liens e-mail en http.
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
+
         // Les API Resources sont renvoyées sans l'enveloppe "data" pour un seul objet.
         JsonResource::withoutWrapping();
 

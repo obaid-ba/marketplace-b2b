@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
+use App\Contracts\MediaStorage;
 use App\Enums\ValidationStatus;
 use App\Models\SupplierDocument;
 use App\Models\SupplierProfile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -16,13 +16,15 @@ use Throwable;
  */
 class SupplierProfileService
 {
-    /** Logo : disque public (affiché sur la fiche publique). */
+    /** Logo : disque public en local (affiché sur la fiche publique), CDN en production. */
     public const LOGO_DISK = 'public';
 
-    /** Justificatifs : disque privé, téléchargés via une route autorisée. */
+    /** Justificatifs : disque privé en local, type « authenticated » sur Cloudinary. */
     public const DOCUMENT_DISK = 'local';
 
     public const MAX_DOCUMENTS = 20;
+
+    public function __construct(private readonly MediaStorage $media) {}
 
     /**
      * Relations chargées pour l'affichage du profil.
@@ -66,18 +68,18 @@ class SupplierProfileService
     public function updateLogo(SupplierProfile $profile, UploadedFile $file): SupplierProfile
     {
         $previous = $profile->logo;
-        $path = $file->store('supplier-logos', self::LOGO_DISK);
+        $path = $this->media->store($file, 'supplier-logos');
 
         try {
             $profile->forceFill(['logo' => $path])->save();
         } catch (Throwable $exception) {
-            Storage::disk(self::LOGO_DISK)->delete($path);
+            $this->media->delete($path);
 
             throw $exception;
         }
 
         if ($previous) {
-            Storage::disk(self::LOGO_DISK)->delete($previous);
+            $this->media->delete($previous);
         }
 
         return $this->load($profile);
@@ -91,7 +93,7 @@ class SupplierProfileService
             ]);
         }
 
-        $path = $file->store("supplier-documents/{$profile->id}", self::DOCUMENT_DISK);
+        $path = $this->media->store($file, "supplier-documents/{$profile->id}", private: true);
 
         try {
             return DB::transaction(function () use ($profile, $type, $path) {
@@ -108,7 +110,7 @@ class SupplierProfileService
                 return $document;
             });
         } catch (Throwable $exception) {
-            Storage::disk(self::DOCUMENT_DISK)->delete($path);
+            $this->media->delete($path, private: true);
 
             throw $exception;
         }

@@ -1,0 +1,17 @@
+# Fichiers exclus de l'image API (contexte = racine du dépôt)
+**/.git
+**/.github
+frontend
+docs
+deploy/.env
+backend/vendor
+backend/node_modules
+backend/.env
+backend/.env.*
+backend/storage/logs/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/database/*.sqlite
+backend/tests
+backend/phpunit.xml

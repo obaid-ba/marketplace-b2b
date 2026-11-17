@@ -58,10 +58,11 @@ class ProductCatalogService
     private function applyFilters(Builder $query, array $filters): void
     {
         if (filled($filters['q'] ?? null)) {
-            $like = '%'.$this->escapeLike($filters['q']).'%';
+            // LOWER() des deux côtés : MySQL/SQLite comparent « LIKE » sans tenir compte de la casse, PostgreSQL non.
+            $like = mb_strtolower('%'.$this->escapeLike($filters['q']).'%');
             $query->where(fn (Builder $q) => $q
-                ->whereRaw("products.title LIKE ? ESCAPE '!'", [$like])
-                ->orWhereRaw("products.description LIKE ? ESCAPE '!'", [$like]));
+                ->whereRaw("LOWER(products.title) LIKE ? ESCAPE '!'", [$like])
+                ->orWhereRaw("LOWER(products.description) LIKE ? ESCAPE '!'", [$like]));
         }
 
         if (! empty($filters['category'])) {
@@ -124,7 +125,7 @@ class ProductCatalogService
                 SupplierProfile::query()->select('rating_avg')->whereColumn('supplier_profiles.id', 'products.supplier_id')
             )->orderByDesc('products.id'),
             'relevance' => $keywords !== null
-                ? $query->orderByRaw("CASE WHEN products.title LIKE ? ESCAPE '!' THEN 0 ELSE 1 END", ['%'.$this->escapeLike($keywords).'%'])
+                ? $query->orderByRaw("CASE WHEN LOWER(products.title) LIKE ? ESCAPE '!' THEN 0 ELSE 1 END", [mb_strtolower('%'.$this->escapeLike($keywords).'%')])
                     ->orderByDesc('products.created_at')->orderByDesc('products.id')
                 : $query->orderByDesc('products.created_at')->orderByDesc('products.id'),
             default => $query->orderByDesc('products.created_at')->orderByDesc('products.id'),
@@ -133,7 +134,7 @@ class ProductCatalogService
 
     private function escapeLike(string $value): string
     {
-        // « ! » sert de caractère d'échappement (identique sous MySQL et SQLite).
+        // « ! » sert de caractère d'échappement (identique sous MySQL, SQLite et PostgreSQL).
         return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);
     }
 }

@@ -1,0 +1,138 @@
+# Marketplace B2B — tout le projet en une commande : ./deploy/start.sh
+# (ou : docker compose -f deploy/docker-compose.yml up -d --build)
+#
+#   web      http://localhost:5173   application React (build Vite servi par nginx)
+#   api      http://localhost:8000   API Laravel (nginx + PHP-FPM)
+#   worker   —                       file d'attente (diffusion des demandes, e-mails)
+#   mailpit  http://localhost:8025   boîte de réception des e-mails de test
+#   db       —                       PostgreSQL 17 (données conservées dans le volume "db-data")
+#
+# Réglages : copiez deploy/.env.example en deploy/.env.
+name: marketplace-b2b
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: marketplace_b2b
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-marketplace}
+      # Collation identique à Neon (UTF-8), pour éviter les surprises entre local et production.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d marketplace_b2b"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      PORT: 8000
+      APP_NAME: "Marketplace B2B"
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${API_URL:-http://localhost:8000}
+      APP_LOCALE: fr
+      APP_TIMEZONE: Africa/Tunis
+      # Adresse de l'application web : CORS et liens des e-mails (vérification, mot de passe oublié)
+      FRONTEND_URL: ${WEB_URL:-http://localhost:5173}
+      FRONTEND_URLS: ${WEB_URL:-http://localhost:5173}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: marketplace_b2b
+      DB_USERNAME: marketplace
+      DB_PASSWORD: ${DB_PASSWORD:-marketplace}
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      MAIL_MAILER: ${MAIL_MAILER:-smtp}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@marketplace.test}
+      # local = fichiers dans le volume api-storage ; cloudinary = envoi sur le CDN
+      MEDIA_DRIVER: ${MEDIA_DRIVER:-local}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+      LOG_CHANNEL: stderr
+      RUN_MIGRATIONS: "true"
+      # Comptes et données de démonstration au premier démarrage (base vide uniquement)
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+    volumes:
+      - api-storage:/var/www/html/storage/app
+    ports:
+      - "${API_PORT:-8000}:8000"
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/api/Dockerfile
+    entrypoint: ["/usr/local/bin/worker.sh"]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      APP_NAME: "Marketplace B2B"
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${API_URL:-http://localhost:8000}
+      APP_LOCALE: fr
+      APP_TIMEZONE: Africa/Tunis
+      FRONTEND_URL: ${WEB_URL:-http://localhost:5173}
+      FRONTEND_URLS: ${WEB_URL:-http://localhost:5173}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: marketplace_b2b
+      DB_USERNAME: marketplace
+      DB_PASSWORD: ${DB_PASSWORD:-marketplace}
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      MAIL_MAILER: ${MAIL_MAILER:-smtp}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@marketplace.test}
+      MEDIA_DRIVER: ${MEDIA_DRIVER:-local}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+      LOG_CHANNEL: stderr
+    volumes:
+      - api-storage:/var/www/html/storage/app
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web/Dockerfile
+      args:
+        VITE_API_URL: ${API_URL:-http://localhost:8000}/api
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-5173}:80"
+
+volumes:
+  db-data:
+  api-storage:

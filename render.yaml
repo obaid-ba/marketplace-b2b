@@ -1,0 +1,135 @@
+# Infrastructure Render — API, worker, planificateur et site statique.
+#
+# La base est hébergée sur Neon (PostgreSQL) : renseignez DB_URL dans le groupe
+# d'environnement ci-dessous (Dashboard → Environment → DB_URL), au format :
+#   postgresql://user:password@ep-xxx.eu-central-1.aws.neon.tech/neondb?sslmode=require
+#
+# Déploiement : Dashboard → Blueprints → New Blueprint Instance → ce dépôt.
+# Les variables marquées « sync: false » sont à saisir à la main (secrets).
+
+envVarGroups:
+  - name: marketplace-api-env
+    envVars:
+      - key: APP_NAME
+        value: Marketplace B2B
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: APP_LOCALE
+        value: fr
+      - key: APP_FALLBACK_LOCALE
+        value: en
+      - key: APP_TIMEZONE
+        value: Africa/Tunis
+      - key: FRONTEND_URL
+        sync: false
+      - key: FRONTEND_URLS
+        sync: false
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        sync: false
+      - key: DB_SSLMODE
+        value: require
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: SANCTUM_TOKEN_EXPIRATION
+        value: "10080"
+      - key: MEDIA_DRIVER
+        value: cloudinary
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.resend.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        value: resend
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: Marketplace B2B
+      - key: RUN_MIGRATIONS
+        value: "false"
+      - key: SEED_DEMO_DATA
+        value: "false"
+
+services:
+  # --- API : nginx + PHP-FPM (Docker, Render n'a pas de runtime PHP natif) ---
+  - type: web
+    name: marketplace-api
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerContext: .
+    dockerfilePath: ./deploy/api/Dockerfile
+    healthCheckPath: /up
+    preDeployCommand: php artisan migrate --force
+    autoDeployTrigger: commit
+    envVars:
+      - fromGroup: marketplace-api-env
+      - key: PORT
+        value: "8000"
+
+  # --- File d'attente : diffusion des demandes, notifications e-mail ---
+  - type: worker
+    name: marketplace-worker
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerContext: .
+    dockerfilePath: ./deploy/api/Dockerfile
+    dockerCommand: /usr/local/bin/worker.sh
+    autoDeployTrigger: commit
+    envVars:
+      - fromGroup: marketplace-api-env
+
+  # --- Planificateur : php artisan schedule:run chaque minute ---
+  - type: cron
+    name: marketplace-scheduler
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerContext: .
+    dockerfilePath: ./deploy/api/Dockerfile
+    schedule: "* * * * *"
+    dockerCommand: php artisan schedule:run
+    envVars:
+      - fromGroup: marketplace-api-env
+
+  # --- Application React : build Vite servi en statique ---
+  - type: web
+    name: marketplace-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci --no-audit --no-fund && npm run build
+    staticPublishPath: ./dist
+    autoDeployTrigger: commit
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

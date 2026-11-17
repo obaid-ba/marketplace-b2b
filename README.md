@@ -6,8 +6,9 @@ Le porteur de projet publie un besoin ou commande un produit, les fournisseurs r
 
 | Dossier | Contenu | Stack |
 |---|---|---|
-| `backend/` | API REST | Laravel 12, PHP 8.2+, MySQL, Sanctum (jetons Bearer) |
+| `backend/` | API REST | Laravel 12, PHP 8.2+, PostgreSQL (Neon) / MySQL local possible, Sanctum (jetons Bearer) |
 | `frontend/` | Application web (et base de l'application mobile) | React 19, Vite, React Router, Zustand, Axios, Tailwind CSS 4 |
+| `deploy/` | Stack locale (Docker) et image de production | Docker Compose, nginx + PHP-FPM, PostgreSQL 17, Mailpit |
 | `docs/` | Décisions de l'équipe et conventions | Markdown |
 
 Backlog et sprints : Jira, projet **SCRUM**.
@@ -15,23 +16,36 @@ Backlog et sprints : Jira, projet **SCRUM**.
 ## Prérequis
 
 - PHP 8.2 ou plus, Composer 2
-- MySQL 8 (ou MariaDB 10.6+)
+- PostgreSQL 14+ (recommandé, parité avec la production Neon) ou MySQL 8 / MariaDB 10.6+
 - Node.js 20 ou plus, npm
+- Docker Desktop (optionnel) pour lancer la stack complète via `deploy/`
 
 ## Installation
 
-### 1. API (backend)
+### Option A — Docker (recommandé, PostgreSQL)
+
+```bash
+./deploy/start.sh   # API http://localhost:8000, Web http://localhost:5173, Mailpit http://localhost:8025
+```
+
+Voir [`deploy/README.md`](deploy/README.md) et la procédure de mise en production dans [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+### Option B — Installation manuelle
+
+#### 1. API (backend)
 
 ```bash
 cd backend
 composer install
-cp .env.example .env          # puis renseigner DB_DATABASE, DB_USERNAME, DB_PASSWORD
+cp .env.example .env          # DB_CONNECTION/DB_HOST/DB_DATABASE/DB_USERNAME/DB_PASSWORD (pgsql par défaut)
 php artisan key:generate
 php artisan migrate --seed    # crée les tables, les régions et les catégories
 php artisan serve             # http://localhost:8000
 ```
 
-Créez d'abord la base vide : `CREATE DATABASE marketplace_b2b CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
+Exemples de création de base :
+- PostgreSQL : `createdb marketplace_b2b` (ou via votre client)
+- MySQL : `CREATE DATABASE marketplace_b2b CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;` puis `DB_CONNECTION=mysql` dans `.env`
 
 Le seeder insère toujours les données de référence (24 régions, catégories) nécessaires aux formulaires. Les comptes de démonstration ne sont créés que si `DatabaseSeeder::SEED_DEMO_DATA` passe à `true`.
 
