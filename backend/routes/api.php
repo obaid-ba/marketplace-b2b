@@ -2,16 +2,22 @@
 
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
-use App\Http\Controllers\Api\Admin\CategoryController;
+use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Buyer\FavoriteSupplierController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
+use App\Http\Controllers\Api\Supplier\SupplierProductController;
 use App\Http\Controllers\Api\Supplier\SupplierProfileController;
 use App\Http\Controllers\Api\Supplier\SupplierValidationStatusController;
+use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -53,6 +59,19 @@ Route::get('/auth/email/verify/{id}/{hash}', [EmailVerificationController::class
 Route::get('/reference/regions', [ReferenceController::class, 'regions']);
 Route::get('/reference/categories', [ReferenceController::class, 'categories']);
 Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
+
+// Vitrine publique (S2) : accessible sans connexion.
+// Arborescence des catégories avec le nombre de produits visibles (SCRUM-32).
+Route::get('/categories', [CategoryController::class, 'index']);
+// Page d'accueil : chiffres, catégories, produits mis en avant (SCRUM-38), en cache 10 min.
+Route::get('/home', HomeController::class);
+// Catalogue : recherche, filtres, tri, pagination (SCRUM-35).
+Route::get('/products', [ProductController::class, 'index'])->middleware('throttle:120,1');
+// Fiche produit (SCRUM-36) : enregistre une consultation (ProductView).
+Route::get('/products/{product}', [ProductController::class, 'show'])->whereNumber('product')->middleware('throttle:120,1');
+// Fiche publique d'un fournisseur et ses avis (SCRUM-37).
+Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])->whereNumber('supplier');
+Route::get('/suppliers/{supplier}/reviews', [SupplierController::class, 'reviews'])->whereNumber('supplier');
 
 Route::middleware('auth:sanctum')->group(function () {
     // Accessibles même si l'e-mail n'est pas encore vérifié.
@@ -99,13 +118,35 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         // Réponse sinon : 403 { "reason": "supplier_not_validated" }.
         // Restent hors de ce groupe : profil, documents, état du dossier, déconnexion, notifications.
         Route::middleware('supplier.validated')->group(function () {
-            //
+            // Mes produits : liste, dépublier, supprimer (SCRUM-34).
+            Route::get('/products', [SupplierProductController::class, 'index']);
+            Route::patch('/products/{product}/unpublish', [SupplierProductController::class, 'unpublish'])
+                ->whereNumber('product');
+            Route::delete('/products/{product}', [SupplierProductController::class, 'destroy'])->whereNumber('product');
+            // Ajouter / modifier un produit ou un service et ses photos (SCRUM-33).
+            Route::post('/products', [SupplierProductController::class, 'store']);
+            Route::get('/products/{product}', [SupplierProductController::class, 'show'])->whereNumber('product');
+            Route::put('/products/{product}', [SupplierProductController::class, 'update'])->whereNumber('product');
+            Route::post('/products/{product}/images', [SupplierProductController::class, 'storeImages'])
+                ->whereNumber('product');
+            Route::put('/products/{product}/images/order', [SupplierProductController::class, 'reorderImages'])
+                ->whereNumber('product');
+            Route::delete('/products/{product}/images/{image}', [SupplierProductController::class, 'destroyImage'])
+                ->whereNumber('product')
+                ->whereNumber('image');
         });
     });
 
     // Espace porteur de projet (S3+) : demandes, comparaison des devis, commandes…
     Route::middleware('role:buyer')->prefix('buyer')->group(function () {
         Route::get('/ping', fn () => ['space' => 'buyer']);
+    });
+
+    // Fournisseurs favoris du porteur de projet (SCRUM-39). Ajout / retrait idempotents.
+    Route::middleware('role:buyer')->prefix('favorites/suppliers')->group(function () {
+        Route::get('/', [FavoriteSupplierController::class, 'index']);
+        Route::post('/{supplier}', [FavoriteSupplierController::class, 'store'])->whereNumber('supplier');
+        Route::delete('/{supplier}', [FavoriteSupplierController::class, 'destroy'])->whereNumber('supplier');
     });
 
     // Back-office (S1+) : validation des fournisseurs, catégories, litiges…
@@ -140,12 +181,11 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/suppliers/{supplier}/reject', [SupplierValidationController::class, 'reject'])
             ->whereNumber('supplier');
 
-        // Gestion des catégories et sous-catégories (SCRUM-32 / F06).
-        Route::get('/categories', [CategoryController::class, 'index']);
-        Route::post('/categories', [CategoryController::class, 'store']);
-        Route::patch('/categories/reorder', [CategoryController::class, 'reorder']);
-        Route::put('/categories/{category}', [CategoryController::class, 'update'])->whereNumber('category');
-        Route::patch('/categories/{category}', [CategoryController::class, 'update'])->whereNumber('category');
-        Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->whereNumber('category');
+        // Gestion des catégories et sous-catégories (SCRUM-32).
+        Route::get('/categories', [AdminCategoryController::class, 'index']);
+        Route::post('/categories', [AdminCategoryController::class, 'store']);
+        Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->whereNumber('category');
+        Route::patch('/categories/{category}/move', [AdminCategoryController::class, 'move'])->whereNumber('category');
+        Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->whereNumber('category');
     });
 });

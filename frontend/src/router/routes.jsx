@@ -78,7 +78,19 @@ export const createRoutes = () => [
     ErrorBoundary,
     children: [
       // Pages publiques
-      { path: PATHS.home, lazy: page(() => import('@/views/HomeView')) },
+      // Vitrine publique (sprint 2) : en-tête et pied de page communs, accessible sans connexion.
+      {
+        lazy: page(() => import('@/layouts/PublicLayout')),
+        children: [
+          // Page d'accueil (SCRUM-38)
+          { path: PATHS.home, lazy: page(() => import('@/views/HomeView')) },
+          { path: PATHS.catalog, lazy: page(() => import('@/views/catalog/CatalogView')) },
+          // Fiche détaillée d'un produit (SCRUM-36)
+          { path: '/produits/:productId', lazy: page(() => import('@/views/products/ProductPage')) },
+          // Fiche publique d'un fournisseur (SCRUM-37)
+          { path: '/fournisseurs/:supplierId', lazy: page(() => import('@/views/suppliers/SupplierPublicPage')) },
+        ],
+      },
       { path: PATHS.login, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/LoginView')) },
 
       // Mot de passe oublié (SCRUM-26). La page du lien reste ouverte à tous : on peut la recevoir déjà connecté.
@@ -142,20 +154,55 @@ export const createRoutes = () => [
             handle: { crumb: "Profil de l'entreprise" },
             lazy: page(() => import('@/views/supplier/CompanyProfilePage')),
           },
+          // Mes produits (SCRUM-34) : fournisseur validé uniquement.
+          {
+            path: PATHS.supplierProducts,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Mes produits' },
+            lazy: page(() => import('@/views/supplier/products/MyProductsPage')),
+          },
+          // Ajouter / modifier un produit (SCRUM-33) : fournisseur validé uniquement.
+          {
+            path: PATHS.supplierProductNew,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Mes produits' },
+            lazy: page(() => import('@/views/supplier/products/ProductFormPage')),
+          },
+          {
+            path: `${PATHS.supplierProducts}/:productId/modifier`,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Mes produits' },
+            lazy: page(() => import('@/views/supplier/products/ProductFormPage')),
+          },
         ],
         () => import('@/layouts/SupplierLayout'),
       ),
-      space(PATHS.buyer, ROLES.BUYER, () => import('@/views/buyer/BuyerDashboard')),
+      space(
+        PATHS.buyer,
+        ROLES.BUYER,
+        () => import('@/views/buyer/BuyerDashboard'),
+        [
+          // Fournisseurs favoris (SCRUM-39)
+          {
+            path: PATHS.buyerFavorites,
+            handle: { crumb: 'Fournisseurs favoris' },
+            lazy: page(() => import('@/views/buyer/FavoriteSuppliersPage')),
+          },
+        ],
+        () => import('@/layouts/BuyerLayout'),
+      ),
       space(
         PATHS.admin,
         ROLES.ADMIN,
         () => import('@/views/admin/AdminDashboardView'),
         [
+          // Validation des fournisseurs (SCRUM-31 / SCRUM-99)
           {
             path: PATHS.adminSuppliers,
             handle: { crumb: 'Validation des fournisseurs' },
             lazy: page(() => import('@/views/admin/AdminDashboard')),
           },
+          // Gestion des catégories et sous-catégories (SCRUM-32)
           {
             path: PATHS.adminCategories,
             handle: { crumb: 'Gestion des catégories' },

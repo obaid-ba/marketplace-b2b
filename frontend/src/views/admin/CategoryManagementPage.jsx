@@ -1,592 +1,525 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  createAdminCategory,
-  deleteAdminCategory,
+  createCategory,
+  deleteCategory,
   fetchAdminCategories,
-  reorderAdminCategories,
-  updateAdminCategory,
+  moveCategory,
+  updateCategory,
 } from '@/api/adminCategories'
 
+/**
+ * Gestion des catégories et sous-catégories (SCRUM-32, maquette AD5).
+ * Liste à gauche (↑ ↓, glisser-déposer, Modifier), panneau d'édition à droite.
+ * Le réordonnancement ne se fait qu'entre catégories sœurs (racines entre elles, sous-catégories d'un même parent).
+ */
+
+const EMPTY_FORM = { name: '', parent_id: '', position: '' }
+
+const numberFormat = new Intl.NumberFormat('fr-FR')
+
+function productsLabel(count = 0) {
+  return `${numberFormat.format(count)} ${count > 1 ? 'produits' : 'produit'}`
+}
+
+/** Aplatit l'arbre en lignes affichables, avec le groupe de sœurs de chaque ligne. */
+function flatten(tree) {
+  const rows = []
+  tree.forEach((root, index) => {
+    rows.push({ category: root, level: 0, index, siblingsCount: tree.length })
+    root.children.forEach((child, childIndex) => {
+      rows.push({ category: child, level: 1, index: childIndex, siblingsCount: root.children.length })
+    })
+  })
+  return rows
+}
+
+function findCategory(tree, id) {
+  for (const root of tree) {
+    if (root.id === id) return root
+    const child = root.children.find((c) => c.id === id)
+    if (child) return child
+  }
+  return null
+}
+
+function formFrom(category) {
+  return {
+    name: category.name,
+    parent_id: category.parent_id === null ? '' : String(category.parent_id),
+    position: String(category.position),
+  }
+}
+
+function errorMessage(error) {
+  const errors = error?.response?.data?.errors
+  return errors?.category?.[0] ?? error?.userMessage ?? 'Une erreur est survenue. Réessayez.'
+}
+
+function GripIcon() {
+  return (
+    <span aria-hidden="true" className="cursor-grab text-sm text-muted select-none active:cursor-grabbing">
+      ⋮⋮
+    </span>
+  )
+}
+
+function Field({ label, htmlFor, error, hint, children }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={htmlFor} className="text-[13px] font-medium text-ink">
+        {label}
+      </label>
+      {children}
+      {hint && !error && <p className="text-xs text-muted">{hint}</p>}
+      {error && (
+        <p className="text-xs text-danger" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+const fieldClass =
+  'w-full rounded-lg border border-line bg-surface px-3.5 py-3 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:bg-page disabled:text-muted'
+
+function ConfirmDeleteDialog({ category, deleting, onCancel, onConfirm }) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+      <button type="button" aria-label="Fermer" className="absolute inset-0 bg-ink/40" onClick={onCancel} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-category-title"
+        className="relative w-full max-w-md rounded-xl bg-surface p-6 shadow-xl"
+      >
+        <h2 id="delete-category-title" className="text-lg font-semibold text-ink">
+          Supprimer « {category.name} » ?
+        </h2>
+        <p className="mt-2 text-sm text-muted">
+          Cette action est définitive. Une catégorie utilisée par des produits ou des demandes, ou qui contient des
+          sous-catégories, ne peut pas être supprimée.
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" className="btn-secondary" onClick={onCancel} disabled={deleting}>
+            Annuler
+          </button>
+          <button
+            type="button"
+            className="btn bg-danger font-semibold text-white hover:bg-danger/90"
+            onClick={onConfirm}
+            disabled={deleting}
+          >
+            {deleting ? 'Suppression…' : 'Supprimer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CategoryManagementPage() {
-  const [categories, setCategories] = useState([])
+  const [tree, setTree] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [successNotice, setSuccessNotice] = useState(null)
+  const [loadError, setLoadError] = useState(null)
 
-  // Modale création / renommage
-  const [modal, setModal] = useState({
-    open: false,
-    mode: 'create_main', // 'create_main' | 'create_sub' | 'rename'
-    category: null,
-    parentId: null,
-    name: '',
-    submitting: false,
-    formError: null,
-  })
+  // Panneau : null (rien de sélectionné), { mode: 'create' } ou { mode: 'edit', id }
+  const [panel, setPanel] = useState(null)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [panelError, setPanelError] = useState(null)
 
-  // Modale suppression
-  const [deleteModal, setDeleteModal] = useState({
-    open: false,
-    category: null,
-    deleting: false,
-    error: null,
-  })
+  const [notice, setNotice] = useState(null)
+  const [movingId, setMovingId] = useState(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [dragged, setDragged] = useState(null) // { id, parentId }
+  const [dropTargetId, setDropTargetId] = useState(null)
 
-  const loadCategories = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const panelRef = useRef(null)
+  const nameInputRef = useRef(null)
+
+  const load = useCallback(async () => {
     try {
       const data = await fetchAdminCategories()
-      setCategories(data ?? [])
-    } catch (err) {
-      setError(err.userMessage ?? 'Impossible de charger les catégories.')
+      setTree(data)
+      setLoadError(null)
+      return data
+    } catch (error) {
+      setLoadError(error.userMessage ?? 'Impossible de charger les catégories.')
+      return null
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    loadCategories()
-  }, [loadCategories])
+    load()
+  }, [load])
 
-  // --- Actions Création / Renommage ---
+  const rows = useMemo(() => flatten(tree), [tree])
+  const editedCategory = panel?.mode === 'edit' ? findCategory(tree, panel.id) : null
+  const parentOptions = tree.filter((root) => root.id !== editedCategory?.id)
+  const hasChildren = (editedCategory?.children?.length ?? 0) > 0
 
-  function openCreateMainModal() {
-    setModal({
-      open: true,
-      mode: 'create_main',
-      category: null,
-      parentId: null,
-      name: '',
-      submitting: false,
-      formError: null,
+  function openPanel(next, nextForm) {
+    setPanel(next)
+    setForm(nextForm)
+    setFieldErrors({})
+    setPanelError(null)
+    // Sur mobile, le panneau est sous la liste : on l'amène à l'écran.
+    requestAnimationFrame(() => {
+      panelRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
+      nameInputRef.current?.focus()
     })
   }
 
-  function openCreateSubModal(parentCat) {
-    setModal({
-      open: true,
-      mode: 'create_sub',
-      category: null,
-      parentId: parentCat.id,
-      name: '',
-      submitting: false,
-      formError: null,
-    })
+  function startCreate() {
+    openPanel({ mode: 'create' }, EMPTY_FORM)
   }
 
-  function openRenameModal(cat) {
-    setModal({
-      open: true,
-      mode: 'rename',
-      category: cat,
-      parentId: cat.parent_id ?? null,
-      name: cat.name,
-      submitting: false,
-      formError: null,
-    })
+  function startEdit(category) {
+    openPanel({ mode: 'edit', id: category.id }, formFrom(category))
   }
 
-  function closeModal() {
-    setModal((prev) => ({ ...prev, open: false, submitting: false, formError: null }))
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }))
+    setFieldErrors((current) => ({ ...current, [field]: undefined }))
   }
 
-  async function handleModalSubmit(e) {
-    e.preventDefault()
-    const trimmed = modal.name.trim()
-    if (!trimmed) {
-      setModal((prev) => ({ ...prev, formError: 'Le nom de la catégorie est obligatoire.' }))
-      return
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setSaving(true)
+    setPanelError(null)
+    setNotice(null)
+
+    const payload = {
+      name: form.name,
+      parent_id: form.parent_id === '' ? null : Number(form.parent_id),
+      position: form.position === '' ? null : Number(form.position),
     }
 
-    setModal((prev) => ({ ...prev, submitting: true, formError: null }))
-    setError(null)
-    setSuccessNotice(null)
-
     try {
-      if (modal.mode === 'create_main') {
-        await createAdminCategory({ name: trimmed, parent_id: null })
-        setSuccessNotice(`Catégorie principale « ${trimmed} » créée avec succès.`)
-      } else if (modal.mode === 'create_sub') {
-        await createAdminCategory({ name: trimmed, parent_id: modal.parentId })
-        setSuccessNotice(`Sous-catégorie « ${trimmed} » ajoutée avec succès.`)
-      } else if (modal.mode === 'rename' && modal.category) {
-        await updateAdminCategory(modal.category.id, { name: trimmed })
-        setSuccessNotice(`Catégorie « ${trimmed} » renommée avec succès.`)
+      const result =
+        panel.mode === 'create' ? await createCategory(payload) : await updateCategory(panel.id, payload)
+      const data = await load()
+      const saved = data && findCategory(data, result.category.id)
+      if (saved) {
+        setPanel({ mode: 'edit', id: saved.id })
+        setForm(formFrom(saved))
       }
-      closeModal()
-      await loadCategories()
-    } catch (err) {
-      const apiMessage = err.response?.data?.message ?? err.userMessage ?? 'Une erreur est survenue.'
-      setModal((prev) => ({ ...prev, formError: apiMessage, submitting: false }))
-    }
-  }
-
-  // --- Actions Réordonnancement ---
-
-  async function handleMoveMain(index, direction) {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1
-    if (targetIndex < 0 || targetIndex >= categories.length) return
-
-    const newCategories = [...categories]
-    const temp = newCategories[index]
-    newCategories[index] = newCategories[targetIndex]
-    newCategories[targetIndex] = temp
-
-    const items = newCategories.map((cat, idx) => ({
-      id: cat.id,
-      position: idx + 1,
-      parent_id: null,
-    }))
-
-    setCategories(newCategories)
-    setError(null)
-
-    try {
-      await reorderAdminCategories(items)
-      setSuccessNotice('Ordre des catégories mis à jour.')
-    } catch (err) {
-      setError(err.userMessage ?? 'Impossible de mettre à jour l’ordre des catégories.')
-      await loadCategories()
-    }
-  }
-
-  async function handleMoveSub(parentCat, subIndex, direction) {
-    const children = parentCat.children ?? []
-    const targetIndex = direction === 'up' ? subIndex - 1 : subIndex + 1
-    if (targetIndex < 0 || targetIndex >= children.length) return
-
-    const newChildren = [...children]
-    const temp = newChildren[subIndex]
-    newChildren[subIndex] = newChildren[targetIndex]
-    newChildren[targetIndex] = temp
-
-    const updatedCategories = categories.map((cat) => {
-      if (cat.id === parentCat.id) {
-        return { ...cat, children: newChildren }
+      setNotice({ type: 'success', text: panel.mode === 'create' ? 'Catégorie créée.' : 'Catégorie enregistrée.' })
+    } catch (error) {
+      const errors = error?.response?.data?.errors ?? {}
+      setFieldErrors(Object.fromEntries(Object.entries(errors).map(([key, messages]) => [key, messages[0]])))
+      if (!errors.name && !errors.parent_id && !errors.position) {
+        setPanelError(errorMessage(error))
       }
-      return cat
-    })
-
-    const items = newChildren.map((child, idx) => ({
-      id: child.id,
-      position: idx + 1,
-      parent_id: parentCat.id,
-    }))
-
-    setCategories(updatedCategories)
-    setError(null)
-
-    try {
-      await reorderAdminCategories(items)
-      setSuccessNotice('Ordre des sous-catégories mis à jour.')
-    } catch (err) {
-      setError(err.userMessage ?? 'Impossible de mettre à jour l’ordre des sous-catégories.')
-      await loadCategories()
+    } finally {
+      setSaving(false)
     }
   }
 
-  // --- Actions Suppression ---
-
-  function openDeleteModal(cat) {
-    setDeleteModal({
-      open: true,
-      category: cat,
-      deleting: false,
-      error: null,
-    })
-  }
-
-  function closeDeleteModal() {
-    setDeleteModal({
-      open: false,
-      category: null,
-      deleting: false,
-      error: null,
-    })
-  }
-
-  async function handleConfirmDelete() {
-    if (!deleteModal.category || deleteModal.deleting) return
-
-    setDeleteModal((prev) => ({ ...prev, deleting: true, error: null }))
-    setError(null)
-    setSuccessNotice(null)
-
+  async function runMove(category, move) {
+    setMovingId(category.id)
+    setNotice(null)
     try {
-      const res = await deleteAdminCategory(deleteModal.category.id)
-      setSuccessNotice(res.message ?? `La catégorie « ${deleteModal.category.name} » a été supprimée.`)
-      closeDeleteModal()
-      await loadCategories()
-    } catch (err) {
-      const apiMessage = err.response?.data?.message ?? err.userMessage ?? 'Suppression impossible.'
-      setDeleteModal((prev) => ({ ...prev, deleting: false, error: apiMessage }))
-      // Affiche également dans la bannière globale d'erreur
-      setError(apiMessage)
+      await moveCategory(category.id, move)
+      const data = await load()
+      // Garde le champ « Position » du panneau à jour si la catégorie déplacée est ouverte.
+      if (data && panel?.mode === 'edit') {
+        const current = findCategory(data, panel.id)
+        if (current) setForm((f) => ({ ...f, position: String(current.position) }))
+      }
+    } catch (error) {
+      setNotice({ type: 'error', text: errorMessage(error) })
+    } finally {
+      setMovingId(null)
     }
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    setPanelError(null)
+    try {
+      const result = await deleteCategory(panel.id)
+      setConfirmingDelete(false)
+      setPanel(null)
+      setForm(EMPTY_FORM)
+      await load()
+      setNotice({ type: 'success', text: result.message })
+    } catch (error) {
+      setConfirmingDelete(false)
+      setPanelError(errorMessage(error))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  // --- Glisser-déposer (entre catégories sœurs uniquement) ---
+
+  function canDropOn(category) {
+    return dragged && dragged.id !== category.id && dragged.parentId === category.parent_id
+  }
+
+  function handleDrop(event, row) {
+    event.preventDefault()
+    setDropTargetId(null)
+    if (!canDropOn(row.category)) return
+    const source = findCategory(tree, dragged.id)
+    setDragged(null)
+    runMove(source, { position: row.index + 1 })
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-3" aria-busy="true" aria-label="Chargement des catégories">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-14 animate-pulse rounded-xl bg-surface" />
+        ))}
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="card text-center">
+        <p className="text-sm text-danger" role="alert">
+          {loadError}
+        </p>
+        <button
+          type="button"
+          className="btn-secondary mt-4"
+          onClick={() => {
+            setLoading(true)
+            load()
+          }}
+        >
+          Réessayer
+        </button>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* En-tête */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Gestion des catégories</h1>
-          <p className="mt-0.5 text-sm text-muted">
-            Organisez l'arborescence du catalogue : catégories principales et sous-catégories (SCRUM-32 / F06).
-          </p>
+          <h1 className="text-2xl font-bold text-ink sm:text-[28px]">Gestion des catégories</h1>
+          <p className="mt-1 text-sm text-muted">Organisez l’arborescence du catalogue (réordonnable)</p>
         </div>
-        <div>
-          <button
-            type="button"
-            onClick={openCreateMainModal}
-            className="btn btn-primary shadow-xs"
-          >
-            + Nouvelle catégorie
-          </button>
-        </div>
+        <button type="button" className="btn-primary px-5 py-2.5 font-semibold" onClick={startCreate}>
+          Ajouter une catégorie
+        </button>
       </div>
 
-      {/* Notifications globales */}
-      {successNotice && (
-        <div
-          role="status"
-          className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+      {notice && (
+        <p
+          role={notice.type === 'error' ? 'alert' : 'status'}
+          className={`rounded-lg px-4 py-3 text-sm ${
+            notice.type === 'error' ? 'bg-danger-soft text-danger' : 'bg-success-soft text-success'
+          }`}
         >
-          <span>{successNotice}</span>
-          <button
-            type="button"
-            className="text-emerald-700 hover:text-emerald-900"
-            onClick={() => setSuccessNotice(null)}
-          >
-            ✕
-          </button>
-        </div>
+          {notice.text}
+        </p>
       )}
 
-      {error && (
-        <div
-          role="alert"
-          className="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"
-        >
-          <span className="font-medium">{error}</span>
-          <button
-            type="button"
-            className="text-rose-700 hover:text-rose-900"
-            onClick={() => setError(null)}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* État de chargement */}
-      {loading ? (
-        <div className="card text-center py-12 text-muted">
-          <p>Chargement des catégories...</p>
-        </div>
-      ) : categories.length === 0 ? (
-        <div className="card text-center py-12 text-muted">
-          <p>Aucune catégorie configurée pour le moment.</p>
-          <button
-            type="button"
-            onClick={openCreateMainModal}
-            className="btn btn-secondary mt-4"
-          >
-            Créer la première catégorie
-          </button>
-        </div>
-      ) : (
-        /* Vue Arborescente */
-        <div className="space-y-4">
-          {categories.map((parentCat, parentIdx) => {
-            const children = parentCat.children ?? []
-            const isFirst = parentIdx === 0
-            const isLast = parentIdx === categories.length - 1
-
-            return (
-              <div
-                key={parentCat.id}
-                className="card overflow-hidden border border-line bg-surface p-0 transition-all hover:border-slate-300"
-              >
-                {/* Ligne Catégorie Principale */}
-                <div className="flex flex-col gap-3 border-b border-line bg-page/40 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    {/* Boutons réordonner catégorie principale */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        disabled={isFirst}
-                        onClick={() => handleMoveMain(parentIdx, 'up')}
-                        className="rounded p-1 text-muted hover:bg-slate-200 hover:text-ink disabled:opacity-30"
-                        title="Monter"
-                        aria-label={`Monter ${parentCat.name}`}
-                      >
-                        ▲
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isLast}
-                        onClick={() => handleMoveMain(parentIdx, 'down')}
-                        className="rounded p-1 text-muted hover:bg-slate-200 hover:text-ink disabled:opacity-30"
-                        title="Descendre"
-                        aria-label={`Descendre ${parentCat.name}`}
-                      >
-                        ▼
-                      </button>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        {/* Arborescence */}
+        <div className="overflow-hidden rounded-xl border border-line bg-surface">
+          {rows.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <p className="font-medium text-ink">Aucune catégorie pour le moment</p>
+              <p className="mt-1 text-sm text-muted">Ajoutez la première catégorie du catalogue.</p>
+            </div>
+          ) : (
+            <ul aria-label="Arborescence des catégories">
+              {rows.map((row) => {
+                const { category, level, index, siblingsCount } = row
+                const busy = movingId === category.id
+                const selected = editedCategory?.id === category.id
+                return (
+                  <li
+                    key={category.id}
+                    draggable
+                    onDragStart={(event) => {
+                      event.dataTransfer.effectAllowed = 'move'
+                      setDragged({ id: category.id, parentId: category.parent_id })
+                    }}
+                    onDragEnd={() => {
+                      setDragged(null)
+                      setDropTargetId(null)
+                    }}
+                    onDragOver={(event) => {
+                      if (canDropOn(category)) {
+                        event.preventDefault()
+                        setDropTargetId(category.id)
+                      }
+                    }}
+                    onDragLeave={() => setDropTargetId((id) => (id === category.id ? null : id))}
+                    onDrop={(event) => handleDrop(event, row)}
+                    className={`flex items-center gap-2 border-b border-line py-3 pr-3 last:border-b-0 sm:gap-3 sm:pr-4 ${
+                      level === 0 ? 'pl-3 sm:pl-4' : 'pl-8 sm:pl-[52px]'
+                    } ${selected ? 'bg-brand-50/60' : ''} ${dropTargetId === category.id ? 'bg-brand-50 ring-2 ring-brand-100 ring-inset' : ''} ${
+                      dragged?.id === category.id ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <GripIcon />
+                    <div className="min-w-0 flex-1">
+                      <p className={`truncate text-sm text-ink ${level === 0 ? 'font-semibold' : ''}`}>{category.name}</p>
+                      <p className="text-xs text-muted sm:hidden">{productsLabel(category.products_count)}</p>
                     </div>
-
-                    <div>
-                      <span className="text-xs font-mono font-semibold text-muted mr-2">
-                        #{parentCat.position}
-                      </span>
-                      <span className="text-base font-bold text-ink">
-                        {parentCat.name}
-                      </span>
-                    </div>
-
-                    {/* Badges d'utilisation */}
-                    <div className="flex items-center gap-1.5 ml-2">
-                      <span
-                        className="inline-flex items-center rounded-md bg-info-soft px-2 py-0.5 text-xs font-medium text-info"
-                        title="Produits rattachés à cette catégorie ou ses sous-catégories"
-                      >
-                        {parentCat.products_count ?? 0} produit{(parentCat.products_count ?? 0) > 1 ? 's' : ''}
-                      </span>
-                      <span
-                        className="inline-flex items-center rounded-md bg-page px-2 py-0.5 text-xs text-muted"
-                        title="Demandes rattachées"
-                      >
-                        {parentCat.tenders_count ?? 0} demande{(parentCat.tenders_count ?? 0) > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Actions catégorie principale */}
-                  <div className="flex items-center gap-2">
+                    <span className="hidden shrink-0 text-xs text-muted sm:inline">
+                      {productsLabel(category.products_count)}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => openCreateSubModal(parentCat)}
-                      className="btn btn-secondary text-xs"
+                      className="btn-secondary h-9 w-9 shrink-0 px-0 sm:h-10 sm:w-[54px]"
+                      aria-label={`Monter « ${category.name} »`}
+                      title="Monter"
+                      disabled={index === 0 || busy}
+                      onClick={() => runMove(category, { direction: 'up' })}
                     >
-                      + Sous-catégorie
+                      ↑
                     </button>
                     <button
                       type="button"
-                      onClick={() => openRenameModal(parentCat)}
-                      className="btn btn-ghost text-xs"
+                      className="btn-secondary h-9 w-9 shrink-0 px-0 sm:h-10 sm:w-[54px]"
+                      aria-label={`Descendre « ${category.name} »`}
+                      title="Descendre"
+                      disabled={index === siblingsCount - 1 || busy}
+                      onClick={() => runMove(category, { direction: 'down' })}
                     >
-                      Renommer
+                      ↓
                     </button>
                     <button
                       type="button"
-                      onClick={() => openDeleteModal(parentCat)}
-                      className="btn text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                      className="btn-secondary h-9 shrink-0 px-3 font-semibold sm:h-10 sm:px-5"
+                      aria-label={`Modifier « ${category.name} »`}
+                      onClick={() => startEdit(category)}
                     >
-                      Supprimer
+                      Modifier
                     </button>
-                  </div>
-                </div>
-
-                {/* Liste des sous-catégories indentées */}
-                <div className="p-4">
-                  {children.length === 0 ? (
-                    <p className="py-2 text-xs text-muted italic">
-                      Aucune sous-catégorie. Cliquez sur « + Sous-catégorie » pour en ajouter une.
-                    </p>
-                  ) : (
-                    <ul className="divide-y divide-line/60">
-                      {children.map((childCat, childIdx) => {
-                        const isSubFirst = childIdx === 0
-                        const isSubLast = childIdx === children.length - 1
-
-                        return (
-                          <li
-                            key={childCat.id}
-                            className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between pl-6"
-                          >
-                            <div className="flex items-center gap-3">
-                              {/* Flèche d'indentation */}
-                              <span className="text-muted/60 font-mono text-sm">└─</span>
-
-                              {/* Boutons réordonner sous-catégorie */}
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  disabled={isSubFirst}
-                                  onClick={() => handleMoveSub(parentCat, childIdx, 'up')}
-                                  className="rounded p-1 text-xs text-muted hover:bg-slate-200 hover:text-ink disabled:opacity-30"
-                                  title="Monter"
-                                  aria-label={`Monter ${childCat.name}`}
-                                >
-                                  ▲
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={isSubLast}
-                                  onClick={() => handleMoveSub(parentCat, childIdx, 'down')}
-                                  className="rounded p-1 text-xs text-muted hover:bg-slate-200 hover:text-ink disabled:opacity-30"
-                                  title="Descendre"
-                                  aria-label={`Descendre ${childCat.name}`}
-                                >
-                                  ▼
-                                </button>
-                              </div>
-
-                              <span className="text-xs font-mono text-muted">
-                                #{childCat.position}
-                              </span>
-                              <span className="text-sm font-medium text-ink">
-                                {childCat.name}
-                              </span>
-
-                              {/* Badges sous-catégorie */}
-                              <div className="flex items-center gap-1.5 ml-2">
-                                <span className="inline-flex items-center rounded-md bg-info-soft/70 px-2 py-0.5 text-[11px] font-medium text-info">
-                                  {childCat.products_count ?? 0} prod.
-                                </span>
-                                <span className="inline-flex items-center rounded-md bg-page px-2 py-0.5 text-[11px] text-muted">
-                                  {childCat.tenders_count ?? 0} dem.
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Actions sous-catégorie */}
-                            <div className="flex items-center gap-2 self-end sm:self-auto">
-                              <button
-                                type="button"
-                                onClick={() => openRenameModal(childCat)}
-                                className="btn btn-ghost text-xs py-1"
-                              >
-                                Renommer
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => openDeleteModal(childCat)}
-                                className="btn text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 py-1"
-                              >
-                                Supprimer
-                              </button>
-                            </div>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </div>
-      )}
 
-      {/* Modale Création / Renommage */}
-      {modal.open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="category-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+        {/* Panneau d'édition */}
+        <section
+          ref={panelRef}
+          aria-labelledby="category-panel-title"
+          className="rounded-xl border border-line bg-surface p-6 lg:sticky lg:top-24"
         >
-          <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-xl">
-            <h2 id="category-modal-title" className="text-lg font-bold text-ink">
-              {modal.mode === 'create_main' && 'Créer une catégorie principale'}
-              {modal.mode === 'create_sub' && 'Ajouter une sous-catégorie'}
-              {modal.mode === 'rename' && 'Renommer la catégorie'}
-            </h2>
+          {panel === null ? (
+            <>
+              <h2 id="category-panel-title" className="text-lg font-semibold text-ink">
+                Modifier la catégorie
+              </h2>
+              <p className="mt-2 text-sm text-muted">
+                Choisissez « Modifier » sur une catégorie, ou ajoutez-en une nouvelle.
+              </p>
+            </>
+          ) : (
+            <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+              <h2 id="category-panel-title" className="text-lg font-semibold text-ink">
+                {panel.mode === 'create' ? 'Nouvelle catégorie' : 'Modifier la catégorie'}
+              </h2>
 
-            <form onSubmit={handleModalSubmit} className="mt-4 space-y-4">
-              <div>
-                <label htmlFor="category-name" className="block text-sm font-medium text-ink">
-                  Nom de la catégorie <span className="text-danger">*</span>
-                </label>
+              <Field label="Nom" htmlFor="category-name" error={fieldErrors.name}>
                 <input
+                  ref={nameInputRef}
                   id="category-name"
-                  type="text"
+                  className={fieldClass}
+                  value={form.name}
+                  maxLength={100}
                   required
-                  value={modal.name}
-                  onChange={(e) => setModal((prev) => ({ ...prev, name: e.target.value, formError: null }))}
-                  placeholder="Ex : Équipements de protection, Machines-outils..."
-                  className="input mt-1.5"
-                  autoFocus
+                  onChange={(event) => updateField('name', event.target.value)}
                 />
-                {modal.formError && (
-                  <p role="alert" className="mt-1.5 text-xs text-danger font-medium">
-                    {modal.formError}
-                  </p>
-                )}
-              </div>
+              </Field>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <Field
+                label="Catégorie parente"
+                htmlFor="category-parent"
+                error={fieldErrors.parent_id}
+                hint={
+                  hasChildren
+                    ? 'Contient des sous-catégories : reste une catégorie principale.'
+                    : 'Vide = catégorie principale.'
+                }
+              >
+                <select
+                  id="category-parent"
+                  className={fieldClass}
+                  value={form.parent_id}
+                  disabled={hasChildren}
+                  onChange={(event) => updateField('parent_id', event.target.value)}
+                >
+                  <option value="">Aucune (catégorie principale)</option>
+                  {parentOptions.map((root) => (
+                    <option key={root.id} value={root.id}>
+                      {root.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field
+                label="Position"
+                htmlFor="category-position"
+                error={fieldErrors.position}
+                hint={panel.mode === 'create' ? 'Vide = à la fin.' : undefined}
+              >
+                <input
+                  id="category-position"
+                  type="number"
+                  min="1"
+                  inputMode="numeric"
+                  className={fieldClass}
+                  value={form.position}
+                  onChange={(event) => updateField('position', event.target.value)}
+                />
+              </Field>
+
+              {panelError && (
+                <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2.5 text-sm text-danger">
+                  {panelError}
+                </p>
+              )}
+
+              <button type="submit" className="btn-primary w-full py-2.5 font-semibold" disabled={saving}>
+                {saving ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+
+              {panel.mode === 'edit' ? (
                 <button
                   type="button"
-                  onClick={closeModal}
-                  disabled={modal.submitting}
-                  className="btn btn-secondary"
+                  className="btn w-full bg-danger py-2.5 font-semibold text-white hover:bg-danger/90"
+                  onClick={() => setConfirmingDelete(true)}
+                  disabled={saving}
                 >
+                  Supprimer
+                </button>
+              ) : (
+                <button type="button" className="btn-secondary w-full py-2.5" onClick={() => setPanel(null)}>
                   Annuler
                 </button>
-                <button
-                  type="submit"
-                  disabled={modal.submitting || !modal.name.trim()}
-                  className="btn btn-primary"
-                >
-                  {modal.submitting ? 'Enregistrement...' : 'Enregistrer'}
-                </button>
-              </div>
+              )}
             </form>
-          </div>
-        </div>
-      )}
+          )}
+        </section>
+      </div>
 
-      {/* Modale Confirmation de Suppression avec message explicite */}
-      {deleteModal.open && deleteModal.category && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="delete-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-        >
-          <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-xl">
-            <h2 id="delete-modal-title" className="text-lg font-bold text-ink">
-              Supprimer « {deleteModal.category.name} » ?
-            </h2>
-
-            <p className="mt-2 text-sm text-muted">
-              Cette action est irréversible. La suppression sera automatiquement bloquée si la catégorie
-              (ou l'une de ses sous-catégories) est utilisée par des produits ou des demandes.
-            </p>
-
-            {deleteModal.error && (
-              <div
-                role="alert"
-                className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800"
-              >
-                <p className="font-semibold">Suppression impossible :</p>
-                <p className="mt-0.5">{deleteModal.error}</p>
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeDeleteModal}
-                disabled={deleteModal.deleting}
-                className="btn btn-secondary"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={deleteModal.deleting}
-                className="btn bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
-              >
-                {deleteModal.deleting ? 'Suppression...' : 'Confirmer la suppression'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {confirmingDelete && editedCategory && (
+        <ConfirmDeleteDialog
+          category={editedCategory}
+          deleting={deleting}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={handleDelete}
+        />
       )}
     </div>
   )
