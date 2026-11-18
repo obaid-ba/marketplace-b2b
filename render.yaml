@@ -55,11 +55,11 @@ envVarGroups:
       - key: MAIL_MAILER
         value: smtp
       - key: MAIL_HOST
-        value: smtp.resend.com
+        value: smtp-relay.brevo.com
       - key: MAIL_PORT
         value: "587"
       - key: MAIL_USERNAME
-        value: resend
+        sync: false
       - key: MAIL_PASSWORD
         sync: false
       - key: MAIL_FROM_ADDRESS

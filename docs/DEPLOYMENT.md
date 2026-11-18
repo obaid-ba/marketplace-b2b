@@ -1,4 +1,4 @@
-# Déploiement — Neon, Render, Resend, Cloudinary
+# Déploiement — Neon, Render, Brevo, Cloudinary
 
 Branche de référence : `feature/SCRUM-129-deploiement` (ticket **SCRUM-129 / F35**).
 Objectif : une mise en production reproductible sans disque local persistant pour les fichiers utilisateurs.
@@ -12,7 +12,7 @@ Objectif : une mise en production reproductible sans disque local persistant pou
 | **Render Background Worker** (`marketplace-worker`) | `php artisan queue:work` (diffusion des demandes, e-mails, jobs) |
 | **Render Cron** (`marketplace-scheduler`) | `php artisan schedule:run` chaque minute |
 | **Render Static Site** (`marketplace-web`) | Build Vite du frontend (`frontend/dist`), réécriture SPA vers `index.html` |
-| **Resend** | Envoi des e-mails transactionnels via SMTP |
+| **Brevo** | Envoi des e-mails transactionnels via SMTP |
 | **Cloudinary** | Stockage des fichiers : images/logos publics, documents privés servis par URL signée |
 
 Le dépôt fournit l’infrastructure dans [`deploy/`](../deploy/) et le blueprint Render [`render.yaml`](../render.yaml).
@@ -28,23 +28,23 @@ Notes :
 - Les tests CI tournent sur SQLite (rapide) **et** sur PostgreSQL 17 pour détecter les écarts.
 - Les migrations sont portables (PostgreSQL inclus). Une correction dédiée supprime la contrainte CHECK résiduelle sur `supplier_documents.type` après passage de l’enum en chaîne.
 
-## 2. E-mails (Resend)
+## 2. E-mails (Brevo)
 
-1. Créer un compte Resend, ajouter et vérifier le domaine d’envoi (enregistrements DNS **SPF, DKIM** et le MX/Return-Path demandé par Resend).
-2. Créer une clé API.
+1. Créer un compte [Brevo](https://www.brevo.com), puis configurer un **expéditeur** et/ou un **domaine** d’envoi validé (Senders / Domains) pour pouvoir envoyer aux destinataires réels.
+2. Récupérer les identifiants SMTP dans **SMTP & API** (créer une clé SMTP si nécessaire).
 3. Variables côté API :
 
 | Variable | Valeur |
 |---|---|
 | `MAIL_MAILER` | `smtp` |
-| `MAIL_HOST` | `smtp.resend.com` |
+| `MAIL_HOST` | `smtp-relay.brevo.com` |
 | `MAIL_PORT` | `587` |
-| `MAIL_USERNAME` | `resend` |
-| `MAIL_PASSWORD` | clé API Resend (`re_...`) |
-| `MAIL_FROM_ADDRESS` | adresse sur le domaine vérifié (ex. `no-reply@votredomaine.tld`) |
+| `MAIL_USERNAME` | login/identifiant SMTP affiché par Brevo |
+| `MAIL_PASSWORD` | clé SMTP Brevo (pas le mot de passe du compte) |
+| `MAIL_FROM_ADDRESS` | adresse expéditrice validée dans Brevo (ex. `no-reply@votredomaine.tld`) |
 | `MAIL_FROM_NAME` | `Marketplace B2B` |
 
-Sans domaine vérifié, Resend n’autorise l’envoi que depuis `onboarding@resend.dev` vers l’adresse du compte (limite de test, inutilisable en démo publique).
+> Vérifier le compte/expéditeur dans Brevo (et le domaine si utilisé) ; tant que l’envoi n’est pas correctement autorisé, les e-mails vers les testeurs peuvent être refusés ou bloqués. L’offre gratuite Brevo permet un envoi limité (quota journalier) adapté aux tests.
 
 ## 3. Fichiers (Cloudinary)
 
@@ -79,8 +79,8 @@ Comportement :
 | `FRONTEND_URL` / `FRONTEND_URLS` | URL du site statique (CORS et liens e-mail) |
 | `DB_URL` | URL Neon complète (`...?sslmode=require`) |
 | `CLOUDINARY_URL` | `cloudinary://...` |
-| `MAIL_PASSWORD` | clé API Resend |
-| `MAIL_FROM_ADDRESS` | adresse expéditrice vérifiée |
+| `MAIL_PASSWORD` | clé SMTP Brevo |
+| `MAIL_FROM_ADDRESS` | adresse expéditrice validée dans Brevo |
 
 3. Pour le site statique `marketplace-web`, définir `VITE_API_URL` vers l’API publique (`https://.../api`).
 4. Premier déploiement : les migrations s’exécutent via `preDeployCommand: php artisan migrate --force`. Laisser `SEED_DEMO_DATA=false` en production réelle.
@@ -103,7 +103,7 @@ La stack locale reproduit la prod (PostgreSQL 17, worker, Mailpit) :
 ./deploy/stop.sh --reset     # remise à zéro (volumes supprimés)
 ```
 
-Copier `deploy/.env.example` vers `deploy/.env` pour ajuster les ports, le mot de passe DB, `MEDIA_DRIVER=cloudinary` + `CLOUDINARY_URL`, ou basculer l’envoi d’e-mails sur Resend.
+Copier `deploy/.env.example` vers `deploy/.env` pour ajuster les ports, le mot de passe DB, `MEDIA_DRIVER=cloudinary` + `CLOUDINARY_URL`, ou basculer l’envoi d’e-mails sur Brevo (SMTP).
 
 Comptes de démonstration (mot de passe `password`) créés au premier démarrage sur base vide :
 `admin@marketplace.test`, `buyer1@marketplace.test` …, `supplier1@marketplace.test` …
@@ -117,7 +117,7 @@ Comptes de démonstration (mot de passe `password`) créés au premier démarrag
 
 ## 7. Limites et points d’attention
 
-- **Domaine Resend obligatoire** pour un envoi réel multi-destinataires.
+- **Expéditeur/domaine Brevo** : configurer et valider l’expéditeur (et le domaine si nécessaire) dans Brevo pour que les e-mails arrivent aux testeurs.
 - **Cloudinary (gratuit)** : activer la livraison PDF/ZIP ; les quotas API admin sont évités car les URLs signées sont générées côté application.
 - **Coût Render** : les services web/worker/cron « starter » et le site statique ont des paliers de facturation propres ; Neon dispose d’un palier gratuit adapté au développement/démo.
 - **Pièces jointes des appels d’offres (S3)** : le flux d’upload/téléchargement des demandes est livré sur la branche/PR S3 ; le raccordement à `MediaStorage` doit être finalisé après fusion de la PR #18 pour éviter les conflits.
