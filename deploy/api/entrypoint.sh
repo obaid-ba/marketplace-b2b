@@ -23,35 +23,53 @@ if [ -z "$APP_KEY" ]; then
     export APP_KEY
 fi
 
-# --- Attente de la base (Neon ou service PostgreSQL local) ---
+# --- Attente de la base (TiDB PostgreSQL-compatible ou PostgreSQL local) ---
+# La connexion suit la configuration Laravel : variables DB_* et/ou DB_URL.
 echo "▶ Attente de la base de données…"
 i=0
 until php -r '
     $url = (string) getenv("DB_URL");
-    $sslmode = getenv("DB_SSLMODE") ?: "require";
+    $conn = getenv("DB_CONNECTION") ?: "pgsql";
     $host = getenv("DB_HOST") ?: "127.0.0.1";
     $port = getenv("DB_PORT") ?: "5432";
     $db = getenv("DB_DATABASE") ?: "laravel";
     $user = getenv("DB_USERNAME") ?: "";
     $pass = getenv("DB_PASSWORD") ?: "";
+    $sslmode = getenv("DB_SSLMODE") ?: "";
+    $sslrootcert = getenv("DB_SSLROOTCERT") ?: "";
     if ($url !== "") {
         $parts = @parse_url($url);
         if (is_array($parts) && !empty($parts["host"])) {
             $host = $parts["host"];
-            $port = (string) ($parts["port"] ?? 5432);
-            $path = isset($parts["path"]) ? rawurldecode(ltrim($parts["path"], "/")) : $db;
-            if ($path !== "") { $db = $path; }
+            if (!empty($parts["port"])) { $port = (string) $parts["port"]; }
+            if (!empty($parts["path"])) {
+                $path = rawurldecode(ltrim($parts["path"], "/"));
+                if ($path !== "") { $db = $path; }
+            }
             if (isset($parts["user"])) { $user = urldecode($parts["user"]); }
             if (isset($parts["pass"])) { $pass = urldecode($parts["pass"]); }
+            if (!empty($parts["scheme"])) { $conn = strtolower($parts["scheme"]); }
             if (!empty($parts["query"])) {
                 parse_str($parts["query"], $q);
                 if (!empty($q["sslmode"])) { $sslmode = $q["sslmode"]; }
+                if (!empty($q["sslrootcert"])) { $sslrootcert = $q["sslrootcert"]; }
             }
         }
     }
-    $dsn = "pgsql:host={$host};port={$port};dbname={$db};sslmode={$sslmode}";
+    $isMySql = in_array($conn, ["mysql", "mariadb"], true);
     try {
-        new PDO($dsn, $user, $pass, [PDO::ATTR_TIMEOUT => 5, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        if ($isMySql) {
+            $dsn = "mysql:host={$host};port={$port};dbname={$db}";
+            $options = [PDO::ATTR_TIMEOUT => 5, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
+            $ca = getenv("MYSQL_ATTR_SSL_CA");
+            if ($ca !== false && $ca !== "") { $options[PDO::MYSQL_ATTR_SSL_CA] = $ca; }
+        } else {
+            $dsn = "pgsql:host={$host};port={$port};dbname={$db}";
+            if ($sslmode !== "") { $dsn .= ";sslmode={$sslmode}"; }
+            if ($sslrootcert !== "") { $dsn .= ";sslrootcert={$sslrootcert}"; }
+            $options = [PDO::ATTR_TIMEOUT => 5, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
+        }
+        new PDO($dsn, $user, $pass, $options);
     } catch (Throwable $e) { exit(1); }
 '; do
     i=$((i + 1))

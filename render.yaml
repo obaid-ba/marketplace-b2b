@@ -1,5 +1,6 @@
 # Infrastructure Render — API et site statique (déploiement gratuit).
-# Base : Neon (PostgreSQL). Renseigner les secrets (sync: false) dans le Dashboard.
+# Base : TiDB Cloud Starter (compatible PostgreSQL, TLS obligatoire). Renseigner les
+# secrets (sync: false) dans le Dashboard : DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD.
 # URLs déployées : API https://marketplace-api-v2-8gr1.onrender.com — Web https://marketplace-web-v2.onrender.com
 
 envVarGroups:
@@ -31,8 +32,18 @@ envVarGroups:
         value: info
       - key: DB_CONNECTION
         value: pgsql
-      - key: DB_URL
+      - key: DB_HOST
         sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_URL
+        value: ""
       - key: DB_SSLMODE
         value: require
       - key: SESSION_DRIVER
