@@ -27,17 +27,31 @@ fi
 echo "▶ Attente de la base de données…"
 i=0
 until php -r '
-    $url = getenv("DB_URL");
-    try {
-        if ($url) {
-            $parts = parse_url($url);
-            $dsn = sprintf("pgsql:host=%s;port=%s;dbname=%s", $parts["host"], $parts["port"] ?? 5432, ltrim($parts["path"] ?? "", "/"));
-            $user = $parts["user"] ?? ""; $pass = $parts["pass"] ?? "";
-        } else {
-            $dsn = sprintf("pgsql:host=%s;port=%s;dbname=%s", getenv("DB_HOST"), getenv("DB_PORT") ?: 5432, getenv("DB_DATABASE"));
-            $user = getenv("DB_USERNAME"); $pass = getenv("DB_PASSWORD");
+    $url = (string) getenv("DB_URL");
+    $sslmode = getenv("DB_SSLMODE") ?: "require";
+    $host = getenv("DB_HOST") ?: "127.0.0.1";
+    $port = getenv("DB_PORT") ?: "5432";
+    $db = getenv("DB_DATABASE") ?: "laravel";
+    $user = getenv("DB_USERNAME") ?: "";
+    $pass = getenv("DB_PASSWORD") ?: "";
+    if ($url !== "") {
+        $parts = @parse_url($url);
+        if (is_array($parts) && !empty($parts["host"])) {
+            $host = $parts["host"];
+            $port = (string) ($parts["port"] ?? 5432);
+            $path = isset($parts["path"]) ? rawurldecode(ltrim($parts["path"], "/")) : $db;
+            if ($path !== "") { $db = $path; }
+            if (isset($parts["user"])) { $user = urldecode($parts["user"]); }
+            if (isset($parts["pass"])) { $pass = urldecode($parts["pass"]); }
+            if (!empty($parts["query"])) {
+                parse_str($parts["query"], $q);
+                if (!empty($q["sslmode"])) { $sslmode = $q["sslmode"]; }
+            }
         }
-        new PDO($dsn, $user, $pass, [PDO::ATTR_TIMEOUT => 3]);
+    }
+    $dsn = "pgsql:host={$host};port={$port};dbname=" . str_replace(["\\", "'"], ["\\\\", "\\'"], $db) . ";sslmode={$sslmode}";
+    try {
+        new PDO($dsn, $user, $pass, [PDO::ATTR_TIMEOUT => 5, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     } catch (Throwable $e) { exit(1); }
 '; do
     i=$((i + 1))
