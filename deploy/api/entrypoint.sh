@@ -23,6 +23,22 @@ if [ -z "$APP_KEY" ]; then
     export APP_KEY
 fi
 
+# --- Validation de la clé (détecte les placeholders type REPLACE_WITH_...) ---
+case "$APP_KEY" in
+    base64:*)
+        if [ "${#APP_KEY}" -lt 43 ]; then
+            echo "APP_KEY invalide : clé base64 trop courte (attendu : 32 octets)." >&2
+            exit 1
+        fi
+        ;;
+    *)
+        if [ "${#APP_KEY}" -ne 32 ]; then
+            echo "APP_KEY invalide : renseignez une clé au format base64:<32 octets> (php artisan key:generate)." >&2
+            exit 1
+        fi
+        ;;
+esac
+
 # --- Attente de la base (TiDB PostgreSQL-compatible ou PostgreSQL local) ---
 # La connexion suit la configuration Laravel : variables DB_* et/ou DB_URL.
 echo "▶ Attente de la base de données…"
