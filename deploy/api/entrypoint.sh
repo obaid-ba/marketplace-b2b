@@ -134,5 +134,8 @@ if [ "${MEDIA_DRIVER:-local}" = "local" ]; then
     php artisan storage:link >/dev/null 2>&1 || true
 fi
 
+# --- Cache applicatif : évite de servir des données figées après un seed/migrate ---
+php artisan cache:clear >/dev/null 2>&1 || true
+
 echo "▶ API prête sur le port ${PORT}"
 exec supervisord -c /etc/supervisor/conf.d/marketplace.conf
