@@ -33,8 +33,9 @@ jobs:
         run: php artisan test
 
   backend-pgsql:
-    # La production (Neon) et le compose local utilisent PostgreSQL : on rejoue la suite
-    # complète dessus pour détecter les écarts (« LIKE » sensible à la casse, enums, etc.).
+    # La production (TiDB Cloud, protocole PostgreSQL) et le compose local utilisent PostgreSQL :
+    # on rejoue la suite complète dessus pour détecter les écarts (« LIKE » sensible à la casse,
+    # enums, contraintes CHECK non supportées par TiDB, etc.).
     name: API Laravel (PostgreSQL 17)
     runs-on: ubuntu-latest
     defaults:

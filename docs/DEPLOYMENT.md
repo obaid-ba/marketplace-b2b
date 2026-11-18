@@ -1,101 +1,265 @@
-# Déploiement — Neon, Render, Brevo, Cloudinary
+# Déploiement — TiDB, Render, Mailjet, Cloudinary
 
 Branche de référence : `feature/SCRUM-129-deploiement` (ticket **SCRUM-129 / F35**).
-Objectif : une mise en production reproductible sans disque local persistant pour les fichiers utilisateurs.
+Objectif : une mise en production reproductible, gratuite, sans disque local persistant pour les fichiers utilisateurs.
 
-## Architecture cible
+## Environnements
 
-| Composant | Rôle |
+Trois environnements, trois usages distincts — et **un seul** utilise la vraie base :
+
+| Environnement | Pour qui | Base de données | Accès |
+|---|---|---|---|
+| **Démo publique** (`marketplace-web-v2.onrender.com`) | toute l'équipe, le jury, les testeurs | TiDB Cloud (production) | URL seule, aucun compte à créer, aucune installation |
+| **Local** (`localhost:5173`) | développement, modifications de code | PostgreSQL 17 dans un conteneur Docker | `./deploy/start.sh`, rien à configurer |
+| **TiDB via Docker** (exceptionnel) | reproduire un bug lié à la base réelle | TiDB Cloud (production) | identifiants de production, cf. [`deploy/README.md`](../deploy/README.md#brancher-la-stack-sur-tidb-déconseillé) |
+
+> **Règle d'équipe** : pour tester l'application, on utilise l'URL Render — pas Docker, pas TiDB.
+> Docker sert à *modifier le code* ; la base TiDB ne se manipule que depuis Render, sauf cas exceptionnel.
+
+## Architecture de production
+
+```mermaid
+flowchart LR
+  U["Navigateur<br/>équipe · jury · testeurs"] --> S
+
+  subgraph Render["Render (plan gratuit)"]
+    S["Static Site<br/>marketplace-web-v2.onrender.com<br/>React buildé par Vite"]
+    A["Web Service Docker<br/>marketplace-api-v2.onrender.com<br/>nginx + PHP-FPM + supervisor"]
+  end
+
+  S -->|"fetch VITE_API_URL/api<br/>HTTPS + CORS"| A
+  A -->|"pgsql + TLS obligatoire<br/>sslmode=require"| T[("TiDB Cloud Starter<br/>protocole PostgreSQL")]
+  A -->|"SMTP 587 (STARTTLS)"| M["Mailjet<br/>e-mails transactionnels"]
+  A -->|"URLs signées"| C["Cloudinary<br/>photos, logos, justificatifs"]
+```
+
+| Composant | Rôle | Détail |
+|---|---|---|
+| **TiDB Cloud Starter** | Base de données managée | Compatible **protocole PostgreSQL** (port 5432), TLS obligatoire |
+| **Render Web Service** `marketplace-api-v2` | API Laravel en Docker | `deploy/api/Dockerfile`, nginx + PHP-FPM + supervisor, healthcheck `/up` |
+| **Render Static Site** `marketplace-web-v2` | Front React (build Vite) | réécriture SPA vers `index.html`, `VITE_API_URL` → API |
+| **Mailjet** | E-mails transactionnels | SMTP `in-v3.mailjet.com:587`, expéditeur validé |
+| **Cloudinary** | Stockage des fichiers | images/logos publics, documents privés servis par URL signée |
+
+Le dépôt fournit l'infrastructure dans [`deploy/`](../deploy/) et le blueprint Render [`render.yaml`](../render.yaml).
+
+> **Plan gratuit Render** : pas de worker ni de cron dédiés, pas de disque persistant,
+> `QUEUE_CONNECTION=sync`, et le service s'endort après inactivité (premier appel ~30-60 s).
+> Conséquence directe : le **pre-deploy command n'existe pas sur le plan gratuit**
+> (il est réservé aux instances payantes). Les migrations tournent donc **au démarrage du
+> conteneur**, via `RUN_MIGRATIONS=true` et [`deploy/api/entrypoint.sh`](../deploy/api/entrypoint.sh).
+
+## 1. Base de données (TiDB Cloud)
+
+TiDB Cloud propose une instance **compatible protocole PostgreSQL** : Laravel s'y connecte
+avec le driver `pgsql`, exactement comme sur un PostgreSQL classique. Aucun code spécifique,
+juste deux précautions : **TLS obligatoire** et un socle de migrations portable.
+
+1. Dans [TiDB Cloud](https://tidbcloud.com) → cluster **Starter** → **Connect** : notez le host,
+   le port (`5432`), l'utilisateur et le mot de passe (réinitialisable à tout moment).
+   Le host ressemble à `<cluster>.gateway01.<region>.prod.aws.pg.tidbcloud.com`.
+2. La base utilisée est `postgres` (base par défaut). Ne pas mettre le nom d'une base qui
+   n'existe pas : l'attente de la base dans l'entrypoint échouerait avec un message explicite.
+3. Renseigner les variables côté Render (voir §4) :
+
+| Variable | Valeur |
 |---|---|
-| **Neon** (PostgreSQL 17) | Base de données managée, `sslmode=require` |
-| **Render Web Service** (`marketplace-api`) | API Laravel en Docker : nginx + PHP-FPM + supervisor, healthcheck `/up` |
-| **Render Background Worker** (`marketplace-worker`) | `php artisan queue:work` (diffusion des demandes, e-mails, jobs) |
-| **Render Cron** (`marketplace-scheduler`) | `php artisan schedule:run` chaque minute |
-| **Render Static Site** (`marketplace-web`) | Build Vite du frontend (`frontend/dist`), réécriture SPA vers `index.html` |
-| **Brevo** | Envoi des e-mails transactionnels via SMTP |
-| **Cloudinary** | Stockage des fichiers : images/logos publics, documents privés servis par URL signée |
+| `DB_CONNECTION` | `pgsql` |
+| `DB_HOST` | host TiDB (secret Render) |
+| `DB_PORT` | `5432` |
+| `DB_DATABASE` | `postgres` |
+| `DB_USERNAME` / `DB_PASSWORD` | identifiants TiDB (secrets Render) |
+| `DB_SSLMODE` | `require` |
+| `DB_URL` | **vide** (sinon elle écrase les variables ci-dessus) |
 
-Le dépôt fournit l’infrastructure dans [`deploy/`](../deploy/) et le blueprint Render [`render.yaml`](../render.yaml).
+### Explorer la base et les tables
 
-## 1. Base de données (Neon)
+```bash
+psql "host=<cluster>.gateway01.<region>.prod.aws.pg.tidbcloud.com port=5432 \
+      user=<utilisateur> dbname=postgres sslmode=require"
+```
 
-1. Créer un projet Neon (région proche de Render, ex. Frankfurt) et une base `marketplace_b2b`.
-2. Récupérer l’URL de connexion PostgreSQL, au format :
-   `postgresql://user:password@ep-xxx.eu-central-1.aws.neon.tech/neondb?sslmode=require`
-3. La fournir à Render via `DB_URL`. Le backend lit `DB_CONNECTION=pgsql` et `DB_URL` en priorité (voir `backend/config/database.php`).
+```sql
+\dt                                   -- liste des tables
+\d+ products                          -- structure d'une table
+select count(*) from products;        -- 47 avec les données de démo
+select email, role from users order by id limit 10;
+select * from migrations order by id desc limit 5;
+```
 
-Notes :
-- Les tests CI tournent sur SQLite (rapide) **et** sur PostgreSQL 17 pour détecter les écarts.
-- Les migrations sont portables (PostgreSQL inclus). Une correction dédiée supprime la contrainte CHECK résiduelle sur `supplier_documents.type` après passage de l’enum en chaîne.
+GUI équivalentes : DBeaver, pgAdmin, TablePlus — connexion PostgreSQL, port `5432`,
+base `postgres`, schéma `public`, **SSL = require**.
 
-## 2. E-mails (Brevo)
+### Portabilité des migrations
 
-1. Créer un compte [Brevo](https://www.brevo.com), puis configurer un **expéditeur** et/ou un **domaine** d’envoi validé (Senders / Domains) pour pouvoir envoyer aux destinataires réels.
-2. Récupérer les identifiants SMTP dans **SMTP & API** (créer une clé SMTP si nécessaire).
-3. Variables côté API :
+Deux écarts TiDB ont déjà été corrigés, à garder en tête pour toute nouvelle migration :
+
+- `->change()` sur une colonne `id` génère `DROP IDENTITY` : **non supporté** par TiDB.
+  La migration `2026_11_12_000000_add_registration_fields_to_account_tables` a été rendue
+  idempotente (`hasColumn` + SQL direct) ;
+- les contraintes `CHECK` générées par les enums doivent être supprimées explicitement
+  (`2026_11_18_000000_fix_supplier_documents_type_check_for_pgsql`).
+
+Les tests CI tournent sur SQLite **et** sur PostgreSQL 17 pour détecter les écarts avant la production.
+
+## 2. E-mails (Mailjet)
+
+Mailjet remplace Brevo : compte gratuit, 6 000 e-mails/mois et 200/jour, SMTP standard.
+La configuration applicative ne change pas (Laravel `smtp`), seuls l'hôte et les identifiants changent.
+
+### 2.1 Créer et valider l'expéditeur
+
+Aucun envoi n'est possible tant que l'expéditeur (ou le domaine) n'est pas validé.
+Dans **Account Settings → Senders & Domains** :
+
+- **Option rapide — adresse unique** : *Add a sender address* → saisir l'adresse
+  (ex. `no-reply@marketplace.test` si vous possédez le domaine, sinon votre adresse réelle).
+  Mailjet envoie un e-mail d'activation : cliquez sur le lien, connectez-vous, c'est validé.
+  Suffisant pour une démo, mais **DKIM n'est pas actif** → risque de spam.
+- **Option recommandée — domaine entier** : *Add a domain* (ex. `marketplace.tn`), puis ajouter
+  le **TXT de validation** et les enregistrements **SPF / DKIM** fournis par Mailjet dans la zone
+  DNS du domaine. Propagation : de quelques minutes à 48 h. Une fois validé, toutes les adresses
+  `*@marketplace.tn` sont utilisables et les e-mails sont signés.
+
+### 2.2 Récupérer les identifiants SMTP
+
+**Account Settings → API Key Management** (ou *SMTP and SEND API settings*) :
+
+- **API Key** = identifiant SMTP → `MAIL_USERNAME`
+- **Secret Key** = mot de passe SMTP → `MAIL_PASSWORD` (affiché **une seule fois**, à copier immédiatement)
+
+Mailjet est un hôte global unique : `in-v3.mailjet.com`.
+
+### 2.3 Variables
 
 | Variable | Valeur |
 |---|---|
 | `MAIL_MAILER` | `smtp` |
-| `MAIL_HOST` | `smtp-relay.brevo.com` |
-| `MAIL_PORT` | `587` |
-| `MAIL_USERNAME` | login/identifiant SMTP affiché par Brevo |
-| `MAIL_PASSWORD` | clé SMTP Brevo (pas le mot de passe du compte) |
-| `MAIL_FROM_ADDRESS` | adresse expéditrice validée dans Brevo (ex. `no-reply@votredomaine.tld`) |
+| `MAIL_HOST` | `in-v3.mailjet.com` |
+| `MAIL_PORT` | `587` (STARTTLS) — ou `465` avec `MAIL_SCHEME=smtps` |
+| `MAIL_USERNAME` | API Key Mailjet |
+| `MAIL_PASSWORD` | Secret Key Mailjet |
+| `MAIL_FROM_ADDRESS` | adresse **validée** chez Mailjet |
 | `MAIL_FROM_NAME` | `Marketplace B2B` |
 
-> Vérifier le compte/expéditeur dans Brevo (et le domaine si utilisé) ; tant que l’envoi n’est pas correctement autorisé, les e-mails vers les testeurs peuvent être refusés ou bloqués. L’offre gratuite Brevo permet un envoi limité (quota journalier) adapté aux tests.
+Ces valeurs vont dans **Render → Environment** (secrets) et, pour des tests locaux réels,
+dans `deploy/.env` (jamais commité).
+
+### 2.4 Vérifier que ça marche
+
+1. **Redéployer** le service API (Render applique les nouvelles variables au déploiement).
+2. Déclencher un envoi :
+   ```bash
+   curl -X POST https://marketplace-api-v2-8gr1.onrender.com/api/auth/forgot-password \
+        -H "Content-Type: application/json" \
+        -H "Accept: application/json" \
+        -d '{"email":"sana@marketplace.test"}'
+   ```
+   Réponse attendue : `200`. (L'endpoint répond toujours 200 : il ne révèle pas si l'adresse existe.)
+3. **Parcours complet de vérification de compte** (c'est ce lien que l'équipe utilisera) :
+   ```bash
+   curl -X POST https://marketplace-api-v2-8gr1.onrender.com/api/auth/register/buyer \
+        -H "Content-Type: application/json" -H "Accept: application/json" \
+        -d '{"name":"Test Mailjet","email":"<votre-adresse>","password":"Password123!","password_confirmation":"Password123!","phone":"+216 20 000 000","region_id":1}'
+   ```
+   → l'e-mail contient un lien signé vers `https://marketplace-web-v2.onrender.com/email/verifier?...`.
+   Cliquer dessus vérifie le compte ; l'API renvoie ensuite `email_verified_at` non nul.
+   Sans clic, `POST /api/auth/email/resend` (1 par minute) régénère un lien.
+4. **Côté Mailjet** : *Statistics → Events* (ou *Real-time*) montre l'e-mail en `sent` / `delivered` /
+   `opened`. Statut `blocked` ou `error` = expéditeur non validé ou quota atteint.
+5. **Côté Render** : en cas d'échec SMTP, l'erreur apparaît dans les logs du service
+   (`npm`/SMTP 535 = mauvais identifiants, 550 = expéditeur refusé).
+
+> **Piège connu** : un compte Mailjet neuf peut être limité aux destinataires vérifiés tant que
+> la vérification d'identité du compte n'est pas terminée. Symptôme : authentification OK, mais
+> l'e-mail n'arrive jamais (événement en erreur côté Mailjet). Terminer la vérification du compte
+> ou envoyer d'abord vers une adresse validée.
 
 ## 3. Fichiers (Cloudinary)
 
-Les fichiers utilisateurs ne sont **pas** stockés sur le disque du conteneur (éphémère sur Render). Le pilote est sélectionné par `MEDIA_DRIVER` :
+Les fichiers utilisateurs ne sont **pas** stockés sur le disque du conteneur (éphémère sur Render).
+Le pilote est sélectionné par `MEDIA_DRIVER` :
 
-- `local` : disques Laravel (`storage/app/public` et `storage/app/private`) — développement et tests.
+- `local` : disques Laravel (`storage/app/public` et `storage/app/private`) — développement et tests, volume Docker `api-storage` ;
 - `cloudinary` : production.
 
 Configuration :
+
 1. Créer un compte Cloudinary et récupérer `CLOUDINARY_URL` (`cloudinary://api_key:api_secret@cloud_name`).
 2. Dans **Settings → Security** :
-   - activer **Allow delivery of PDF and ZIP files** (les justificatifs et pièces jointes sont des PDF/DOC/images),
-   - s’assurer que les assets `authenticated` sont autorisés (le backend signe les URLs).
-3. Variable : `MEDIA_DRIVER=cloudinary`, `CLOUDINARY_URL=...`.
+   - activer **Allow delivery of PDF and ZIP files** (justificatifs et pièces jointes),
+   - s'assurer que les assets `authenticated` sont autorisés (le backend signe les URLs).
+3. Variables : `MEDIA_DRIVER=cloudinary`, `CLOUDINARY_URL=...`.
 
 Comportement :
-- **Images et logos** : ressource `image`, type `upload` (URL publique CDN).
-- **Documents privés** (justificatifs fournisseurs, etc.) : ressource `raw`, type `authenticated`, servis par l’API via une **URL signée** (pas d’accès public direct).
-- Les clés stockées en base sont préfixées (`image:...`, `raw:...`).
+
+- **Images et logos** : ressource `image`, type `upload` (URL publique CDN) ;
+- **Documents privés** (justificatifs fournisseurs…) : ressource `raw`, type `authenticated`,
+  servis par l'API via une **URL signée** (aucun accès public direct) ;
+- les clés stockées en base sont préfixées (`image:...`, `raw:...`).
 
 ## 4. Render
 
 ### Déploiement via Blueprint
 
-1. Pousser la branche, puis **Render Dashboard → Blueprints → New Blueprint Instance** en pointant sur le dépôt (fichier `render.yaml`).
-2. Créer le groupe d’environnement `marketplace-api-env` et renseigner les secrets marqués `sync: false` :
+1. Pousser la branche, puis **Render Dashboard → Blueprints → New Blueprint Instance** sur le
+   dépôt (fichier `render.yaml`). Un `git push` sur la branche redéploie automatiquement.
+2. Créer le groupe d'environnement `marketplace-api-env` et renseigner les secrets marqués
+   `sync: false` :
 
 | Variable | Note |
 |---|---|
-| `APP_KEY` | `php artisan key:generate --show` (format `base64:...`) |
-| `APP_URL` | URL publique de l’API Render (ex. `https://marketplace-api.onrender.com`) |
-| `FRONTEND_URL` / `FRONTEND_URLS` | URL du site statique (CORS et liens e-mail) |
-| `DB_URL` | URL Neon complète (`...?sslmode=require`) |
+| `APP_KEY` | `php artisan key:generate --show` (`base64:...`, 32 octets). L'entrypoint **refuse** un placeholder |
+| `DB_HOST` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD` | TiDB Cloud (cf. §1) |
 | `CLOUDINARY_URL` | `cloudinary://...` |
-| `MAIL_PASSWORD` | clé SMTP Brevo |
-| `MAIL_FROM_ADDRESS` | adresse expéditrice validée dans Brevo |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | API Key / Secret Key Mailjet |
+| `MAIL_FROM_ADDRESS` | adresse validée chez Mailjet |
 
-3. Pour le site statique `marketplace-web`, définir `VITE_API_URL` vers l’API publique (`https://.../api`).
-4. Premier déploiement : les migrations s’exécutent via `preDeployCommand: php artisan migrate --force`. Laisser `SEED_DEMO_DATA=false` en production réelle.
+3. Site statique `marketplace-web-v2` : `VITE_API_URL=https://marketplace-api-v2-8gr1.onrender.com/api`.
+4. `healthCheckPath: /up` ; `preDeployCommand` n'est **pas** disponible en plan gratuit →
+   `RUN_MIGRATIONS=true` (migrations au démarrage). `SEED_DEMO_DATA=true` insère la démo
+   **uniquement si la table `users` est vide** : un redémarrage ne duplique rien.
 
 ### Détails runtime
 
-- L’image API (`deploy/api/Dockerfile`) embarque nginx + PHP-FPM derrière supervisor et écoute sur `$PORT` (exigence Render).
-- Healthcheck : `GET /up`.
-- Le proxy TLS est pris en compte (`TrustProxies`), les URLs sont forcées en HTTPS en production.
-- Le worker (`/usr/local/bin/worker.sh`) traite la file `database` (`QUEUE_CONNECTION=database`).
-- Le planificateur exécute `php artisan schedule:run` (cron Render, chaque minute).
+- L'image API (`deploy/api/Dockerfile`) embarque nginx + PHP-FPM derrière supervisor et écoute sur `$PORT` (exigence Render).
+- Healthcheck : `GET /up` (200).
+- Proxy TLS pris en compte (`TrustProxies`), URLs forcées en HTTPS en production.
+- `QUEUE_CONNECTION=sync` : les jobs (diffusion des demandes, e-mails) s'exécutent dans la requête — pas de worker.
+- `php artisan cache:clear` au démarrage, sinon la page d'accueil sert des compteurs figés (cache 10 min).
 
-## 5. Développement local (parité PostgreSQL)
+## 5. Cycle de déploiement
 
-La stack locale reproduit la prod (PostgreSQL 17, worker, Mailpit) :
+```mermaid
+flowchart LR
+  D["git push<br/>feature/SCRUM-129-deploiement"] --> G["GitHub"]
+  G -->|"autoDeployTrigger: commit"| B["Build de l'image Docker<br/>deploy/api/Dockerfile"]
+  B --> P["Entrypoint<br/>attente de la base<br/>validation d'APP_KEY"]
+  P --> M["migrate --force<br/>(RUN_MIGRATIONS=true)"]
+  M --> S["db:seed si users vide<br/>(SEED_DEMO_DATA=true)"]
+  S --> L["API prête sur le port 8000<br/>/up → 200 · service live"]
+```
+
+Journal type d'un déploiement réussi :
+
+```text
+▶ Attente de la base de données…
+  base joignable
+▶ Migrations
+  ... 27 s DONE
+▶ Données de démonstration
+  Database\Seeders\CatalogueDemoSeeder ... DONE
+▶ API prête sur le port 8000
+Your service is live 🎉
+```
+
+Si un `git push` ne déclenche rien : vérifier `autoDeployTrigger` du service et que la branche
+surveillée est bien celle poussée. Un redéploiement manuel se fait depuis **Manual Deploy →
+Deploy latest commit**.
+
+## 6. Développement local
+
+La stack locale reproduit la production (PostgreSQL 17, worker, Mailpit) mais reste isolée :
 
 ```bash
 ./deploy/start.sh            # build + démarrage (web :5173, api :8000, mailpit :8025)
@@ -103,21 +267,36 @@ La stack locale reproduit la prod (PostgreSQL 17, worker, Mailpit) :
 ./deploy/stop.sh --reset     # remise à zéro (volumes supprimés)
 ```
 
-Copier `deploy/.env.example` vers `deploy/.env` pour ajuster les ports, le mot de passe DB, `MEDIA_DRIVER=cloudinary` + `CLOUDINARY_URL`, ou basculer l’envoi d’e-mails sur Brevo (SMTP).
+Détails, réglages et override TiDB : [`deploy/README.md`](../deploy/README.md).
 
 Comptes de démonstration (mot de passe `password`) créés au premier démarrage sur base vide :
 `admin@marketplace.test`, `buyer1@marketplace.test` …, `supplier1@marketplace.test` …
 
-## 6. Opérations
+## 7. Opérations
 
-- **Migrations** : automatiques au pre-deploy Render (`migrate --force`). En manuel : `php artisan migrate --force`.
-- **Caches** : l’entrypoint régénère `config:cache` (et tente `route:cache` / `view:cache`) au démarrage.
-- **Rollback applicatif** : redéployer le commit précédent depuis Render. Les migrations ne sont pas annulées automatiquement ; prévoir une migration corrective plutôt qu’un `migrate:rollback` en production.
-- **Vérification rapide** : `GET /up` (200), connexion, consultation catalogue, téléchargement d’un justificatif (URL signée), réception d’un e-mail de test.
+- **Migrations** : automatiques au démarrage (`migrate --force`). En manuel, depuis le Shell Render :
+  `php artisan migrate --force`. Les rendre **idempotentes** et portables (cf. §1).
+- **Caches** : l'entrypoint régénère `config:cache` (et tente `route:cache` / `view:cache`, ignoré
+  faute de vues Blade) puis vide le cache applicatif.
+- **Rollback applicatif** : redéployer le commit précédent depuis Render. Les migrations ne sont pas
+  annulées automatiquement — prévoir une migration corrective plutôt qu'un `migrate:rollback`.
+- **Vérification rapide** : `GET /up` (200), `GET /api/home` (compteurs non nuls),
+  connexion avec un compte de démo, réception d'un e-mail Mailjet.
 
-## 7. Limites et points d’attention
+## 8. Limites et points d'attention
 
-- **Expéditeur/domaine Brevo** : configurer et valider l’expéditeur (et le domaine si nécessaire) dans Brevo pour que les e-mails arrivent aux testeurs.
-- **Cloudinary (gratuit)** : activer la livraison PDF/ZIP ; les quotas API admin sont évités car les URLs signées sont générées côté application.
-- **Coût Render** : les services web/worker/cron « starter » et le site statique ont des paliers de facturation propres ; Neon dispose d’un palier gratuit adapté au développement/démo.
-- **Pièces jointes des appels d’offres (S3)** : le flux d’upload/téléchargement des demandes est livré sur la branche/PR S3 ; le raccordement à `MediaStorage` doit être finalisé après fusion de la PR #18 pour éviter les conflits.
+- **Render gratuit** : cold start de 30-60 s après inactivité ; 750 h/mois ; bande passante limitée ;
+  pas de worker, pas de cron, pas de pre-deploy, pas de disque persistant.
+- **TiDB Cloud Starter** : quota de stockage et de connexions limité. Les tests locaux qui
+  écrivent en masse doivent se faire sur le PostgreSQL Docker, pas sur TiDB.
+- **Mailjet** : expéditeur validé obligatoire (sinon `550`), quota 200/jour, compte neuf éventuellement
+  restreint aux destinataires vérifiés.
+- **Cloudinary (gratuit)** : activer la livraison PDF/ZIP ; les URLs signées sont générées côté
+  application, ce qui évite d'exposer les quotas API.
+- **Pièces jointes des appels d'offres (S3)** : le flux d'upload/téléchargement des demandes est livré
+  sur la branche/PR S3 ; le raccordement à `MediaStorage` doit être finalisé après fusion de la PR #18.
+
+## 9. Décisions liées
+
+Les choix Neon → TiDB, Brevo/Resend → Mailjet et « Postgres local pour développer » sont
+consignés dans [`docs/decisions.md`](decisions.md) (D11 à D13).

@@ -4,9 +4,11 @@ Plateforme de gestion des achats et des ventes entre **fournisseurs** et **porte
 
 Le porteur de projet publie un besoin ou commande un produit, les fournisseurs répondent par des devis, la commande est payée puis suivie jusqu'à la facture, et l'administrateur supervise la plateforme. L'IA aide à décider sans jamais décider à la place de l'utilisateur.
 
+**Démo en ligne** (aucune installation) : application <https://marketplace-web-v2.onrender.com> · état de l'API <https://marketplace-api-v2-8gr1.onrender.com/up>
+
 | Dossier | Contenu | Stack |
 |---|---|---|
-| `backend/` | API REST | Laravel 12, PHP 8.2+, PostgreSQL (Neon) / MySQL local possible, Sanctum (jetons Bearer) |
+| `backend/` | API REST | Laravel 12, PHP 8.2+, PostgreSQL (TiDB Cloud en production) / MySQL local possible, Sanctum (jetons Bearer) |
 | `frontend/` | Application web (et base de l'application mobile) | React 19, Vite, React Router, Zustand, Axios, Tailwind CSS 4 |
 | `deploy/` | Stack locale (Docker) et image de production | Docker Compose, nginx + PHP-FPM, PostgreSQL 17, Mailpit |
 | `docs/` | Décisions de l'équipe et conventions | Markdown |
@@ -16,7 +18,7 @@ Backlog et sprints : Jira, projet **SCRUM**.
 ## Prérequis
 
 - PHP 8.2 ou plus, Composer 2
-- PostgreSQL 14+ (recommandé, parité avec la production Neon) ou MySQL 8 / MariaDB 10.6+
+- PostgreSQL 14+ (recommandé, parité avec la production TiDB) ou MySQL 8 / MariaDB 10.6+
 - Node.js 20 ou plus, npm
 - Docker Desktop (optionnel) pour lancer la stack complète via `deploy/`
 
@@ -122,6 +124,63 @@ Les deux suites tournent automatiquement sur chaque pull request (GitHub Actions
 - **Fournisseur non validé** (SCRUM-27) : tant que l'administrateur n'a pas validé son dossier, il arrive sur `/fournisseur/en-attente` (état du dossier via `GET /api/supplier/validation-status`) et peut compléter son profil sans le publier. Les pages de vente (produits, devis) passent par le middleware `supplier.validated` (403 `{ "reason": "supplier_not_validated" }`, redirection automatique côté React) ; après un refus, l'envoi d'un nouveau justificatif repasse le dossier « en attente ».
 - **Organisation du backend** : `Controllers/Api` (minces) → `Http/Requests` (validation) → `Services` (règles métier) → `Models`, réponses via `Http/Resources`.
 - **Organisation du frontend** : `api/http.js` (client unique, gestion des erreurs 401/403), `stores/` (Zustand), `router/` (adresses, routes et gardes par rôle), `layouts/`, `components/`, `views/<espace>/`.
+
+## Environnements et déploiement
+
+Trois façons d'utiliser le projet, à ne pas confondre : **consulter l'application** ne demande
+aucune installation, **modifier le code** se fait en local sur une base jetable, et la base
+**TiDB** n'existe qu'en production.
+
+| Environnement | Pour qui | Base de données | Mise en route |
+|---|---|---|---|
+| **Démo publique** (Render) | toute l'équipe, le jury, les testeurs | TiDB Cloud | ouvrir <https://marketplace-web-v2.onrender.com> |
+| **Local** (Docker) | développement, modifications de code | PostgreSQL 17 en conteneur | `./deploy/start.sh` |
+| **Production** | Render (mise à jour automatique) | TiDB Cloud | `git push` sur la branche suivie |
+
+```mermaid
+flowchart LR
+  subgraph Equipe["Équipe · navigateur · rien à installer"]
+    T["Testeur / jury"]
+  end
+
+  subgraph Dev["Développeur · Docker Desktop"]
+    DV["web :5173 · api :8000<br/>db PostgreSQL (conteneur)<br/>mailpit :8025"]
+  end
+
+  subgraph Prod["Render · plan gratuit"]
+    WEB["Static Site<br/>marketplace-web-v2.onrender.com"]
+    API["API Docker<br/>marketplace-api-v2.onrender.com"]
+  end
+
+  DB[("TiDB Cloud<br/>protocole PostgreSQL")]
+  MJ["Mailjet SMTP"]
+  CL["Cloudinary"]
+
+  T -->|"HTTPS"| WEB
+  WEB -->|"/api"| API
+  API --> DB
+  API --> MJ
+  API --> CL
+```
+
+La base locale et la base de production sont **complètement séparées** : un `migrate:fresh`
+lancé en local ne touche jamais la démo publique, et personne n'a besoin du mot de passe TiDB
+pour travailler.
+
+### Chaîne de déploiement
+
+```mermaid
+flowchart LR
+  P["git push<br/>feature/SCRUM-129-deploiement"] --> G["GitHub"]
+  G -->|"autoDeployTrigger: commit"| B["Build Docker<br/>deploy/api/Dockerfile"]
+  B --> E["entrypoint.sh<br/>attente DB · APP_KEY<br/>migrations · seed si base vide"]
+  E --> L["Service live<br/>GET /up → 200"]
+```
+
+Détail des variables, de la base TiDB, de Mailjet et de la vérification des e-mails :
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Stack locale et override TiDB :
+[`deploy/README.md`](deploy/README.md). Décisions correspondantes :
+[`docs/decisions.md`](docs/decisions.md) (D11 à D14).
 
 ## Travailler ensemble
 

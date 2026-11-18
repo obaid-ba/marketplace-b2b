@@ -72,8 +72,11 @@ envVarGroups:
         sync: false
       - key: MAIL_FROM_NAME
         value: Marketplace B2B
+      # Le pre-deploy command est réservé aux instances payantes : sur le plan gratuit,
+      # les migrations tournent au démarrage du conteneur (entrypoint.sh, idempotentes).
       - key: RUN_MIGRATIONS
-        value: "false"
+        value: "true"
+      # Données de démonstration : insérées uniquement si la table `users` est vide.
       - key: SEED_DEMO_DATA
         value: "true"
 
@@ -86,7 +89,8 @@ services:
     dockerContext: .
     dockerfilePath: ./deploy/api/Dockerfile
     healthCheckPath: /up
-    preDeployCommand: php artisan migrate --force
+    # preDeployCommand non disponible sur le plan gratuit (instances payantes uniquement) :
+    # les migrations sont lancées par deploy/api/entrypoint.sh via RUN_MIGRATIONS=true.
     autoDeployTrigger: commit
     envVars:
       - fromGroup: marketplace-api-env

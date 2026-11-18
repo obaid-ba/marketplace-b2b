@@ -13,7 +13,7 @@ Dernière mise à jour : **2026-11-18**.
 | S4 — Commandes et paiement | 12–26 déc. 2026 | Commandes, Stripe, factures | À venir |
 | S5 — Messagerie et avis | 26 déc. 2026–9 janv. 2027 | Messagerie, avis, litiges, AuditLog, AiClient | À venir |
 | **S6 — Dashboards et admin** | **9–23 janv. 2027** | **Dashboards 3 rôles, modération, litiges, export, IA de base** | **En cours — F28 cœur livré (16 nov.)** |
-| S7 — IA avancée, livraison | 23 janv.–6 févr. 2027 | IA avancée, PWA, déploiement | En cours (préparation déploiement SCRUM-129 : Neon/Render/Brevo/Cloudinary) |
+| S7 - IA avancée, livraison | 23 janv.-6 févr. 2027 | IA avancée, PWA, déploiement | En cours (préparation déploiement SCRUM-129 : TiDB/Render/Mailjet/Cloudinary) |
 
 ## Sprint 6 — Dashboards et admin (38 pts)
 
