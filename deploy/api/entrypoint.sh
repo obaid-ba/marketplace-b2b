@@ -70,15 +70,22 @@ until php -r '
             $options = [PDO::ATTR_TIMEOUT => 5, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
         }
         new PDO($dsn, $user, $pass, $options);
-    } catch (Throwable $e) { exit(1); }
+    } catch (Throwable $e) { if (!file_exists("/tmp/db-wait-error")) { file_put_contents("/tmp/db-wait-error", $e->getMessage()); } exit(1); }
 '; do
     i=$((i + 1))
-    if [ "$i" -gt 60 ]; then
-        echo "Base injoignable après 2 minutes." >&2
+    if [ "$i" -eq 1 ] && [ -f /tmp/db-wait-error ]; then
+        echo "  connexion impossible : $(cat /tmp/db-wait-error)" >&2
+    fi
+    if [ "$i" -gt 90 ]; then
+        echo "Base injoignable après 3 minutes." >&2
+        if [ -f /tmp/db-wait-error ]; then
+            echo "  erreur : $(cat /tmp/db-wait-error)" >&2
+        fi
         exit 1
     fi
     sleep 2
 done
+rm -f /tmp/db-wait-error
 echo "  base joignable"
 
 # --- Caches ---
