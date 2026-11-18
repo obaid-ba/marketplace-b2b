@@ -116,10 +116,17 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
 fi
 
 if [ "${SEED_DEMO_DATA:-false}" = "true" ]; then
-    USERS=$(php artisan tinker --execute='echo \App\Models\User::count();' 2>/dev/null | tail -n 1)
+    USERS=$(php -r '
+        require "vendor/autoload.php";
+        $app = require "bootstrap/app.php";
+        $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+        echo \App\Models\User::count();
+    ' 2>/dev/null | tail -n 1)
     if [ "$USERS" = "0" ]; then
         echo "▶ Données de démonstration"
         php artisan db:seed --force
+    else
+        echo "  données déjà présentes (${USERS} utilisateurs) : seed ignoré"
     fi
 fi
 

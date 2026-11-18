@@ -15,11 +15,15 @@ class DatabaseSeeder extends Seeder
 {
     /**
      * Laissez à false pour garder les tables métier vides au démarrage.
-     * Passez à true pour insérer les données de test Jira (96+ lignes).
+     * Passez SEED_DEMO_DATA=true (variable d'environnement) pour insérer les
+     * données de test Jira (96+ lignes).
      * Les données de référence (régions, catégories) sont toujours insérées :
      * les formulaires d'inscription ne fonctionnent pas sans elles.
      */
-    public const SEED_DEMO_DATA = false;
+    public static function demoEnabled(): bool
+    {
+        return filter_var(config('app.seed_demo_data', false), FILTER_VALIDATE_BOOLEAN);
+    }
 
     public function run(): void
     {
@@ -29,7 +33,7 @@ class DatabaseSeeder extends Seeder
         $regionIds = $this->seedRegions($now);
         $subCategoryIds = $this->seedCategories($now);
 
-        if (! self::SEED_DEMO_DATA) {
+        if (! self::demoEnabled()) {
             return;
         }
 

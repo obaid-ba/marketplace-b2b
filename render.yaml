@@ -61,7 +61,7 @@ envVarGroups:
       - key: MAIL_MAILER
         value: smtp
       - key: MAIL_HOST
-        sync: false
+        value: in-v3.mailjet.com
       - key: MAIL_PORT
         value: "587"
       - key: MAIL_USERNAME
@@ -75,7 +75,7 @@ envVarGroups:
       - key: RUN_MIGRATIONS
         value: "false"
       - key: SEED_DEMO_DATA
-        value: "false"
+        value: "true"
 
 services:
   - type: web

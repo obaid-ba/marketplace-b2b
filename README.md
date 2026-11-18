@@ -47,7 +47,7 @@ Exemples de création de base :
 - PostgreSQL : `createdb marketplace_b2b` (ou via votre client)
 - MySQL : `CREATE DATABASE marketplace_b2b CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;` puis `DB_CONNECTION=mysql` dans `.env`
 
-Le seeder insère toujours les données de référence (24 régions, catégories) nécessaires aux formulaires. Les comptes de démonstration ne sont créés que si `DatabaseSeeder::SEED_DEMO_DATA` passe à `true`.
+Le seeder insère toujours les données de référence (24 régions, catégories) nécessaires aux formulaires. Les comptes de démonstration ne sont créés que si `SEED_DEMO_DATA=true` (variable d'environnement).
 
 ### 2. Application web (frontend)
 
@@ -91,7 +91,7 @@ php artisan storage:link                            # photos des produits et log
 php artisan db:seed --class=CatalogueDemoSeeder     # relançable sans doublons
 ```
 
-Il est aussi lancé par `php artisan migrate --seed` lorsque `DatabaseSeeder::SEED_DEMO_DATA` vaut `true`.
+Il est aussi lancé par `php artisan migrate --seed` lorsque `SEED_DEMO_DATA=true`.
 Mot de passe : `password`.
 
 | Rôle | E-mail |
