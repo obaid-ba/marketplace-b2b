@@ -18,7 +18,7 @@ services:
       POSTGRES_DB: marketplace_b2b
       POSTGRES_USER: marketplace
       POSTGRES_PASSWORD: ${DB_PASSWORD:-marketplace}
-      # Collation identique à Neon (UTF-8), pour éviter les surprises entre local et production.
+      # Collation UTF-8 proche de TiDB Cloud, pour éviter les surprises entre local et production.
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     volumes:
       - db-data:/var/lib/postgresql/data
