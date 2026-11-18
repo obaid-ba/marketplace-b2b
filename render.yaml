@@ -1,11 +1,6 @@
-# Infrastructure Render — API, worker, planificateur et site statique.
-#
-# La base est hébergée sur Neon (PostgreSQL) : renseignez DB_URL dans le groupe
-# d'environnement ci-dessous (Dashboard → Environment → DB_URL), au format :
-#   postgresql://user:password@ep-xxx.eu-central-1.aws.neon.tech/neondb?sslmode=require
-#
-# Déploiement : Dashboard → Blueprints → New Blueprint Instance → ce dépôt.
-# Les variables marquées « sync: false » sont à saisir à la main (secrets).
+# Infrastructure Render — API et site statique (déploiement gratuit).
+# Base : Neon (PostgreSQL). Renseigner les secrets (sync: false) dans le Dashboard.
+# URLs déployées : API https://marketplace-api-v2-8gr1.onrender.com — Web https://marketplace-web-v2.onrender.com
 
 envVarGroups:
   - name: marketplace-api-env
@@ -19,7 +14,7 @@ envVarGroups:
       - key: APP_KEY
         sync: false
       - key: APP_URL
-        sync: false
+        value: https://marketplace-api-v2-8gr1.onrender.com
       - key: APP_LOCALE
         value: fr
       - key: APP_FALLBACK_LOCALE
@@ -27,9 +22,9 @@ envVarGroups:
       - key: APP_TIMEZONE
         value: Africa/Tunis
       - key: FRONTEND_URL
-        sync: false
+        value: https://marketplace-web-v2.onrender.com
       - key: FRONTEND_URLS
-        sync: false
+        value: https://marketplace-web-v2.onrender.com
       - key: LOG_CHANNEL
         value: stderr
       - key: LOG_LEVEL
@@ -45,7 +40,7 @@ envVarGroups:
       - key: CACHE_STORE
         value: database
       - key: QUEUE_CONNECTION
-        value: database
+        value: sync
       - key: SANCTUM_TOKEN_EXPIRATION
         value: "10080"
       - key: MEDIA_DRIVER
@@ -55,7 +50,7 @@ envVarGroups:
       - key: MAIL_MAILER
         value: smtp
       - key: MAIL_HOST
-        value: smtp-relay.brevo.com
+        sync: false
       - key: MAIL_PORT
         value: "587"
       - key: MAIL_USERNAME
@@ -72,11 +67,10 @@ envVarGroups:
         value: "false"
 
 services:
-  # --- API : nginx + PHP-FPM (Docker, Render n'a pas de runtime PHP natif) ---
   - type: web
     name: marketplace-api
     runtime: docker
-    plan: starter
+    plan: free
     region: frankfurt
     dockerContext: .
     dockerfilePath: ./deploy/api/Dockerfile
@@ -88,33 +82,6 @@ services:
       - key: PORT
         value: "8000"
 
-  # --- File d'attente : diffusion des demandes, notifications e-mail ---
-  - type: worker
-    name: marketplace-worker
-    runtime: docker
-    plan: starter
-    region: frankfurt
-    dockerContext: .
-    dockerfilePath: ./deploy/api/Dockerfile
-    dockerCommand: /usr/local/bin/worker.sh
-    autoDeployTrigger: commit
-    envVars:
-      - fromGroup: marketplace-api-env
-
-  # --- Planificateur : php artisan schedule:run chaque minute ---
-  - type: cron
-    name: marketplace-scheduler
-    runtime: docker
-    plan: starter
-    region: frankfurt
-    dockerContext: .
-    dockerfilePath: ./deploy/api/Dockerfile
-    schedule: "* * * * *"
-    dockerCommand: php artisan schedule:run
-    envVars:
-      - fromGroup: marketplace-api-env
-
-  # --- Application React : build Vite servi en statique ---
   - type: web
     name: marketplace-web
     runtime: static
@@ -124,7 +91,7 @@ services:
     autoDeployTrigger: commit
     envVars:
       - key: VITE_API_URL
-        sync: false
+        value: https://marketplace-api-v2-8gr1.onrender.com/api
     routes:
       - type: rewrite
         source: /*

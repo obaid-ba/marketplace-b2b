@@ -49,7 +49,7 @@ until php -r '
             }
         }
     }
-    $dsn = "pgsql:host={$host};port={$port};dbname=" . str_replace(["\\", "'"], ["\\\\", "\\'"], $db) . ";sslmode={$sslmode}";
+    $dsn = "pgsql:host={$host};port={$port};dbname={$db};sslmode={$sslmode}";
     try {
         new PDO($dsn, $user, $pass, [PDO::ATTR_TIMEOUT => 5, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     } catch (Throwable $e) { exit(1); }
