@@ -14,9 +14,26 @@ export const PATHS = Object.freeze({
   supplierPending: '/fournisseur/en-attente',
   supplierProfile: '/fournisseur/profil', // Profil de l'entreprise (SCRUM-28)
   buyer: '/porteur',
+  buyerOrders: '/porteur/commandes',
+  supplierOrders: '/fournisseur/commandes',
+  supplierReviews: '/fournisseur/avis',
   admin: '/admin',
   forbidden: '/acces-refuse',
 })
+
+/**
+ * Suivi d'une commande (SCRUM-51, SCRUM-58).
+ */
+export function orderTrackingPath(id) {
+  return `/orders/${id}`
+}
+
+/**
+ * Fiche produit publique (SCRUM-51).
+ */
+export function productDetailPath(id) {
+  return `/produits/${id}`
+}
 
 /**
  * Fiche fournisseur publique (SCRUM-37, sprint S2).

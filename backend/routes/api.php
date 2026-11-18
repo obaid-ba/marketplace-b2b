@@ -3,13 +3,21 @@
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Buyer\BuyerOrderController;
+use App\Http\Controllers\Api\Buyer\BuyerReviewController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
+use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
+use App\Http\Controllers\Api\Supplier\SupplierOrderController;
 use App\Http\Controllers\Api\Supplier\SupplierProfileController;
+use App\Http\Controllers\Api\Supplier\SupplierReviewController;
 use App\Http\Controllers\Api\Supplier\SupplierValidationStatusController;
+use App\Http\Controllers\Api\SupplierPublicReviewController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -52,6 +60,11 @@ Route::get('/reference/regions', [ReferenceController::class, 'regions']);
 Route::get('/reference/categories', [ReferenceController::class, 'categories']);
 Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
 
+// Fiches produits et catalogue fournisseur (SCRUM-51).
+Route::get('/products/{product}', [ProductController::class, 'show'])->whereNumber('product');
+Route::get('/suppliers/{supplier}/products', [ProductController::class, 'bySupplier'])->whereNumber('supplier');
+Route::get('/suppliers/{supplier}/reviews', [SupplierPublicReviewController::class, 'index'])->whereNumber('supplier');
+
 Route::middleware('auth:sanctum')->group(function () {
     // Accessibles même si l'e-mail n'est pas encore vérifié.
     Route::get('/auth/me', [AuthController::class, 'me']);
@@ -92,6 +105,16 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         // État du dossier (SCRUM-27) : ouvert aussi à un fournisseur en attente ou refusé.
         Route::get('/validation-status', [SupplierValidationStatusController::class, 'show']);
 
+        // Commandes reçues par le fournisseur (SCRUM-58 / F16).
+        Route::get('/orders', [SupplierOrderController::class, 'index']);
+        Route::post('/orders/{order}/advance', [SupplierOrderController::class, 'advance'])
+            ->whereNumber('order');
+
+        // Avis reçus par le fournisseur (SCRUM-65 / F20).
+        Route::get('/reviews', [SupplierReviewController::class, 'index']);
+        Route::post('/reviews/{review}/reply', [SupplierReviewController::class, 'reply'])
+            ->whereNumber('review');
+
         // Pages de vente : réservées aux fournisseurs validés par l'administrateur (SCRUM-27).
         // Ajoutez ici les routes produits (F07 / SCRUM-34…) et devis (F13 / SCRUM-46…).
         // Réponse sinon : 403 { "reason": "supplier_not_validated" }.
@@ -104,7 +127,24 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Espace porteur de projet (S3+) : demandes, comparaison des devis, commandes…
     Route::middleware('role:buyer')->prefix('buyer')->group(function () {
         Route::get('/ping', fn () => ['space' => 'buyer']);
+
+        // Commandes passées & commande directe (SCRUM-51, SCRUM-58 / F16).
+        Route::get('/orders', [BuyerOrderController::class, 'index']);
+        Route::post('/orders', [BuyerOrderController::class, 'store']);
+        Route::post('/orders/{order}/confirm-receipt', [BuyerOrderController::class, 'confirmReceipt'])
+            ->whereNumber('order');
+        Route::post('/orders/{order}/review', [BuyerReviewController::class, 'store'])
+            ->whereNumber('order');
     });
+
+    // Suivi de commande et téléchargement de documents (SCRUM-58 / F16, SCRUM-57 / F19).
+    Route::get('/orders/{order}', [OrderController::class, 'show'])
+        ->whereNumber('order');
+    Route::get('/orders/{order}/documents/{document}/download', [OrderController::class, 'downloadDocument'])
+        ->whereNumber('order')
+        ->whereNumber('document');
+    Route::get('/documents/{document}/download', [DocumentController::class, 'download'])
+        ->whereNumber('document');
 
     // Back-office (S1+) : validation des fournisseurs, catégories, litiges…
     Route::middleware('role:admin')->prefix('admin')->group(function () {

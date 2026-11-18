@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Profil d'un porteur de projet (table buyer_profiles).
@@ -55,5 +56,13 @@ class BuyerProfile extends Model
     public function region(): BelongsTo
     {
         return $this->belongsTo(Region::class);
+    }
+
+    /**
+     * Commandes passées par le porteur de projet.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'buyer_id');
     }
 }

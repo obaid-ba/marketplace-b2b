@@ -127,6 +127,33 @@ export const createRoutes = () => [
         lazy: page(() => import('@/views/supplier/PendingAccountPage')),
       },
 
+      // Fiche produit publique et commande directe (SCRUM-51)
+      {
+        path: '/produits/:id',
+        lazy: page(() => import('@/layouts/AppLayout')),
+        children: [
+          { index: true, lazy: page(() => import('@/views/products/ProductDetailPage')) },
+        ],
+      },
+
+      // Suivi de commande (SCRUM-51, SCRUM-58)
+      {
+        path: '/orders/:id',
+        loader: guard({ authenticated: true }),
+        lazy: page(() => import('@/layouts/AppLayout')),
+        children: [
+          { index: true, lazy: page(() => import('@/views/orders/OrderTrackingPage')) },
+        ],
+      },
+      {
+        path: '/commandes/:id',
+        loader: guard({ authenticated: true }),
+        lazy: page(() => import('@/layouts/AppLayout')),
+        children: [
+          { index: true, lazy: page(() => import('@/views/orders/OrderTrackingPage')) },
+        ],
+      },
+
       // Espaces par rôle
       space(
         PATHS.supplier,
@@ -142,10 +169,33 @@ export const createRoutes = () => [
             handle: { crumb: "Profil de l'entreprise" },
             lazy: page(() => import('@/views/supplier/CompanyProfilePage')),
           },
+          {
+            path: PATHS.supplierOrders,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Mes commandes' },
+            lazy: page(() => import('@/views/supplier/SupplierOrdersPage')),
+          },
+          {
+            path: PATHS.supplierReviews,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Mes avis' },
+            lazy: page(() => import('@/views/supplier/SupplierReviewsPage')),
+          },
         ],
         () => import('@/layouts/SupplierLayout'),
       ),
-      space(PATHS.buyer, ROLES.BUYER, () => import('@/views/buyer/BuyerDashboard')),
+      space(
+        PATHS.buyer,
+        ROLES.BUYER,
+        () => import('@/views/buyer/BuyerDashboard'),
+        [
+          {
+            path: PATHS.buyerOrders,
+            handle: { crumb: 'Mes commandes' },
+            lazy: page(() => import('@/views/buyer/BuyerOrdersPage')),
+          },
+        ],
+      ),
       space(PATHS.admin, ROLES.ADMIN, () => import('@/views/admin/AdminDashboard')),
 
       // Erreurs

@@ -48,6 +48,8 @@ class SupplierProfile extends Model
         'rejection_reason',
         'validated_by',
         'validated_at',
+        'rating_avg',
+        'reviews_count',
     ];
 
     /**
@@ -122,5 +124,21 @@ class SupplierProfile extends Model
     public function validator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'validated_by');
+    }
+
+    /**
+     * Commandes reçues par le fournisseur.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'supplier_id');
+    }
+
+    /**
+     * Avis clients reçus par le fournisseur (SCRUM-65).
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'supplier_id');
     }
 }

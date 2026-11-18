@@ -2,7 +2,7 @@ import { Link, Outlet } from 'react-router'
 import LogoutButton from '@/components/LogoutButton'
 import { PATHS } from '@/router/paths'
 import { selectRole, selectUser, useAuthStore } from '@/stores/auth'
-import { ROLE_LABELS, landingPathFor } from '@/utils/roles'
+import { ROLES, ROLE_LABELS, landingPathFor } from '@/utils/roles'
 
 export default function AppLayout() {
   const user = useAuthStore(selectUser)
@@ -22,6 +22,11 @@ export default function AppLayout() {
               <p className="font-medium">{user?.name}</p>
               <p className="text-slate-500">{ROLE_LABELS[role]}</p>
             </div>
+            {role === ROLES.BUYER && (
+              <Link to={PATHS.buyerOrders} className="btn-ghost">
+                Mes commandes
+              </Link>
+            )}
             <Link to={PATHS.account} className="btn-ghost">
               Paramètres
             </Link>
