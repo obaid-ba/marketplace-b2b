@@ -229,5 +229,19 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
             ->whereNumber('supplier');
         Route::post('/suppliers/{supplier}/reject', [SupplierValidationController::class, 'reject'])
             ->whereNumber('supplier');
+
+        // Alias historique conservé pour les clients du back-office.
+        Route::get('/supplier-applications', [SupplierValidationController::class, 'index']);
+        Route::get('/supplier-applications/{supplier}', [SupplierValidationController::class, 'show'])
+            ->whereNumber('supplier');
+        Route::get('/supplier-applications/{supplier}/documents/{document}', [SupplierValidationController::class, 'showDocument'])
+            ->whereNumber('supplier')
+            ->whereNumber('document');
+        Route::get('/supplier-applications/documents/{document}/download', [SupplierValidationController::class, 'downloadDocument'])
+            ->whereNumber('document');
+        Route::post('/supplier-applications/{supplier}/approve', [SupplierValidationController::class, 'approve'])
+            ->whereNumber('supplier');
+        Route::post('/supplier-applications/{supplier}/reject', [SupplierValidationController::class, 'reject'])
+            ->whereNumber('supplier');
     });
 });

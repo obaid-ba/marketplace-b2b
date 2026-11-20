@@ -28,6 +28,8 @@ export const PATHS = Object.freeze({
   supplierOrders: '/fournisseur/commandes',
   supplierReviews: '/fournisseur/avis',
   admin: '/admin',
+  adminSuppliers: '/admin/fournisseurs',
+  adminCategories: '/admin/categories',
   forbidden: '/acces-refuse',
 })
 
@@ -43,6 +45,37 @@ export function orderTrackingPath(id) {
  */
 export function productDetailPath(id) {
   return `/produits/${id}`
+}
+
+export function productPath(id) {
+  return productDetailPath(id)
+}
+
+export function supplierProductEditPath(id) {
+  return `${PATHS.supplierProducts}/${id}/modifier`
+}
+
+export function supplierTenderPath(id) {
+  return `${PATHS.supplierTenders}/${id}`
+}
+
+export function buyerTenderPath(id) {
+  return `${PATHS.buyerTenders}/${id}`
+}
+
+export function buyerTenderQuotesPath(id) {
+  return `${PATHS.buyerQuotes}/${id}/comparer`
+}
+
+export function buyerOrderPath(id) {
+  return `${PATHS.buyerOrders}/${id}`
+}
+
+export function catalogPath(params = {}) {
+  const search = new URLSearchParams(
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+  ).toString()
+  return search ? `${PATHS.catalog}?${search}` : PATHS.catalog
 }
 
 /**

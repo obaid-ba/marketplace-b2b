@@ -122,6 +122,11 @@ class Product extends Model
         return array_search($this->status, self::API_STATUSES, true) ?: 'draft';
     }
 
+    public function isWithdrawn(): bool
+    {
+        return $this->status === ProductStatus::WITHDRAWN;
+    }
+
     public static function statusFromApi(string $status): ProductStatus
     {
         return self::API_STATUSES[$status] ?? ProductStatus::DRAFT;

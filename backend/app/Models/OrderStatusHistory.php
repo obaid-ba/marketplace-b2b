@@ -52,8 +52,13 @@ class OrderStatusHistory extends Model
     /**
      * Utilisateur ayant effectué le changement de statut.
      */
-    public function changer(): BelongsTo
+    public function changedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'changed_by');
+    }
+
+    public function changer(): BelongsTo
+    {
+        return $this->changedBy();
     }
 }

@@ -268,7 +268,22 @@ export const createRoutes = () => [
           },
         ],
       ),
-      space(PATHS.admin, ROLES.ADMIN, () => import('@/views/admin/AdminDashboard')),
+      space(
+        PATHS.admin,
+        ROLES.ADMIN,
+        () => import('@/views/admin/AdminDashboardView'),
+        [
+          {
+            path: PATHS.adminSuppliers,
+            lazy: page(() => import('@/views/admin/AdminDashboard')),
+          },
+          {
+            path: PATHS.adminCategories,
+            lazy: page(() => import('@/views/admin/CategoryManagementPage')),
+          },
+        ],
+        () => import('@/layouts/AdminLayout'),
+      ),
 
       // Erreurs
       { path: PATHS.forbidden, lazy: page(() => import('@/views/errors/ForbiddenView')) },
