@@ -15,8 +15,16 @@ export const PATHS = Object.freeze({
   supplierProfile: '/fournisseur/profil', // Profil de l'entreprise (SCRUM-28)
   supplierProducts: '/fournisseur/produits', // Mes produits (SCRUM-34)
   supplierProductNew: '/fournisseur/produits/nouveau', // Ajouter un produit (SCRUM-33)
+  supplierTenders: '/fournisseur/demandes', // Demandes reçues (SCRUM-44)
+  supplierQuotes: '/fournisseur/devis', // Mes devis (SCRUM-46)
+  supplierNotifications: '/fournisseur/notifications',
   buyer: '/porteur',
   buyerFavorites: '/porteur/favoris', // Fournisseurs favoris (SCRUM-39)
+  buyerTenders: '/porteur/demandes', // Mes demandes (SCRUM-43)
+  buyerTenderNew: '/porteur/demandes/nouvelle', // Publier une demande (SCRUM-41)
+  buyerOrders: '/porteur/commandes',
+  buyerNotifications: '/porteur/notifications',
+  notificationPreferences: '/parametres/notifications',
   admin: '/admin',
   adminSuppliers: '/admin/fournisseurs', // Validation des fournisseurs (SCRUM-31)
   adminApplications: '/admin/fournisseurs',
@@ -52,6 +60,26 @@ export function catalogPath(params = {}) {
 /** Adresse de la page de connexion, en retenant la page à rouvrir ensuite. */
 export function loginPath(redirect) {
   return redirect ? `${PATHS.login}?redirect=${encodeURIComponent(redirect)}` : PATHS.login
+}
+
+/** Détail d'une demande côté porteur. */
+export function buyerTenderPath(id) {
+  return `${PATHS.buyerTenders}/${id}`
+}
+
+/** Comparaison des devis d'une demande. */
+export function buyerTenderQuotesPath(id) {
+  return `${PATHS.buyerTenders}/${id}/devis`
+}
+
+/** Suivi d'une commande créée par acceptation d'un devis. */
+export function buyerOrderPath(id) {
+  return `${PATHS.buyerOrders}/${id}`
+}
+
+/** Détail d'une demande côté fournisseur. */
+export function supplierTenderPath(id) {
+  return `${PATHS.supplierTenders}/${id}`
 }
 
 /**

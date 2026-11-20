@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useMatches, useNavigate } from 'react-router'
+import NotificationBell from '@/components/NotificationBell'
 import { useAuthStore } from '@/stores/auth'
 import { PATHS } from '@/router/paths'
 import { initialsOf } from '@/utils/initials'
@@ -80,7 +81,7 @@ function BellIcon() {
   )
 }
 
-export default function SpaceLayout({ title, homePath, navItems, displayName, homeCrumb = 'Tableau de bord' }) {
+export default function SpaceLayout({ title, homePath, navItems, displayName, notificationsPath, homeCrumb = 'Tableau de bord' }) {
   const logout = useAuthStore((state) => state.logout)
   const navigate = useNavigate()
   const matches = useMatches()
@@ -163,12 +164,16 @@ export default function SpaceLayout({ title, homePath, navItems, displayName, ho
             />
 
             {/* Centre de notifications : SCRUM-62 */}
-            <span
-              title="Notifications : bientôt disponibles"
-              className="grid h-9 w-9 place-items-center rounded-full bg-page text-muted"
-            >
-              <BellIcon />
-            </span>
+            {notificationsPath ? (
+              <NotificationBell notificationsPath={notificationsPath} />
+            ) : (
+              <span
+                title="Notifications : bientôt disponibles"
+                className="grid h-9 w-9 place-items-center rounded-full bg-page text-muted"
+              >
+                <BellIcon />
+              </span>
+            )}
 
             <div className="flex items-center gap-3">
               <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">

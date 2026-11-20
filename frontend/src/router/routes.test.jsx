@@ -94,8 +94,10 @@ describe('routes', () => {
   it('affiche le tableau de bord du bon rôle', async () => {
     signIn({ name: 'Amel', role: 'supplier', supplier_validation_status: 'validé' })
     visit('/fournisseur')
-    expect(await screen.findByText('Tableau de bord fournisseur')).toBeTruthy()
-    expect(screen.getByText('Bonjour Amel')).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Bonjour Amel' })).toBeTruthy()
+    expect(
+      screen.getByText('Répondez aux demandes qui correspondent à votre activité et suivez vos devis.'),
+    ).toBeTruthy()
   })
 
   it("refuse l'espace d'un autre rôle", async () => {

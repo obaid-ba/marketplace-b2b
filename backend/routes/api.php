@@ -5,11 +5,17 @@ use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Buyer\FavoriteController;
 use App\Http\Controllers\Api\Buyer\FavoriteSupplierController;
+use App\Http\Controllers\Api\Buyer\OrderController;
+use App\Http\Controllers\Api\Buyer\QuoteController as BuyerQuoteController;
+use App\Http\Controllers\Api\Buyer\TenderController as BuyerTenderController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\NotificationPreferenceController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReferenceController;
@@ -17,6 +23,7 @@ use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
 use App\Http\Controllers\Api\Supplier\SupplierProductController;
 use App\Http\Controllers\Api\Supplier\SupplierProfileController;
 use App\Http\Controllers\Api\Supplier\SupplierValidationStatusController;
+use App\Http\Controllers\Api\Supplier\TenderController as SupplierTenderController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
 use Illuminate\Support\Facades\Route;
@@ -114,10 +121,22 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/validation-status', [SupplierValidationStatusController::class, 'show']);
 
         // Pages de vente : réservées aux fournisseurs validés par l'administrateur (SCRUM-27).
-        // Ajoutez ici les routes produits (F07 / SCRUM-34…) et devis (F13 / SCRUM-46…).
         // Réponse sinon : 403 { "reason": "supplier_not_validated" }.
         // Restent hors de ce groupe : profil, documents, état du dossier, déconnexion, notifications.
         Route::middleware('supplier.validated')->group(function () {
+            // Demandes reçues et devis (F13 / SCRUM-44 à SCRUM-46).
+            Route::get('/tenders', [SupplierTenderController::class, 'index']);
+            Route::get('/tenders/{tender}', [SupplierTenderController::class, 'show'])
+                ->whereNumber('tender');
+            Route::get('/tenders/{tender}/attachments/{attachment}', [SupplierTenderController::class, 'downloadAttachment'])
+                ->whereNumber('tender')
+                ->whereNumber('attachment');
+            Route::post('/tenders/{tender}/quote', [SupplierTenderController::class, 'storeQuote'])
+                ->whereNumber('tender');
+            Route::put('/tenders/{tender}/quote', [SupplierTenderController::class, 'updateQuote'])
+                ->whereNumber('tender');
+            Route::get('/quotes', [SupplierTenderController::class, 'myQuotes']);
+
             // Mes produits : liste, dépublier, supprimer (SCRUM-34).
             Route::get('/products', [SupplierProductController::class, 'index']);
             Route::patch('/products/{product}/unpublish', [SupplierProductController::class, 'unpublish'])
@@ -140,7 +159,46 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Espace porteur de projet (S3+) : demandes, comparaison des devis, commandes…
     Route::middleware('role:buyer')->prefix('buyer')->group(function () {
         Route::get('/ping', fn () => ['space' => 'buyer']);
+
+        // Demandes, annulation et invitation d'un favori (F11 / SCRUM-41, SCRUM-43, SCRUM-49).
+        Route::get('/tenders', [BuyerTenderController::class, 'index']);
+        Route::post('/tenders', [BuyerTenderController::class, 'store']);
+        Route::get('/tenders/{tender}', [BuyerTenderController::class, 'show'])
+            ->whereNumber('tender');
+        Route::get('/tenders/{tender}/attachments/{attachment}', [BuyerTenderController::class, 'downloadAttachment'])
+            ->whereNumber('tender')
+            ->whereNumber('attachment');
+        Route::post('/tenders/{tender}/cancel', [BuyerTenderController::class, 'cancel'])
+            ->whereNumber('tender');
+        Route::post('/tenders/{tender}/invite', [BuyerTenderController::class, 'invite'])
+            ->whereNumber('tender');
+
+        // Comparaison et acceptation des devis (F14 / SCRUM-47, SCRUM-48).
+        Route::get('/tenders/{tender}/quotes', [BuyerQuoteController::class, 'index'])
+            ->whereNumber('tender');
+        Route::post('/quotes/{quote}/accept', [BuyerQuoteController::class, 'accept'])
+            ->whereNumber('quote');
+
+        // Suivi des commandes nées d'un devis.
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{order}', [OrderController::class, 'show'])
+            ->whereNumber('order');
+
+        // Fournisseurs favoris (invitation sur une demande).
+        Route::get('/favorites', [FavoriteController::class, 'index']);
+        Route::post('/favorites', [FavoriteController::class, 'store']);
+        Route::delete('/favorites/{supplier}', [FavoriteController::class, 'destroy'])
+            ->whereNumber('supplier');
     });
+
+    // Notifications (F15 / SCRUM-62, SCRUM-63) : tous les rôles connectés et vérifiés.
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::get('/notifications/preferences', [NotificationPreferenceController::class, 'show']);
+    Route::put('/notifications/preferences', [NotificationPreferenceController::class, 'update']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])
+        ->whereUuid('notification');
 
     // Fournisseurs favoris du porteur de projet (SCRUM-39). Ajout / retrait idempotents.
     Route::middleware('role:buyer')->prefix('favorites/suppliers')->group(function () {
