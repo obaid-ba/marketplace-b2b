@@ -79,6 +79,9 @@ export const createRoutes = () => [
     children: [
       // Pages publiques
       { path: PATHS.home, lazy: page(() => import('@/views/HomeView')) },
+      { path: PATHS.catalog, lazy: page(() => import('@/views/catalog/CatalogView')) },
+      { path: '/produits/:productId', lazy: page(() => import('@/views/products/ProductPage')) },
+      { path: '/fournisseurs/:supplierId', lazy: page(() => import('@/views/suppliers/SupplierPublicPage')) },
       { path: PATHS.login, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/LoginView')) },
 
       // Mot de passe oublié (SCRUM-26). La page du lien reste ouverte à tous : on peut la recevoir déjà connecté.
@@ -116,6 +119,11 @@ export const createRoutes = () => [
         lazy: page(() => import('@/layouts/AppLayout')),
         children: [
           { index: true, lazy: page(() => import('@/views/account/AccountSettingsView')) },
+          {
+            path: 'notifications',
+            handle: { crumb: 'Préférences de notification' },
+            lazy: page(() => import('@/views/notifications/NotificationPreferencesPage')),
+          },
         ],
       },
 
@@ -160,8 +168,47 @@ export const createRoutes = () => [
         ROLES.SUPPLIER,
         () => import('@/views/supplier/SupplierDashboard'),
         [
-          // Pages de vente à venir (produits F07, devis F13…) : leur ajouter loader: supplierOnly(false)
-          // pour renvoyer un fournisseur non validé vers « Compte en attente » (SCRUM-27).
+          {
+            path: PATHS.supplierTenders,
+            handle: { crumb: 'Demandes reçues' },
+            loader: supplierOnly(false),
+            lazy: page(() => import('@/views/supplier/ReceivedTendersPage')),
+          },
+          {
+            path: `${PATHS.supplierTenders}/:id`,
+            handle: { crumb: 'Demande reçue' },
+            loader: supplierOnly(false),
+            lazy: page(() => import('@/views/supplier/ReceivedTenderDetailPage')),
+          },
+          {
+            path: PATHS.supplierQuotes,
+            handle: { crumb: 'Mes devis' },
+            loader: supplierOnly(false),
+            lazy: page(() => import('@/views/supplier/MyQuotesPage')),
+          },
+          {
+            path: PATHS.supplierNotifications,
+            handle: { crumb: 'Notifications' },
+            lazy: page(() => import('@/views/notifications/NotificationsPage')),
+          },
+          {
+            path: PATHS.supplierProducts,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Mes produits' },
+            lazy: page(() => import('@/views/supplier/products/MyProductsPage')),
+          },
+          {
+            path: PATHS.supplierProductNew,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Mes produits' },
+            lazy: page(() => import('@/views/supplier/products/ProductFormPage')),
+          },
+          {
+            path: `${PATHS.supplierProducts}/:productId/modifier`,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Mes produits' },
+            lazy: page(() => import('@/views/supplier/products/ProductFormPage')),
+          },
           // Profil de l'entreprise (SCRUM-28) : ouvert aussi à un fournisseur pas encore validé,
           // qui peut compléter son profil sans pouvoir le publier.
           {
@@ -189,6 +236,31 @@ export const createRoutes = () => [
         ROLES.BUYER,
         () => import('@/views/buyer/BuyerDashboard'),
         [
+          {
+            path: PATHS.buyerTenders,
+            handle: { crumb: 'Mes demandes' },
+            lazy: page(() => import('@/views/buyer/TendersPage')),
+          },
+          {
+            path: `${PATHS.buyerTenders}/nouvelle`,
+            handle: { crumb: 'Nouvelle demande' },
+            lazy: page(() => import('@/views/buyer/NewTenderPage')),
+          },
+          {
+            path: `${PATHS.buyerTenders}/:id`,
+            handle: { crumb: 'Détail de la demande' },
+            lazy: page(() => import('@/views/buyer/TenderDetailPage')),
+          },
+          {
+            path: `${PATHS.buyerQuotes}/:id/comparer`,
+            handle: { crumb: 'Comparer les devis' },
+            lazy: page(() => import('@/views/buyer/CompareQuotesPage')),
+          },
+          {
+            path: PATHS.buyerFavorites,
+            handle: { crumb: 'Fournisseurs favoris' },
+            lazy: page(() => import('@/views/buyer/FavoriteSuppliersPage')),
+          },
           {
             path: PATHS.buyerOrders,
             handle: { crumb: 'Mes commandes' },

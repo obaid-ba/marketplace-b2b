@@ -10,11 +10,21 @@ export const PATHS = Object.freeze({
   verifyNotice: '/verification-email', // « Consultez votre boîte mail »
   verifyEmail: '/email/verifier', // page ouverte par le lien reçu par e-mail
   account: '/parametres', // informations personnelles, e-mail et mot de passe
+  notifications: '/parametres/notifications',
+  catalog: '/catalogue',
   supplier: '/fournisseur',
   supplierPending: '/fournisseur/en-attente',
   supplierProfile: '/fournisseur/profil', // Profil de l'entreprise (SCRUM-28)
+  supplierTenders: '/fournisseur/demandes',
+  supplierQuotes: '/fournisseur/devis',
+  supplierNotifications: '/fournisseur/notifications',
+  supplierProducts: '/fournisseur/produits',
+  supplierProductNew: '/fournisseur/produits/nouveau',
   buyer: '/porteur',
   buyerOrders: '/porteur/commandes',
+  buyerTenders: '/porteur/demandes',
+  buyerQuotes: '/porteur/devis',
+  buyerFavorites: '/porteur/favoris',
   supplierOrders: '/fournisseur/commandes',
   supplierReviews: '/fournisseur/avis',
   admin: '/admin',

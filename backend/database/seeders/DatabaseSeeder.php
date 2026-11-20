@@ -185,6 +185,9 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        // 8. Catalogue du sprint 2 : fournisseurs et produits des maquettes (SCRUM-35).
+        $this->call(CatalogueDemoSeeder::class);
     }
 
     /**

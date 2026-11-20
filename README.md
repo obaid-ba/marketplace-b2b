@@ -44,6 +44,19 @@ cp .env.example .env          # VITE_API_URL=http://localhost:8000/api
 npm run dev                   # http://localhost:5173
 ```
 
+### Dépannage : « Impossible de charger les régions »
+
+Ce message apparaît dans les formulaires d'inscription quand l'API ne peut pas lire les données de référence : le plus souvent, **MySQL/MariaDB n'est pas démarré** et Laravel répond `500`.
+
+1. Démarrez MySQL (XAMPP : panneau de contrôle ou `C:\xampp\mysql_start.bat`).
+2. Vérifiez que l'API répond :
+
+```bash
+curl http://localhost:8000/api/reference/regions
+```
+
+La réponse doit être un tableau JSON de **24 régions**. Si la base est vide, relancez `php artisan db:seed` depuis `backend/` (le seeder insère toujours les régions et les catégories).
+
 ### Comptes de démonstration
 
 Mot de passe : `password`
@@ -53,6 +66,27 @@ Mot de passe : `password`
 | Administrateur | admin@marketplace.test |
 | Fournisseur | fournisseur@marketplace.test |
 | Porteur de projet | porteur@marketplace.test |
+
+### Catalogue de démonstration (sprint 2)
+
+Fournisseurs, produits, avis et favoris des maquettes (Atlas Emballages, Djerba Pack, PalettesPlus…) :
+
+```bash
+cd backend
+php artisan storage:link                            # photos des produits et logos (disque « public »)
+php artisan db:seed --class=CatalogueDemoSeeder     # relançable sans doublons
+```
+
+Il est aussi lancé par `php artisan migrate --seed` lorsque `DatabaseSeeder::SEED_DEMO_DATA` vaut `true`.
+Mot de passe : `password`.
+
+| Rôle | E-mail |
+|---|---|
+| Fournisseur validé (Atlas Emballages) | atlas@marketplace.test |
+| Porteur de projet avec 6 favoris (Sana Ben Salah) | sana@marketplace.test |
+
+Parcours de démo : accueil → recherche → catalogue filtré → fiche produit → fiche fournisseur → favori ;
+côté fournisseur : Mes produits → Ajouter un produit → le voir dans le catalogue.
 
 ## Tests
 

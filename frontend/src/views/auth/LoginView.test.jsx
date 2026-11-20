@@ -52,7 +52,7 @@ describe('Connexion (SCRUM-25)', () => {
     const router = visitLogin()
     await fillAndSubmit()
 
-    expect(await screen.findByText('Tableau de bord porteur de projet')).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /Bonjour/ })).toBeTruthy()
     expect(router.state.location.pathname).toBe('/porteur')
     expect(http.post).toHaveBeenCalledWith('/auth/login', {
       email: 'karim@test.tn',
@@ -66,7 +66,7 @@ describe('Connexion (SCRUM-25)', () => {
     vi.mocked(http.post).mockResolvedValue({ data: { token: 't1', user: buyer } })
     visitLogin()
     await fillAndSubmit()
-    await screen.findByText('Tableau de bord porteur de projet')
+    await screen.findByRole('heading', { name: /Bonjour/ })
 
     expect(sessionStorage.getItem('mb2b_token')).toBe('t1')
     expect(localStorage.getItem('mb2b_token')).toBeNull()
@@ -76,7 +76,7 @@ describe('Connexion (SCRUM-25)', () => {
     vi.mocked(http.post).mockResolvedValue({ data: { token: 't2', user: buyer } })
     visitLogin()
     await fillAndSubmit({ remember: true })
-    await screen.findByText('Tableau de bord porteur de projet')
+    await screen.findByRole('heading', { name: /Bonjour/ })
 
     expect(http.post).toHaveBeenCalledWith('/auth/login', expect.objectContaining({ remember: true }))
     expect(localStorage.getItem('mb2b_token')).toBe('t2')

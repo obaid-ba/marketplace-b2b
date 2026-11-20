@@ -11,13 +11,13 @@ import { initialsOf } from '@/utils/initials'
  */
 const NAV_ITEMS = [
   { label: 'Tableau de bord', to: PATHS.supplier, end: true },
-  { label: 'Mes produits' }, // SCRUM-34
-  { label: 'Demandes reçues' }, // SCRUM-44
-  { label: 'Mes devis' }, // SCRUM-46
+  { label: 'Mes produits', to: PATHS.supplierProducts }, // SCRUM-34
+  { label: 'Demandes reçues', to: PATHS.supplierTenders }, // SCRUM-44
+  { label: 'Mes devis', to: PATHS.supplierQuotes }, // SCRUM-46
   { label: 'Mes commandes', to: PATHS.supplierOrders }, // SCRUM-58
   { label: 'Mes avis', to: PATHS.supplierReviews }, // SCRUM-65
   { label: 'Messagerie' }, // SCRUM-59
-  { label: 'Notifications' }, // SCRUM-62
+  { label: 'Notifications', to: PATHS.supplierNotifications }, // SCRUM-62
   { label: "Profil de l'entreprise", to: PATHS.supplierProfile },
   { label: 'Paramètres du compte' }, // SCRUM-29
 ]

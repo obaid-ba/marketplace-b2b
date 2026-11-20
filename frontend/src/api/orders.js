@@ -4,11 +4,16 @@ import { http } from './http'
  * Récupère les commandes passées par l'acheteur connecté (SCRUM-58).
  */
 export async function fetchBuyerOrders(status = null, page = 1) {
-  const params = { page }
-  if (status && status !== 'all' && status !== 'Toutes') {
+  const params = typeof status === 'object' && status !== null ? { ...status } : { page }
+  if (typeof status === 'string' && status !== 'all' && status !== 'Toutes') {
     params.status = status
   }
   const { data } = await http.get('/buyer/orders', { params })
+  return data
+}
+
+export async function fetchBuyerOrder(id) {
+  const { data } = await http.get(`/buyer/orders/${id}`)
   return data
 }
 

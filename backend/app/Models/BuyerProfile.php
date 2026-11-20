@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -56,6 +57,21 @@ class BuyerProfile extends Model
     public function region(): BelongsTo
     {
         return $this->belongsTo(Region::class);
+    }
+
+    public function tenders(): HasMany
+    {
+        return $this->hasMany(Tender::class, 'buyer_id');
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class, 'buyer_id');
+    }
+
+    public function favoriteSuppliers(): BelongsToMany
+    {
+        return $this->belongsToMany(SupplierProfile::class, 'favorites', 'buyer_id', 'supplier_id')->withTimestamps();
     }
 
     /**

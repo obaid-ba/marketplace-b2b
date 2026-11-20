@@ -1,13 +1,24 @@
 <?php
 
 use App\Http\Controllers\Api\AccountController;
+use App\Http\Controllers\Api\Admin\AdminDashboardController;
+use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Buyer\FavoriteController;
+use App\Http\Controllers\Api\Buyer\FavoriteSupplierController;
 use App\Http\Controllers\Api\Buyer\BuyerOrderController;
 use App\Http\Controllers\Api\Buyer\BuyerReviewController;
+use App\Http\Controllers\Api\Buyer\OrderController as BuyerOrderLifecycleController;
+use App\Http\Controllers\Api\Buyer\QuoteController as BuyerQuoteController;
+use App\Http\Controllers\Api\Buyer\TenderController as BuyerTenderController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\NotificationPreferenceController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProductController;
@@ -15,8 +26,11 @@ use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
 use App\Http\Controllers\Api\Supplier\SupplierOrderController;
 use App\Http\Controllers\Api\Supplier\SupplierProfileController;
+use App\Http\Controllers\Api\Supplier\SupplierProductController;
 use App\Http\Controllers\Api\Supplier\SupplierReviewController;
 use App\Http\Controllers\Api\Supplier\SupplierValidationStatusController;
+use App\Http\Controllers\Api\Supplier\TenderController as SupplierTenderController;
+use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPublicReviewController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
 use Illuminate\Support\Facades\Route;
@@ -60,10 +74,15 @@ Route::get('/reference/regions', [ReferenceController::class, 'regions']);
 Route::get('/reference/categories', [ReferenceController::class, 'categories']);
 Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
 
-// Fiches produits et catalogue fournisseur (SCRUM-51).
-Route::get('/products/{product}', [ProductController::class, 'show'])->whereNumber('product');
+// Vitrine publique (S2) : catégories, accueil et catalogue.
+Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/home', HomeController::class);
+Route::get('/products', [ProductController::class, 'index'])->middleware('throttle:120,1');
+Route::get('/products/{product}', [ProductController::class, 'show'])->whereNumber('product')->middleware('throttle:120,1');
 Route::get('/suppliers/{supplier}/products', [ProductController::class, 'bySupplier'])->whereNumber('supplier');
-Route::get('/suppliers/{supplier}/reviews', [SupplierPublicReviewController::class, 'index'])->whereNumber('supplier');
+Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])->whereNumber('supplier');
+Route::get('/suppliers/{supplier}/reviews', [SupplierController::class, 'reviews'])->whereNumber('supplier');
+Route::get('/suppliers/{supplier}/public-reviews', [SupplierPublicReviewController::class, 'index'])->whereNumber('supplier');
 
 Route::middleware('auth:sanctum')->group(function () {
     // Accessibles même si l'e-mail n'est pas encore vérifié.
@@ -85,6 +104,11 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:6,1');
     Route::delete('/account', [AccountController::class, 'destroy'])
         ->middleware('throttle:6,1');
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereNumber('notification');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show']);
+    Route::put('/notification-preferences', [NotificationPreferenceController::class, 'update']);
 });
 
 // Espaces métier : connecté ET adresse e-mail vérifiée.
@@ -120,7 +144,26 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         // Réponse sinon : 403 { "reason": "supplier_not_validated" }.
         // Restent hors de ce groupe : profil, documents, état du dossier, déconnexion, notifications.
         Route::middleware('supplier.validated')->group(function () {
-            //
+            Route::get('/tenders', [SupplierTenderController::class, 'index']);
+            Route::get('/tenders/{tender}', [SupplierTenderController::class, 'show'])->whereNumber('tender');
+            Route::get('/tenders/{tender}/attachments/{attachment}', [SupplierTenderController::class, 'downloadAttachment'])
+                ->whereNumber('tender')
+                ->whereNumber('attachment');
+            Route::post('/tenders/{tender}/quote', [SupplierTenderController::class, 'storeQuote'])->whereNumber('tender');
+            Route::put('/tenders/{tender}/quote', [SupplierTenderController::class, 'updateQuote'])->whereNumber('tender');
+            Route::get('/quotes', [SupplierTenderController::class, 'myQuotes']);
+
+            Route::get('/products', [SupplierProductController::class, 'index']);
+            Route::patch('/products/{product}/unpublish', [SupplierProductController::class, 'unpublish'])->whereNumber('product');
+            Route::delete('/products/{product}', [SupplierProductController::class, 'destroy'])->whereNumber('product');
+            Route::post('/products', [SupplierProductController::class, 'store']);
+            Route::get('/products/{product}', [SupplierProductController::class, 'show'])->whereNumber('product');
+            Route::put('/products/{product}', [SupplierProductController::class, 'update'])->whereNumber('product');
+            Route::post('/products/{product}/images', [SupplierProductController::class, 'storeImages'])->whereNumber('product');
+            Route::put('/products/{product}/images/order', [SupplierProductController::class, 'reorderImages'])->whereNumber('product');
+            Route::delete('/products/{product}/images/{image}', [SupplierProductController::class, 'destroyImage'])
+                ->whereNumber('product')
+                ->whereNumber('image');
         });
     });
 
@@ -128,9 +171,28 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::middleware('role:buyer')->prefix('buyer')->group(function () {
         Route::get('/ping', fn () => ['space' => 'buyer']);
 
+        Route::get('/tenders', [BuyerTenderController::class, 'index']);
+        Route::post('/tenders', [BuyerTenderController::class, 'store']);
+        Route::get('/tenders/{tender}', [BuyerTenderController::class, 'show'])->whereNumber('tender');
+        Route::get('/tenders/{tender}/attachments/{attachment}', [BuyerTenderController::class, 'downloadAttachment'])
+            ->whereNumber('tender')
+            ->whereNumber('attachment');
+        Route::post('/tenders/{tender}/cancel', [BuyerTenderController::class, 'cancel'])->whereNumber('tender');
+        Route::post('/tenders/{tender}/invite', [BuyerTenderController::class, 'invite'])->whereNumber('tender');
+
+        Route::get('/quotes', [BuyerQuoteController::class, 'index']);
+        Route::get('/quotes/{quote}', [BuyerQuoteController::class, 'show'])->whereNumber('quote');
+        Route::post('/quotes/{quote}/accept', [BuyerQuoteController::class, 'accept'])->whereNumber('quote');
+        Route::post('/quotes/{quote}/reject', [BuyerQuoteController::class, 'reject'])->whereNumber('quote');
+
+        Route::get('/favorites', [FavoriteController::class, 'index']);
+        Route::post('/favorites/{supplier}', [FavoriteSupplierController::class, 'store'])->whereNumber('supplier');
+        Route::delete('/favorites/{supplier}', [FavoriteSupplierController::class, 'destroy'])->whereNumber('supplier');
+
         // Commandes passées & commande directe (SCRUM-51, SCRUM-58 / F16).
         Route::get('/orders', [BuyerOrderController::class, 'index']);
         Route::post('/orders', [BuyerOrderController::class, 'store']);
+        Route::get('/orders/{order}', [BuyerOrderLifecycleController::class, 'show'])->whereNumber('order');
         Route::post('/orders/{order}/confirm-receipt', [BuyerOrderController::class, 'confirmReceipt'])
             ->whereNumber('order');
         Route::post('/orders/{order}/review', [BuyerReviewController::class, 'store'])
@@ -149,6 +211,13 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Back-office (S1+) : validation des fournisseurs, catégories, litiges…
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/ping', fn () => ['space' => 'admin']);
+        Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+
+        Route::get('/categories', [AdminCategoryController::class, 'index']);
+        Route::post('/categories', [AdminCategoryController::class, 'store']);
+        Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->whereNumber('category');
+        Route::patch('/categories/{category}/move', [AdminCategoryController::class, 'move'])->whereNumber('category');
+        Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->whereNumber('category');
 
         // Validation ou refus des nouveaux fournisseurs (SCRUM-31).
         Route::get('/suppliers', [SupplierValidationController::class, 'index']);

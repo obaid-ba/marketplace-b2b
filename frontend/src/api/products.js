@@ -4,7 +4,7 @@ import { http } from './http'
  * Récupère le détail d'un produit et d'autres produits du même fournisseur (SCRUM-51).
  */
 export async function fetchProduct(productId) {
-  const { data } = await http.get(`/products/${productId}`)
+  const { data } = await http.get(`/products/${productId}`, { skipAuthRedirect: true })
   return data
 }
 

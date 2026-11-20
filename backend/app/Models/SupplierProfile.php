@@ -118,6 +118,26 @@ class SupplierProfile extends Model
         return $this->belongsToMany(Region::class, 'supplier_coverage_region', 'supplier_id', 'region_id');
     }
 
+    public function tenderRecipients(): HasMany
+    {
+        return $this->hasMany(TenderRecipient::class, 'supplier_id');
+    }
+
+    public function tenders(): HasMany
+    {
+        return $this->hasMany(Tender::class);
+    }
+
+    public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class, 'supplier_id');
+    }
+
+    public function favoritedBy(): HasMany
+    {
+        return $this->hasMany(Favorite::class, 'supplier_id');
+    }
+
     /**
      * Administrateur ayant validé ou refusé le profil.
      */

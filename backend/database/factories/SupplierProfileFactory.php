@@ -48,6 +48,14 @@ class SupplierProfileFactory extends Factory
         ]);
     }
 
+    /**
+     * Fournisseur affiché dans le catalogue public : validé et profil publié (SCRUM-35).
+     */
+    public function visible(): static
+    {
+        return $this->validated()->state(fn () => ['is_published' => true]);
+    }
+
     public function rejected(): static
     {
         return $this->state(fn () => [

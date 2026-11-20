@@ -40,6 +40,11 @@ class Quote extends Model
         ];
     }
 
+    public function tender(): BelongsTo
+    {
+        return $this->belongsTo(Tender::class);
+    }
+
     /**
      * Fournisseur émetteur du devis.
      */
@@ -54,5 +59,10 @@ class Quote extends Model
     public function order(): HasOne
     {
         return $this->hasOne(Order::class, 'quote_id');
+    }
+
+    public function isEditable(): bool
+    {
+        return $this->status !== QuoteStatus::ACCEPTED;
     }
 }
