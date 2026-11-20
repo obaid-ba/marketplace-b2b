@@ -2,26 +2,28 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ProductStatus;
+use App\Enums\ValidationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalog\SearchProductsRequest;
 use App\Http\Resources\ProductCardResource;
-use App\Http\Resources\ProductDetailResource;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\SupplierProfile;
 use App\Services\FavoriteService;
 use App\Services\ProductCatalogService;
 use App\Services\ProductViewRecorder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
- * Catalogue public : accessible sans connexion.
+ * Consultation publique des fiches produits et catalogue fournisseur (SCRUM-51).
  */
 class ProductController extends Controller
 {
     /**
-     * Recherche, filtres, tri et pagination (SCRUM-35).
-     * Réponse paginée : { data: [ProductCard], links, meta: { current_page, last_page, total, … } }.
+     * Recherche, filtres, tri et pagination du catalogue public.
      */
     public function index(SearchProductsRequest $request, ProductCatalogService $catalog): AnonymousResourceCollection
     {
@@ -29,28 +31,64 @@ class ProductController extends Controller
     }
 
     /**
-     * Fiche produit (SCRUM-36). 404 « Produit introuvable » si le produit n'est pas visible.
-     * La consultation est enregistrée après l'envoi de la réponse (ProductViewRecorder).
+     * Fiche produit détaillée avec données du fournisseur et suggestions du même fournisseur.
      */
-    public function show(Request $request, int $product, FavoriteService $favorites, ProductViewRecorder $views): ProductDetailResource
+    public function show(Request $request, Product $product, FavoriteService $favorites, ProductViewRecorder $views): JsonResponse
     {
-        $model = Product::query()
-            ->visible()
-            ->with(['images', 'category.parent', 'supplier.region:id,name'])
-            ->findOr($product, fn () => abort(404, 'Produit introuvable.'));
+        $product->load([
+            'images',
+            'category.parent',
+            'supplier.region:id,name',
+            'supplier:id,user_id,company_name,logo,delivery_days,payment_terms,validation_status,is_published,rating_avg,reviews_count',
+        ]);
 
-        $model->latest_reviews = Review::query()
+        $product->latest_reviews = Review::query()
             ->published()
-            ->where('supplier_id', $model->supplier_id)
+            ->where('supplier_id', $product->supplier_id)
             ->with('buyer.user:id,name,first_name,last_name')
             ->latest()
             ->orderByDesc('id')
             ->limit(3)
             ->get();
-        $model->is_favorite = $favorites->isFavorite($request->user('sanctum'), $model->supplier);
+        $product->is_favorite = $favorites->isFavorite($request->user('sanctum'), $product->supplier);
 
-        $views->record($model, $request);
+        $views->record($product, $request);
 
-        return new ProductDetailResource($model);
+        // Produits additionnels du même fournisseur pour commande directe multi-articles sans panier
+        $supplierProducts = Product::query()
+            ->where('supplier_id', $product->supplier_id)
+            ->where('id', '!=', $product->id)
+            ->where('status', ProductStatus::PUBLISHED)
+            ->select(['id', 'supplier_id', 'title', 'price', 'unit', 'stock'])
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'product' => $product,
+            'same_supplier_products' => $supplierProducts,
+        ]);
+    }
+
+    /**
+     * Produits publiés d'un fournisseur spécifique.
+     */
+    public function bySupplier(SupplierProfile $supplier): JsonResponse
+    {
+        $products = Product::query()
+            ->where('supplier_id', $supplier->id)
+            ->where('status', ProductStatus::PUBLISHED)
+            ->select(['id', 'supplier_id', 'category_id', 'title', 'description', 'price', 'unit', 'stock'])
+            ->get();
+
+        return response()->json([
+            'supplier' => [
+                'id' => $supplier->id,
+                'company_name' => $supplier->company_name,
+                'logo' => $supplier->logo,
+                'delivery_days' => $supplier->delivery_days,
+                'payment_terms' => $supplier->payment_terms,
+            ],
+            'products' => $products,
+        ]);
     }
 }

@@ -3,16 +3,18 @@
 namespace App\Models;
 
 use App\Enums\QuoteStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
- * Devis d'un fournisseur en réponse à une demande (règle #1 : un seul devis
- * par couple demande / fournisseur).
+ * Devis soumis par un fournisseur en réponse à un appel d'offres (SCRUM-46).
  */
 class Quote extends Model
 {
+    use HasFactory;
+
     /**
      * @var list<string>
      */
@@ -43,19 +45,22 @@ class Quote extends Model
         return $this->belongsTo(Tender::class);
     }
 
+    /**
+     * Fournisseur émetteur du devis.
+     */
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(SupplierProfile::class, 'supplier_id');
     }
 
+    /**
+     * Commande générée à partir de ce devis si accepté.
+     */
     public function order(): HasOne
     {
-        return $this->hasOne(Order::class);
+        return $this->hasOne(Order::class, 'quote_id');
     }
 
-    /**
-     * Un devis reste modifiable tant qu'il n'a pas été accepté.
-     */
     public function isEditable(): bool
     {
         return $this->status !== QuoteStatus::ACCEPTED;

@@ -3,25 +3,22 @@
 namespace App\Models;
 
 use App\Enums\OrderStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Historique des changements d'étape d'une commande.
+ * Historique des statuts d'une commande (SCRUM-51, SCRUM-58 / F16).
+ * Table immuable sans colonne updated_at.
  */
 class OrderStatusHistory extends Model
 {
-    /**
-     * @var string
-     */
+    use HasFactory;
+
     protected $table = 'order_status_history';
 
-    /**
-     * La table ne contient que changed_at, pas created_at / updated_at.
-     *
-     * @var bool
-     */
-    public $timestamps = false;
+    public const CREATED_AT = 'changed_at';
+    public const UPDATED_AT = null;
 
     /**
      * @var list<string>
@@ -44,13 +41,24 @@ class OrderStatusHistory extends Model
         ];
     }
 
+    /**
+     * Commande associée.
+     */
     public function order(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'order_id');
     }
 
+    /**
+     * Utilisateur ayant effectué le changement de statut.
+     */
     public function changedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'changed_by');
+    }
+
+    public function changer(): BelongsTo
+    {
+        return $this->changedBy();
     }
 }

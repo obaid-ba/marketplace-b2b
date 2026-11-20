@@ -48,6 +48,8 @@ class SupplierProfile extends Model
         'rejection_reason',
         'validated_by',
         'validated_at',
+        'rating_avg',
+        'reviews_count',
     ];
 
     /**
@@ -80,33 +82,16 @@ class SupplierProfile extends Model
     }
 
     /**
-     * Profils visibles dans le catalogue et les recherches : validés par l'administrateur,
-     * publiés, dont le compte est actif et non supprimé. Un fournisseur suspendu, désactivé
-     * ou supprimé (SCRUM-30 / SCRUM-98) disparaît donc aussi de ces listes.
+     * Profils visibles dans le catalogue et les recherches : publiés, dont le
+     * compte est actif et non supprimé. Un fournisseur désactivé ou supprimé
+     * (SCRUM-30 / SCRUM-98) disparaît donc aussi de ces listes.
      *
      * @param  Builder<SupplierProfile>  $query
      */
     public function scopeVisibleInCatalog(Builder $query): void
     {
-        $query->where('validation_status', ValidationStatus::VALIDATED->value)
-            ->where('is_published', true)
+        $query->where('is_published', true)
             ->whereHas('user', fn (Builder $user) => $user->where('status', UserStatus::ACTIVE->value));
-    }
-
-    /**
-     * Produits et services du fournisseur (SCRUM-33).
-     */
-    public function products(): HasMany
-    {
-        return $this->hasMany(Product::class, 'supplier_id');
-    }
-
-    /**
-     * Avis reçus (SCRUM-37 : affichés sur la fiche publique).
-     */
-    public function reviews(): HasMany
-    {
-        return $this->hasMany(Review::class, 'supplier_id');
     }
 
     /**
@@ -133,6 +118,26 @@ class SupplierProfile extends Model
         return $this->belongsToMany(Region::class, 'supplier_coverage_region', 'supplier_id', 'region_id');
     }
 
+    public function tenderRecipients(): HasMany
+    {
+        return $this->hasMany(TenderRecipient::class, 'supplier_id');
+    }
+
+    public function tenders(): HasMany
+    {
+        return $this->hasMany(Tender::class);
+    }
+
+    public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class, 'supplier_id');
+    }
+
+    public function favoritedBy(): HasMany
+    {
+        return $this->hasMany(Favorite::class, 'supplier_id');
+    }
+
     /**
      * Administrateur ayant validé ou refusé le profil.
      */
@@ -142,23 +147,7 @@ class SupplierProfile extends Model
     }
 
     /**
-     * Demandes reçues par ce fournisseur (SCRUM-44).
-     */
-    public function tenderRecipients(): HasMany
-    {
-        return $this->hasMany(TenderRecipient::class, 'supplier_id');
-    }
-
-    /**
-     * Devis envoyés par ce fournisseur (SCRUM-46).
-     */
-    public function quotes(): HasMany
-    {
-        return $this->hasMany(Quote::class, 'supplier_id');
-    }
-
-    /**
-     * Commandes obtenues par ce fournisseur (SCRUM-48).
+     * Commandes reçues par le fournisseur.
      */
     public function orders(): HasMany
     {
@@ -166,10 +155,10 @@ class SupplierProfile extends Model
     }
 
     /**
-     * Porteurs qui ont mis ce fournisseur en favori.
+     * Avis clients reçus par le fournisseur (SCRUM-65).
      */
-    public function favoritedBy(): HasMany
+    public function reviews(): HasMany
     {
-        return $this->hasMany(Favorite::class, 'supplier_id');
+        return $this->hasMany(Review::class, 'supplier_id');
     }
 }

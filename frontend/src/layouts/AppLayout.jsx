@@ -54,6 +54,11 @@ export default function AppLayout() {
               <p className="font-medium">{user?.name}</p>
               <p className="text-slate-500">{ROLE_LABELS[role]}</p>
             </div>
+            {role === ROLES.BUYER && (
+              <Link to={PATHS.buyerOrders} className="btn-ghost">
+                Mes commandes
+              </Link>
+            )}
             <Link to={PATHS.account} className="btn-ghost">
               Paramètres
             </Link>
