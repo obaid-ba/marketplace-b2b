@@ -19,6 +19,8 @@ L'énoncé demande de « noter les décisions techniques importantes » et de «
 | D11 | 2026-11-23 | Temps réel (S5) : Laravel Reverb, un seul canal privé par utilisateur (`user.{id}`), autorisé par le jeton Bearer. Les événements ne contiennent que des identifiants, le contenu est relu par l'API. Reverb est facultatif : sans lui, l'application se rafraîchit toutes les 10 à 30 s | Reverb prévu dès D2 ; droits vérifiés à un seul endroit ; un message n'est jamais perdu si Reverb est arrêté |
 | D12 | 2026-11-23 | Une conversation par couple porteur / fournisseur et par contexte (demande, devis, commande, direct). Une seule notification par conversation tant qu'elle n'est pas lue | « Contacter » retrouve l'échange existant ; pas un e-mail par message |
 | D13 | 2026-11-23 | **À valider en équipe** : un avis signalé (SCRUM-66) reste visible et compté dans la note jusqu'à la décision de l'admin (F29) | Sinon un fournisseur pourrait masquer ses mauvaises notes en les signalant |
+| D14 | 2026-11-23 | **À valider en équipe** — Litiges (F23, complète R4) : ouverture de « expédiée » / « en livraison » à « livrée » ; un seul litige non décidé par commande (un nouveau reste possible après une décision) ; une commande contestée ne peut pas être clôturée ; seul l'admin qui a pris le litige en charge décide (un collègue peut le reprendre, tracé) ; décision définitive | Évite les litiges en double et la clôture pendant l'examen ; un remplacement peut lui aussi être défectueux |
+| D15 | 2026-11-23 | La décision d'un litige est enregistrée, notifiée et tracée, mais aucun remboursement n'est déclenché par l'application | Le paiement en ligne (Stripe, F17) n'est pas encore livré |
 
 ## Règles métier (SCRUM-20)
 

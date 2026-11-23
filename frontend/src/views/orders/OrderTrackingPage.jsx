@@ -8,6 +8,7 @@ import {
 } from '@/api/orders'
 import { submitBuyerReview } from '@/api/reviews'
 import ContactButton from '@/components/ContactButton'
+import OrderDisputeCard from '@/components/disputes/OrderDisputeCard'
 import { OrderStatusBadge, OrderStatusProgress } from '@/components/orders/OrderStatusBadge'
 import { selectRole, selectUser, useAuthStore } from '@/stores/auth'
 import { PATHS } from '@/router/paths'
@@ -286,6 +287,8 @@ export default function OrderTrackingPage() {
 
         <OrderStatusProgress status={order.status} statusHistory={history} />
       </div>
+
+      {(isBuyer || isSupplier) && <OrderDisputeCard key={order.status} orderId={order.id} />}
 
       {/* Tableau des articles commandés (sans section de paiement en ligne) */}
       <div className="card space-y-4">

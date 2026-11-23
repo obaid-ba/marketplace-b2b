@@ -12,7 +12,8 @@ const NAV_ITEMS = [
   { label: 'Gestion des catégories', to: PATHS.adminCategories }, // SCRUM-32
   { label: 'Contrôle du catalogue' }, // F29 / SCRUM-123
   { label: 'Avis signalés' }, // F29 / SCRUM-123
-  { label: 'Litiges' }, // F23 / S5
+  { label: 'Litiges', to: PATHS.adminDisputes }, // F23 / SCRUM-117
+  { label: 'Notifications', to: PATHS.adminNotifications }, // SCRUM-62
   { label: 'Paramètres du compte', to: PATHS.account },
 ]
 
@@ -25,6 +26,7 @@ export default function AdminLayout() {
       homePath={PATHS.admin}
       navItems={NAV_ITEMS}
       displayName={user?.name ?? 'Administrateur'}
+      notificationsPath={PATHS.adminNotifications}
     />
   )
 }

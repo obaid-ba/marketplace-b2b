@@ -153,6 +153,13 @@ export const createRoutes = () => [
           { index: true, lazy: page(() => import('@/views/orders/OrderTrackingPage')) },
         ],
       },
+      // Litige (SCRUM-117) : l'API n'y donne accès qu'aux deux parties de la commande.
+      {
+        path: '/litiges/:id',
+        loader: guard({ roles: [ROLES.BUYER, ROLES.SUPPLIER] }),
+        lazy: page(() => import('@/layouts/AppLayout')),
+        children: [{ index: true, lazy: page(() => import('@/views/disputes/DisputePage')) }],
+      },
       {
         path: '/commandes/:id',
         loader: guard({ authenticated: true }),
@@ -279,6 +286,11 @@ export const createRoutes = () => [
             lazy: page(() => import('@/views/buyer/BuyerOrdersPage')),
           },
           {
+            path: `${PATHS.buyerOrders}/:id/litige`,
+            handle: { crumb: 'Signaler un problème' },
+            lazy: page(() => import('@/views/disputes/NewDisputePage')),
+          },
+          {
             path: `${PATHS.buyerOrders}/:id`,
             handle: { crumb: 'Suivi de commande' },
             lazy: page(() => import('@/views/buyer/OrderDetailPage')),
@@ -308,6 +320,21 @@ export const createRoutes = () => [
           {
             path: PATHS.adminCategories,
             lazy: page(() => import('@/views/admin/CategoryManagementPage')),
+          },
+          {
+            path: PATHS.adminDisputes,
+            handle: { crumb: 'Litiges' },
+            lazy: page(() => import('@/views/admin/AdminDisputesPage')),
+          },
+          {
+            path: `${PATHS.adminDisputes}/:id`,
+            handle: { crumb: 'Litiges' },
+            lazy: page(() => import('@/views/admin/AdminDisputePage')),
+          },
+          {
+            path: PATHS.adminNotifications,
+            handle: { crumb: 'Notifications' },
+            lazy: page(() => import('@/views/notifications/NotificationsPage')),
           },
         ],
         () => import('@/layouts/AdminLayout'),

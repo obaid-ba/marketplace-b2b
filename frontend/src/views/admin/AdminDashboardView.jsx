@@ -7,7 +7,7 @@ import KpiCard from '@/components/dashboard/KpiCard'
 import PeriodPicker from '@/components/dashboard/PeriodPicker'
 import Skeleton from '@/components/dashboard/Skeleton'
 import TimeSeriesChart from '@/components/dashboard/TimeSeriesChart'
-import { PATHS } from '@/router/paths'
+import { PATHS, adminDisputePath } from '@/router/paths'
 import {
   selectAdminDashboard,
   selectAdminDashboardError,
@@ -217,7 +217,9 @@ export default function AdminDashboardView() {
                 <ul className="mt-4 divide-y divide-line">
                   {disputes.items.map((dispute) => (
                     <li key={dispute.id} className="py-3">
-                      <p className="font-medium text-ink">Commande #{dispute.order_id}</p>
+                      <Link to={adminDisputePath(dispute.id)} className="font-medium text-brand-600 hover:underline">
+                        Commande #{dispute.order_id}
+                      </Link>
                       <p className="text-sm text-muted">{dispute.reason}</p>
                       <p className="mt-1 text-xs text-muted">
                         Ouvert depuis {plural(dispute.age_days, 'jour')}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { fetchBuyerOrder } from '@/api/orders'
 import ContactButton from '@/components/ContactButton'
+import OrderDisputeCard from '@/components/disputes/OrderDisputeCard'
 import PageHeader from '@/components/PageHeader'
 import StatusBadge from '@/components/StatusBadge'
 import { buyerTenderPath, PATHS } from '@/router/paths'
@@ -117,6 +118,8 @@ export default function OrderDetailPage() {
               </ol>
             </div>
           </section>
+
+          <OrderDisputeCard key={order.status} orderId={order.id} />
 
           <section className="card">
             <h2 className="text-sm font-semibold text-ink">Lignes de la commande</h2>

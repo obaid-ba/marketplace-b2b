@@ -35,12 +35,28 @@ export const PATHS = Object.freeze({
   admin: '/admin',
   adminSuppliers: '/admin/fournisseurs',
   adminCategories: '/admin/categories',
+  adminDisputes: '/admin/litiges', // SCRUM-117
+  adminNotifications: '/admin/notifications',
   forbidden: '/acces-refuse',
 })
 
-/** Centre de notifications de l'espace de ce rôle (l'administrateur n'en a pas encore). */
+/** Centre de notifications de l'espace de ce rôle. */
 export function notificationsPathFor(role) {
-  return { supplier: PATHS.supplierNotifications, buyer: PATHS.buyerNotifications }[role]
+  return { supplier: PATHS.supplierNotifications, buyer: PATHS.buyerNotifications, admin: PATHS.adminNotifications }[role]
+}
+
+/** Litige vu par l'acheteur et le fournisseur (SCRUM-117). */
+export function disputePath(id) {
+  return `/litiges/${id}`
+}
+
+/** « Signaler un problème » sur une commande (SCRUM-117). */
+export function newDisputePath(orderId) {
+  return `${PATHS.buyerOrders}/${orderId}/litige`
+}
+
+export function adminDisputePath(id) {
+  return `${PATHS.adminDisputes}/${id}`
 }
 
 /** Messagerie de l'espace de ce rôle. */

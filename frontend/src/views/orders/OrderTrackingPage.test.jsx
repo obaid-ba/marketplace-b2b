@@ -24,6 +24,11 @@ vi.mock('@/api/reviews', () => ({
   submitBuyerReview: vi.fn(),
 }))
 
+// Bloc « Litige » : testé dans views/disputes/Disputes.test.jsx
+vi.mock('@/api/disputes', () => ({
+  fetchOrderDispute: vi.fn(async () => ({ dispute: null, can_open: false, reasons: [] })),
+}))
+
 function mockOrder(overrides = {}) {
   return {
     id: 101,

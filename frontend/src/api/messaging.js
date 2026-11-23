@@ -1,4 +1,5 @@
 import { http } from './http'
+import { saveBlob } from '@/utils/saveBlob'
 
 /** Messagerie (SCRUM-59 à SCRUM-61 / F21, F22). */
 
@@ -54,12 +55,5 @@ export async function downloadMessageAttachment(message) {
     responseType: 'blob',
     timeout: 120000,
   })
-  const url = URL.createObjectURL(data)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = message.attachment.name
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  saveBlob(data, message.attachment.name)
 }
