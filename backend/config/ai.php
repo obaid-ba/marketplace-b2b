@@ -1,5 +1,7 @@
 <?php
 
+use App\Services\Ai\SimulatedAiClient;
+
 /*
 | Service IA commun (SCRUM-119 / F25).
 |
@@ -12,7 +14,7 @@ return [
     'provider' => env('AI_PROVIDER', 'simulated'),
 
     'drivers' => [
-        'simulated' => App\Services\Ai\SimulatedAiClient::class,
+        'simulated' => SimulatedAiClient::class,
     ],
 
     // Réservés au futur fournisseur (Q8).

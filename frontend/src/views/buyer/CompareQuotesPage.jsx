@@ -4,6 +4,7 @@ import { acceptQuote, fetchTenderQuotes } from '@/api/buyerQuotes'
 import { fetchBuyerTender } from '@/api/tenders'
 import ContactButton from '@/components/ContactButton'
 import PageHeader from '@/components/PageHeader'
+import QuoteSummaryCard from '@/components/QuoteSummaryCard'
 import EmptyState from '@/components/dashboard/EmptyState'
 import { QuoteStatusBadge, TenderStatusBadge } from '@/components/TenderBadges'
 import { buyerOrderPath, buyerTenderPath, PATHS } from '@/router/paths'
@@ -145,6 +146,8 @@ export default function CompareQuotesPage() {
           Cette demande est {tender.status_label?.toLowerCase() ?? 'clôturée'} : les devis ne sont plus modifiables.
         </div>
       )}
+
+      {quotes.length > 0 && <QuoteSummaryCard tenderId={tender.id} quotes={quotes} />}
 
       {quotes.length === 0 ? (
         <EmptyState
