@@ -97,6 +97,13 @@ class BuyerOrderController extends Controller
             ], 422);
         }
 
+        // Vérification 2 bis : compte suspendu, désactivé ou supprimé (SCRUM-118)
+        if (! $supplier->canSell()) {
+            return response()->json([
+                'message' => "Ce fournisseur n'est plus disponible. La commande n'a pas été passée.",
+            ], 422);
+        }
+
         // Vérification 3 : Chaque produit doit être publié et en stock suffisant
         foreach ($requestedItems as $productId => $itemData) {
             $product = $products->get($productId);

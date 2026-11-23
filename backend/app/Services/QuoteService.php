@@ -131,6 +131,12 @@ class QuoteService
                 ]);
             }
 
+            if (! $accepted->supplier?->canSell()) {
+                throw ValidationException::withMessages([
+                    'quote' => "Ce fournisseur n'est plus disponible : son devis ne peut pas être accepté.",
+                ]);
+            }
+
             if (Order::query()->where('quote_id', $accepted->id)->exists()) {
                 throw ValidationException::withMessages([
                     'quote' => 'Une commande existe déjà pour ce devis.',
