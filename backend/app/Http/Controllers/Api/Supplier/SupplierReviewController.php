@@ -55,6 +55,8 @@ class SupplierReviewController extends Controller
                 'buyer.user:id,name',
                 'buyer:id,user_id,organization',
                 'order:id,created_at,total',
+                // Mon signalement éventuel (SCRUM-66).
+                'reports' => fn ($query) => $query->where('author_id', $request->user()->id)->select(['id', 'review_id', 'reason', 'status']),
             ])
             ->orderByDesc('created_at')
             ->paginate($perPage);

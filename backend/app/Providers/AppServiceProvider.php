@@ -2,13 +2,16 @@
 
 namespace App\Providers;
 
+use App\Events\NotificationCreated;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rules\Password;
@@ -34,6 +37,19 @@ class AppServiceProvider extends ServiceProvider
         // Inscriptions : protège la création de comptes et l'envoi d'e-mails.
         RateLimiter::for('register', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
+        });
+
+        // Messagerie : 30 messages par minute et par utilisateur (SCRUM-60).
+        RateLimiter::for('messages', function (Request $request) {
+            return Limit::perMinute(30)->by((string) $request->user()?->id);
+        });
+
+        // Toute notification ajoutée au centre est aussi signalée en temps réel (SCRUM-62).
+        // rescue : si Reverb est arrêté, la notification reste enregistrée.
+        Event::listen(function (NotificationSent $event) {
+            if ($event->channel === 'database' && $event->notifiable instanceof User) {
+                rescue(fn () => broadcast(new NotificationCreated($event->notifiable->id, $event->notification->id)));
+            }
         });
 
         // « Renvoyer le lien » : une fois par minute et par utilisateur.

@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Buyer\QuoteController as BuyerQuoteController;
 use App\Http\Controllers\Api\Buyer\TenderController as BuyerTenderController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\HomeController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReferenceController;
+use App\Http\Controllers\Api\Supplier\ReviewReportController;
 use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
 use App\Http\Controllers\Api\Supplier\SupplierOrderController;
 use App\Http\Controllers\Api\Supplier\SupplierProfileController;
@@ -142,6 +144,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/reviews', [SupplierReviewController::class, 'index']);
         Route::post('/reviews/{review}/reply', [SupplierReviewController::class, 'reply'])
             ->whereNumber('review');
+        Route::post('/reviews/{review}/report', [ReviewReportController::class, 'store'])
+            ->whereNumber('review')
+            ->middleware('throttle:20,1');
 
         // Pages de vente : réservées aux fournisseurs validés par l'administrateur (SCRUM-27).
         // Ajoutez ici les routes produits (F07 / SCRUM-34…) et devis (F13 / SCRUM-46…).
@@ -199,6 +204,18 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
             ->whereNumber('order');
         Route::post('/orders/{order}/review', [BuyerReviewController::class, 'store'])
             ->whereNumber('order');
+    });
+
+    // Messagerie (SCRUM-59 à SCRUM-61 / F21, F22) : porteurs et fournisseurs.
+    Route::middleware('role:buyer,supplier')->prefix('conversations')->whereNumber(['conversation', 'message'])->group(function () {
+        Route::get('/', [ConversationController::class, 'index']);
+        Route::post('/', [ConversationController::class, 'store'])->middleware('throttle:30,1');
+        Route::get('/unread-count', [ConversationController::class, 'unreadCount']);
+        Route::get('/{conversation}', [ConversationController::class, 'show']);
+        Route::get('/{conversation}/messages', [ConversationController::class, 'messages']);
+        Route::post('/{conversation}/messages', [ConversationController::class, 'send'])->middleware('throttle:messages');
+        Route::post('/{conversation}/read', [ConversationController::class, 'markRead']);
+        Route::get('/{conversation}/messages/{message}/attachment', [ConversationController::class, 'attachment']);
     });
 
     // Suivi de commande et téléchargement de documents (SCRUM-58 / F16, SCRUM-57 / F19).

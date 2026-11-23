@@ -38,6 +38,8 @@ class NotificationPreference extends Model
 
     public const EVENT_DISPUTE_DECISION = 'dispute_decision';
 
+    public const EVENT_MESSAGE_RECEIVED = 'message_received';
+
     /**
      * Événements proposés dans la grille des préférences.
      *
@@ -51,6 +53,7 @@ class NotificationPreference extends Model
         self::EVENT_QUOTE_REJECTED => 'Devis refusé',
         self::EVENT_ORDER_VALIDATED => 'Commande validée',
         self::EVENT_ORDER_STATUS => "Changement d'étape d'une commande",
+        self::EVENT_MESSAGE_RECEIVED => 'Nouveau message',
         self::EVENT_ACCOUNT_VALIDATED => 'Compte validé',
         self::EVENT_ACCOUNT_REJECTED => 'Compte refusé',
         self::EVENT_ANNOUNCEMENT_REMOVED => 'Annonce retirée',
