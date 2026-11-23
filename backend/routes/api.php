@@ -230,7 +230,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Back-office (S1+) : validation des fournisseurs, catégories, litiges…
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/ping', fn () => ['space' => 'admin']);
-        Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+        Route::get('/dashboard', [AdminDashboardController::class, 'show']);
 
         Route::get('/categories', [AdminCategoryController::class, 'index']);
         Route::post('/categories', [AdminCategoryController::class, 'store']);
