@@ -36,6 +36,7 @@ export const PATHS = Object.freeze({
   adminSuppliers: '/admin/fournisseurs',
   adminCategories: '/admin/categories',
   adminDisputes: '/admin/litiges', // SCRUM-117
+  adminUsers: '/admin/utilisateurs', // SCRUM-118
   adminNotifications: '/admin/notifications',
   forbidden: '/acces-refuse',
 })
@@ -57,6 +58,10 @@ export function newDisputePath(orderId) {
 
 export function adminDisputePath(id) {
   return `${PATHS.adminDisputes}/${id}`
+}
+
+export function adminUserPath(id) {
+  return `${PATHS.adminUsers}/${id}`
 }
 
 /** Messagerie de l'espace de ce rôle. */

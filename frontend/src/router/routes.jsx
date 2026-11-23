@@ -322,6 +322,16 @@ export const createRoutes = () => [
             lazy: page(() => import('@/views/admin/CategoryManagementPage')),
           },
           {
+            path: PATHS.adminUsers,
+            handle: { crumb: 'Utilisateurs' },
+            lazy: page(() => import('@/views/admin/AdminUsersPage')),
+          },
+          {
+            path: `${PATHS.adminUsers}/:id`,
+            handle: { crumb: 'Utilisateurs' },
+            lazy: page(() => import('@/views/admin/AdminUserPage')),
+          },
+          {
             path: PATHS.adminDisputes,
             handle: { crumb: 'Litiges' },
             lazy: page(() => import('@/views/admin/AdminDisputesPage')),

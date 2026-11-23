@@ -4,7 +4,7 @@ import { decideDispute, fetchAdminDispute, takeDispute } from '@/api/disputes'
 import { DISPUTE_STATUS, DisputeContent, DisputeStatusBadge } from '@/components/disputes/DisputeParts'
 import Modal from '@/components/Modal'
 import PageHeader from '@/components/PageHeader'
-import { PATHS } from '@/router/paths'
+import { PATHS, adminUserPath } from '@/router/paths'
 import { selectUser, useAuthStore } from '@/stores/auth'
 import { formatAmount } from '@/utils/money'
 
@@ -17,7 +17,9 @@ function Party({ title, party }) {
       <p className="mt-2 font-semibold text-ink">{party.name}</p>
       {party.contact && (
         <p className="mt-1 text-sm break-words text-muted">
-          {party.contact.name}
+          <Link to={adminUserPath(party.contact.id)} className="text-brand-600 hover:underline">
+            {party.contact.name}
+          </Link>
           <br />
           <a href={`mailto:${party.contact.email}`} className="text-brand-600 hover:underline">
             {party.contact.email}
