@@ -242,7 +242,7 @@ export const createRoutes = () => [
             lazy: page(() => import('@/views/buyer/TendersPage')),
           },
           {
-            path: `${PATHS.buyerTenders}/nouvelle`,
+            path: PATHS.buyerTenderNew,
             handle: { crumb: 'Nouvelle demande' },
             lazy: page(() => import('@/views/buyer/NewTenderPage')),
           },
@@ -256,6 +256,12 @@ export const createRoutes = () => [
             handle: { crumb: 'Comparer les devis' },
             lazy: page(() => import('@/views/buyer/CompareQuotesPage')),
           },
+          // Adresse utilisée par les notifications « Nouveau devis » (e-mails déjà envoyés compris).
+          {
+            path: `${PATHS.buyerTenders}/:id/devis`,
+            handle: { crumb: 'Comparer les devis' },
+            lazy: page(() => import('@/views/buyer/CompareQuotesPage')),
+          },
           {
             path: PATHS.buyerFavorites,
             handle: { crumb: 'Fournisseurs favoris' },
@@ -266,7 +272,18 @@ export const createRoutes = () => [
             handle: { crumb: 'Mes commandes' },
             lazy: page(() => import('@/views/buyer/BuyerOrdersPage')),
           },
+          {
+            path: `${PATHS.buyerOrders}/:id`,
+            handle: { crumb: 'Suivi de commande' },
+            lazy: page(() => import('@/views/buyer/OrderDetailPage')),
+          },
+          {
+            path: PATHS.buyerNotifications,
+            handle: { crumb: 'Notifications' },
+            lazy: page(() => import('@/views/notifications/NotificationsPage')),
+          },
         ],
+        () => import('@/layouts/BuyerLayout'),
       ),
       space(
         PATHS.admin,

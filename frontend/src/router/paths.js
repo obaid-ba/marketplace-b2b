@@ -1,6 +1,7 @@
 // Toutes les adresses de l'application au même endroit (React Router n'a pas de routes nommées).
 export const PATHS = Object.freeze({
   home: '/',
+  howItWorks: '/#comment-ca-marche',
   login: '/connexion',
   forgotPassword: '/mot-de-passe-oublie',
   resetPassword: '/mot-de-passe/nouveau', // page ouverte par le lien « Mot de passe oublié »
@@ -10,7 +11,7 @@ export const PATHS = Object.freeze({
   verifyNotice: '/verification-email', // « Consultez votre boîte mail »
   verifyEmail: '/email/verifier', // page ouverte par le lien reçu par e-mail
   account: '/parametres', // informations personnelles, e-mail et mot de passe
-  notifications: '/parametres/notifications',
+  notificationPreferences: '/parametres/notifications',
   catalog: '/catalogue',
   supplier: '/fournisseur',
   supplierPending: '/fournisseur/en-attente',
@@ -23,6 +24,8 @@ export const PATHS = Object.freeze({
   buyer: '/porteur',
   buyerOrders: '/porteur/commandes',
   buyerTenders: '/porteur/demandes',
+  buyerTenderNew: '/porteur/demandes/nouvelle',
+  buyerNotifications: '/porteur/notifications',
   buyerQuotes: '/porteur/devis',
   buyerFavorites: '/porteur/favoris',
   supplierOrders: '/fournisseur/commandes',
@@ -32,6 +35,11 @@ export const PATHS = Object.freeze({
   adminCategories: '/admin/categories',
   forbidden: '/acces-refuse',
 })
+
+/** Centre de notifications de l'espace de ce rôle (l'administrateur n'en a pas encore). */
+export function notificationsPathFor(role) {
+  return { supplier: PATHS.supplierNotifications, buyer: PATHS.buyerNotifications }[role]
+}
 
 /**
  * Suivi d'une commande (SCRUM-51, SCRUM-58).

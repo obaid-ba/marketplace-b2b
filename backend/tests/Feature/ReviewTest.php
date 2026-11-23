@@ -394,7 +394,7 @@ class ReviewTest extends TestCase
 
         $supplierProfile->update(['rating_avg' => 5.00, 'reviews_count' => 1]);
 
-        $response = $this->getJson("/api/suppliers/{$supplierProfile->id}/reviews");
+        $response = $this->getJson("/api/suppliers/{$supplierProfile->id}/public-reviews");
         $response->assertStatus(200)
             ->assertJsonPath('reviews_count', 1)
             ->assertJsonCount(1, 'reviews.data')

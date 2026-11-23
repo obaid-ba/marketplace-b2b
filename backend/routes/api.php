@@ -104,11 +104,15 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:6,1');
     Route::delete('/account', [AccountController::class, 'destroy'])
         ->middleware('throttle:6,1');
-    Route::get('/notifications', [NotificationController::class, 'index']);
-    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereNumber('notification');
+
+    // Notifications (F15 / SCRUM-62, SCRUM-63). Les identifiants sont des UUID (table native de Laravel).
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::get('/notifications/preferences', [NotificationPreferenceController::class, 'show']);
+    Route::put('/notifications/preferences', [NotificationPreferenceController::class, 'update']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
-    Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show']);
-    Route::put('/notification-preferences', [NotificationPreferenceController::class, 'update']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])
+        ->whereUuid('notification');
 });
 
 // Espaces métier : connecté ET adresse e-mail vérifiée.
@@ -180,10 +184,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/tenders/{tender}/cancel', [BuyerTenderController::class, 'cancel'])->whereNumber('tender');
         Route::post('/tenders/{tender}/invite', [BuyerTenderController::class, 'invite'])->whereNumber('tender');
 
-        Route::get('/quotes', [BuyerQuoteController::class, 'index']);
-        Route::get('/quotes/{quote}', [BuyerQuoteController::class, 'show'])->whereNumber('quote');
+        Route::get('/tenders/{tender}/quotes', [BuyerQuoteController::class, 'index'])->whereNumber('tender');
         Route::post('/quotes/{quote}/accept', [BuyerQuoteController::class, 'accept'])->whereNumber('quote');
-        Route::post('/quotes/{quote}/reject', [BuyerQuoteController::class, 'reject'])->whereNumber('quote');
 
         Route::get('/favorites', [FavoriteController::class, 'index']);
         Route::post('/favorites/{supplier}', [FavoriteSupplierController::class, 'store'])->whereNumber('supplier');

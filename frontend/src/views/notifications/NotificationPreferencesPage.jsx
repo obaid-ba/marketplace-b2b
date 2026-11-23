@@ -5,7 +5,8 @@ import {
   updateNotificationPreferences,
 } from '@/api/notifications'
 import PageHeader from '@/components/PageHeader'
-import { PATHS } from '@/router/paths'
+import { PATHS, notificationsPathFor } from '@/router/paths'
+import { selectRole, useAuthStore } from '@/stores/auth'
 
 /**
  * Préférences de notification (SCRUM-63 / F15) : une case par événement et par canal.
@@ -13,6 +14,7 @@ import { PATHS } from '@/router/paths'
  * verrouillés : la règle est aussi appliquée côté serveur.
  */
 export default function NotificationPreferencesPage() {
+  const role = useAuthStore(selectRole)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -88,7 +90,7 @@ export default function NotificationPreferencesPage() {
         title="Préférences de notification"
         subtitle="Choisissez les événements reçus sur le site et par e-mail."
         actions={
-          <Link to={PATHS.notifications} className="btn-secondary">
+          <Link to={notificationsPathFor(role) ?? PATHS.account} className="btn-secondary">
             Mes notifications
           </Link>
         }
