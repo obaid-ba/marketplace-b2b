@@ -6,6 +6,7 @@ use App\Events\NotificationCreated;
 use App\Exceptions\AiUnavailableException;
 use App\Models\User;
 use App\Services\Ai\AiClient;
+use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -20,6 +21,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +30,13 @@ class AppServiceProvider extends ServiceProvider
         // Fournisseur d'IA choisi par AI_PROVIDER (SCRUM-119) : voir config/ai.php.
         $this->app->bind(AiClient::class, function ($app) {
             $driver = config('ai.drivers')[config('ai.provider')] ?? throw new AiUnavailableException('Fournisseur IA inconnu ou désactivé.');
+
+            return $app->make($driver);
+        });
+
+        // Fournisseur WhatsApp choisi par WHATSAPP_PROVIDER (SCRUM-133) : voir config/whatsapp.php.
+        $this->app->bind(WhatsAppClient::class, function ($app) {
+            $driver = config('whatsapp.drivers')[config('whatsapp.provider')] ?? throw new RuntimeException('Fournisseur WhatsApp inconnu ou désactivé.');
 
             return $app->make($driver);
         });

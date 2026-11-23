@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\WhatsApp\WhatsAppSettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -15,6 +16,8 @@ class NotificationPreference extends Model
     public const CHANNEL_SITE = 'site';
 
     public const CHANNEL_EMAIL = 'email';
+
+    public const CHANNEL_WHATSAPP = 'whatsapp';
 
     public const EVENT_TENDER_RECEIVED = 'tender_received';
 
@@ -115,13 +118,26 @@ class NotificationPreference extends Model
             return true;
         }
 
+        // WhatsApp exige un consentement et un numéro valide (SCRUM-133).
+        if ($channel === self::CHANNEL_WHATSAPP && ! app(WhatsAppSettings::class)->canReceive($user)) {
+            return false;
+        }
+
         $preference = static::query()
             ->where('user_id', $user->id)
             ->where('event_type', $event)
             ->where('channel', $channel)
             ->first();
 
-        return $preference?->enabled ?? true;
+        return $preference?->enabled ?? self::enabledByDefault($event, $channel);
+    }
+
+    /**
+     * Site et e-mail : actifs par défaut. WhatsApp : seulement les événements importants, une fois le consentement donné.
+     */
+    private static function enabledByDefault(string $event, string $channel): bool
+    {
+        return $channel !== self::CHANNEL_WHATSAPP || self::isCriticalEmail($event);
     }
 
     /**
@@ -136,6 +152,7 @@ class NotificationPreference extends Model
         );
 
         $rows = [];
+        $withWhatsApp = app(WhatsAppSettings::class)->canReceive($user);
 
         foreach (self::EVENTS as $event => $label) {
             $site = $saved->get($event.'|'.self::CHANNEL_SITE)?->enabled ?? true;
@@ -155,6 +172,13 @@ class NotificationPreference extends Model
                         'enabled' => $critical ? true : (bool) $email,
                         'locked' => $critical,
                     ],
+                    ...($withWhatsApp ? [
+                        self::CHANNEL_WHATSAPP => [
+                            'enabled' => (bool) ($saved->get($event.'|'.self::CHANNEL_WHATSAPP)?->enabled
+                                ?? self::enabledByDefault($event, self::CHANNEL_WHATSAPP)),
+                            'locked' => false,
+                        ],
+                    ] : []),
                 ],
             ];
         }

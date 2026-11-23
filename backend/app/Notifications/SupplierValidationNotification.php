@@ -3,20 +3,26 @@
 namespace App\Notifications;
 
 use App\Enums\ValidationStatus;
+use App\Models\NotificationPreference;
 use App\Models\SupplierProfile;
+use App\Models\User;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class SupplierValidationNotification extends Notification
+class SupplierValidationNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsNotificationPreferences;
 
     public function __construct(
         public SupplierProfile $supplier,
         public ValidationStatus $status,
         public ?string $reason = null
-    ) {}
+    ) {
+        $this->afterCommit();
+    }
 
     /**
      * Canaux de notification : e-mail + base de données (table notifications).
@@ -25,7 +31,7 @@ class SupplierValidationNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return $notifiable instanceof User ? $this->channelsFor($notifiable) : ['database'];
     }
 
     /**
@@ -66,6 +72,9 @@ class SupplierValidationNotification extends Notification
         $isApproved = $this->status === ValidationStatus::VALIDATED;
 
         return [
+            'event' => $this->eventType(),
+            'title' => $isApproved ? 'Compte fournisseur validé' : 'Compte fournisseur refusé',
+            'url' => $isApproved ? '/fournisseur' : '/fournisseur/en-attente',
             'event_type' => $isApproved ? 'supplier.validated' : 'supplier.rejected',
             'supplier_id' => $this->supplier->id,
             'company_name' => $this->supplier->company_name,
@@ -75,5 +84,12 @@ class SupplierValidationNotification extends Notification
                 ? "Votre dossier fournisseur « {$this->supplier->company_name} » a été validé."
                 : "Votre dossier fournisseur « {$this->supplier->company_name} » a été refusé. Motif : {$this->reason}",
         ];
+    }
+
+    protected function eventType(): string
+    {
+        return $this->status === ValidationStatus::VALIDATED
+            ? NotificationPreference::EVENT_ACCOUNT_VALIDATED
+            : NotificationPreference::EVENT_ACCOUNT_REJECTED;
     }
 }

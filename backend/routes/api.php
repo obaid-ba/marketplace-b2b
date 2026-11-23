@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\Supplier\TenderController as SupplierTenderControll
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPublicReviewController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
+use App\Http\Controllers\Api\WhatsAppConsentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -115,6 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::get('/notifications/preferences', [NotificationPreferenceController::class, 'show']);
     Route::put('/notifications/preferences', [NotificationPreferenceController::class, 'update']);
+    Route::put('/notifications/whatsapp', [WhatsAppConsentController::class, 'update'])->middleware('throttle:20,1'); // SCRUM-133
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])

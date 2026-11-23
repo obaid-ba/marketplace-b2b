@@ -49,10 +49,23 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'whatsapp_opted_in_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
             'status' => UserStatus::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Le consentement WhatsApp vaut pour un numéro précis : il est redemandé si le numéro change (SCRUM-133).
+        static::updating(function (User $user) {
+            $digits = fn (mixed $phone) => preg_replace('/\D/', '', (string) $phone);
+
+            if ($digits($user->phone) !== $digits($user->getOriginal('phone')) && ! $user->isDirty('whatsapp_opted_in_at')) {
+                $user->whatsapp_opted_in_at = null;
+            }
+        });
     }
 
     /** @return HasOne<SupplierProfile, $this> */
