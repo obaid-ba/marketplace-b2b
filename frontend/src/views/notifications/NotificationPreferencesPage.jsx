@@ -5,8 +5,15 @@ import {
   updateNotificationPreferences,
 } from '@/api/notifications'
 import PageHeader from '@/components/PageHeader'
+import WhatsAppSettings from '@/components/WhatsAppSettings'
 import { PATHS, notificationsPathFor } from '@/router/paths'
 import { selectRole, useAuthStore } from '@/stores/auth'
+
+const CHANNELS = [
+  { id: 'site', title: 'Sur le site', label: 'sur le site' },
+  { id: 'email', title: 'Par e-mail', label: 'par e-mail' },
+  { id: 'whatsapp', title: 'WhatsApp', label: 'par WhatsApp' },
+]
 
 /**
  * Préférences de notification (SCRUM-63 / F15) : une case par événement et par canal.
@@ -16,6 +23,7 @@ import { selectRole, useAuthStore } from '@/stores/auth'
 export default function NotificationPreferencesPage() {
   const role = useAuthStore(selectRole)
   const [rows, setRows] = useState([])
+  const [whatsapp, setWhatsapp] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -25,8 +33,8 @@ export default function NotificationPreferencesPage() {
     let active = true
 
     fetchNotificationPreferences()
-      .then((preferences) => {
-        if (active) setRows(preferences)
+      .then((result) => {
+        if (active) apply(result)
       })
       .catch((failure) => {
         if (active) setError(failure.userMessage ?? 'Impossible de charger vos préférences.')
@@ -39,6 +47,27 @@ export default function NotificationPreferencesPage() {
       active = false
     }
   }, [])
+
+  function apply(result) {
+    setRows(result.preferences)
+    setWhatsapp(result.whatsapp)
+  }
+
+  /** Consentement WhatsApp : met à jour la colonne sans perdre les cases pas encore enregistrées. */
+  function applyConsent(result) {
+    const pending = new Map(rows.map((row) => [row.event_type, row.channels]))
+    setRows(
+      result.preferences.map((row) => ({
+        ...row,
+        channels: { ...row.channels, site: pending.get(row.event_type)?.site ?? row.channels.site, email: pending.get(row.event_type)?.email ?? row.channels.email },
+      })),
+    )
+    setWhatsapp(result.whatsapp)
+    setNotice(result.message)
+  }
+
+  // La colonne WhatsApp n'existe qu'une fois le consentement donné (l'API l'ajoute alors à chaque ligne).
+  const channels = CHANNELS.filter(({ id }) => rows[0]?.channels[id])
 
   function toggle(eventType, channel) {
     setNotice(null)
@@ -66,16 +95,15 @@ export default function NotificationPreferencesPage() {
     setNotice(null)
 
     const preferences = rows.flatMap((row) =>
-      ['site', 'email'].map((channel) => ({
+      channels.map(({ id }) => ({
         event_type: row.event_type,
-        channel,
-        enabled: row.channels[channel].enabled,
+        channel: id,
+        enabled: row.channels[id].enabled,
       })),
     )
 
     try {
-      const preferencesResult = await updateNotificationPreferences(preferences)
-      setRows(preferencesResult)
+      apply(await updateNotificationPreferences(preferences))
       setNotice('Vos préférences sont enregistrées.')
     } catch (failure) {
       setError(failure.userMessage ?? 'L’enregistrement a échoué.')
@@ -88,7 +116,7 @@ export default function NotificationPreferencesPage() {
     <>
       <PageHeader
         title="Préférences de notification"
-        subtitle="Choisissez les événements reçus sur le site et par e-mail."
+        subtitle="Choisissez les événements reçus sur le site, par e-mail et par WhatsApp."
         actions={
           <Link to={notificationsPathFor(role) ?? PATHS.account} className="btn-secondary">
             Mes notifications
@@ -108,6 +136,8 @@ export default function NotificationPreferencesPage() {
         </div>
       )}
 
+      {whatsapp && <WhatsAppSettings state={whatsapp} onChange={applyConsent} />}
+
       {loading ? (
         <div className="card text-sm text-muted">Chargement des préférences…</div>
       ) : (
@@ -116,8 +146,11 @@ export default function NotificationPreferencesPage() {
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                 <th className="pb-3 font-medium">Événement</th>
-                <th className="pb-3 text-center font-medium">Sur le site</th>
-                <th className="pb-3 text-center font-medium">Par e-mail</th>
+                {channels.map(({ id, title }) => (
+                  <th key={id} className="pb-3 text-center font-medium">
+                    {title}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -132,7 +165,7 @@ export default function NotificationPreferencesPage() {
                     )}
                   </td>
 
-                  {['site', 'email'].map((channel) => {
+                  {channels.map(({ id: channel, label }) => {
                     const state = row.channels[channel]
 
                     return (
@@ -144,7 +177,7 @@ export default function NotificationPreferencesPage() {
                             checked={state.enabled}
                             disabled={state.locked}
                             onChange={() => toggle(row.event_type, channel)}
-                            aria-label={`${row.label} — ${channel === 'site' ? 'sur le site' : 'par e-mail'}`}
+                            aria-label={`${row.label} — ${label}`}
                           />
                         </label>
                       </td>
