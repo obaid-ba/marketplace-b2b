@@ -201,6 +201,14 @@ class BuyerOrderController extends Controller
         }
 
         DB::transaction(function () use ($order, $request, $documentService) {
+            // Même verrou qu'à l'ouverture d'un litige : une commande contestée ne se clôture pas (SCRUM-117).
+            Order::query()->lockForUpdate()->find($order->id);
+            abort_if(
+                $order->disputes()->undecided()->exists(),
+                422,
+                "Un litige est en cours sur cette commande : elle pourra être clôturée après la décision de l'administrateur.",
+            );
+
             $order->update([
                 'status' => OrderStatus::CLOSED,
             ]);

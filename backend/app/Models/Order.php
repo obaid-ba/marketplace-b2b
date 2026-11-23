@@ -91,6 +91,14 @@ class Order extends Model
     }
 
     /**
+     * Litiges de la commande, un seul non décidé à la fois (SCRUM-117 / F23).
+     */
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(Dispute::class, 'order_id');
+    }
+
+    /**
      * Avis éventuel déposé sur cette commande.
      */
     public function review(): HasOne

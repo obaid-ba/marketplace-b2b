@@ -36,6 +36,8 @@ class NotificationPreference extends Model
 
     public const EVENT_ANNOUNCEMENT_REMOVED = 'announcement_removed';
 
+    public const EVENT_DISPUTE_UPDATE = 'dispute_update';
+
     public const EVENT_DISPUTE_DECISION = 'dispute_decision';
 
     public const EVENT_MESSAGE_RECEIVED = 'message_received';
@@ -57,6 +59,7 @@ class NotificationPreference extends Model
         self::EVENT_ACCOUNT_VALIDATED => 'Compte validé',
         self::EVENT_ACCOUNT_REJECTED => 'Compte refusé',
         self::EVENT_ANNOUNCEMENT_REMOVED => 'Annonce retirée',
+        self::EVENT_DISPUTE_UPDATE => 'Litige ouvert ou pris en charge',
         self::EVENT_DISPUTE_DECISION => 'Décision de litige',
     ];
 
