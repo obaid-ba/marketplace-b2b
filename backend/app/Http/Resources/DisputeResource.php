@@ -40,11 +40,11 @@ class DisputeResource extends JsonResource
             ],
             'buyer' => [
                 'name' => $order->buyer?->organization ?: $order->buyer?->user?->name,
-                ...($isAdmin ? ['contact' => $order->buyer?->user?->only(['name', 'email', 'phone'])] : []),
+                ...($isAdmin ? ['contact' => $order->buyer?->user?->only(['id', 'name', 'email', 'phone'])] : []),
             ],
             'supplier' => [
                 'name' => $order->supplier?->company_name,
-                ...($isAdmin ? ['contact' => $order->supplier?->user?->only(['name', 'email', 'phone'])] : []),
+                ...($isAdmin ? ['contact' => $order->supplier?->user?->only(['id', 'name', 'email', 'phone'])] : []),
             ],
             'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(
                 fn ($attachment) => $attachment->only(['id', 'original_name', 'mime', 'size'])

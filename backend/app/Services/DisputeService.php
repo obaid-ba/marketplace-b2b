@@ -7,7 +7,6 @@ use App\Enums\DisputeStatus;
 use App\Enums\OrderStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
-use App\Models\AuditLog;
 use App\Models\Dispute;
 use App\Models\Order;
 use App\Models\User;
@@ -27,6 +26,8 @@ use Illuminate\Validation\ValidationException;
 class DisputeService
 {
     public const ATTACHMENT_DISK = 'local';
+
+    public function __construct(private readonly AuditLogger $audit) {}
 
     /**
      * R4 : de l'expédition à la livraison. « en livraison » est l'autre nom de l'expédition (devis acceptés en S3).
@@ -122,7 +123,7 @@ class DisputeService
             $previous = $locked->assigned_admin_id;
 
             $locked->update(['status' => DisputeStatus::IN_PROGRESS, 'assigned_admin_id' => $admin->id]);
-            $this->audit($admin, $wasOpen ? 'dispute.taken' : 'dispute.reassigned', $locked, $previous ? "Repris à l'administrateur n° {$previous}" : null);
+            $this->audit->log($admin, $wasOpen ? 'dispute.taken' : 'dispute.reassigned', "dispute:{$locked->id}", $previous ? "Repris à l'administrateur n° {$previous}" : null);
 
             return $wasOpen;
         });
@@ -149,7 +150,7 @@ class DisputeService
                 'decision_note' => $note,
                 'decided_at' => now(),
             ]);
-            $this->audit($admin, 'dispute.decided', $locked, "{$decision->value} — {$note}");
+            $this->audit->log($admin, 'dispute.decided', "dispute:{$locked->id}", "{$decision->value} — {$note}");
         });
 
         $dispute->refresh();
@@ -178,16 +179,6 @@ class DisputeService
         }
 
         return $locked;
-    }
-
-    private function audit(User $admin, string $action, Dispute $dispute, ?string $reason): void
-    {
-        AuditLog::create([
-            'admin_id' => $admin->id,
-            'action' => $action,
-            'target' => "dispute:{$dispute->id}",
-            'reason' => $reason,
-        ]);
     }
 
     private function supplierUser(Dispute $dispute): ?User

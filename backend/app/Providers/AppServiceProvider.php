@@ -14,8 +14,10 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,6 +40,12 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('register', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
         });
+
+        // Les jetons sont supprimés à la suspension (SCRUM-118). Filet de sécurité : un jeton créé
+        // au même instant ne donne pas accès à un compte suspendu, désactivé ou supprimé.
+        Sanctum::authenticateAccessTokensUsing(
+            fn (PersonalAccessToken $token, bool $isValid) => $isValid && $token->tokenable instanceof User && ! $token->tokenable->isBlocked()
+        );
 
         // Messagerie : 30 messages par minute et par utilisateur (SCRUM-60).
         RateLimiter::for('messages', function (Request $request) {

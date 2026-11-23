@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
+use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Buyer\FavoriteController;
 use App\Http\Controllers\Api\Buyer\FavoriteSupplierController;
@@ -261,6 +262,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
             ->whereNumber('supplier');
         Route::post('/suppliers/{supplier}/reject', [SupplierValidationController::class, 'reject'])
             ->whereNumber('supplier');
+
+        // Gestion des utilisateurs (SCRUM-118 / F24).
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/{user}', [AdminUserController::class, 'show'])->whereNumber('user');
+        Route::post('/users/{user}/suspend', [AdminUserController::class, 'suspend'])->whereNumber('user');
+        Route::post('/users/{user}/reactivate', [AdminUserController::class, 'reactivate'])->whereNumber('user');
 
         // Gestion des litiges (SCRUM-117 / F23).
         Route::get('/disputes', [AdminDisputeController::class, 'index']);
