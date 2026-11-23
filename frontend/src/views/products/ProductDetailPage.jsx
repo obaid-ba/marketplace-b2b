@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { fetchProduct } from '@/api/products'
 import { createBuyerOrder } from '@/api/orders'
+import ContactButton from '@/components/ContactButton'
 import { selectIsAuthenticated, selectRole, useAuthStore } from '@/stores/auth'
 import { loginPath, orderTrackingPath } from '@/router/paths'
 import { ROLES } from '@/utils/roles'
@@ -432,6 +433,12 @@ export default function ProductDetailPage() {
                   )}
                 </div>
               </div>
+
+              <ContactButton
+                supplierId={supplier.id}
+                label="Contacter le fournisseur"
+                draft={`Bonjour, je suis intéressé par « ${product.title} ».`}
+              />
 
               {(supplier.delivery_days || supplier.payment_terms) && (
                 <div className="border-t border-slate-100 pt-2 text-xs space-y-1 text-slate-600">

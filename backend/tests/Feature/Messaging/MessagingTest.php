@@ -19,7 +19,6 @@ use App\Models\Tender;
 use App\Models\TenderRecipient;
 use App\Models\User;
 use App\Notifications\NewMessageNotification;
-use Illuminate\Contracts\Broadcasting\Factory as BroadcastFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
@@ -297,10 +296,20 @@ class MessagingTest extends TestCase
     public function test_un_message_est_envoye_meme_si_le_serveur_temps_reel_est_arrete(): void
     {
         $conversation = $this->openDirect();
-        $this->mock(BroadcastFactory::class, fn ($mock) => $mock->shouldReceive('event', 'queue', 'connection')->andThrow(new \RuntimeException('Reverb arrêté')));
+        // Vrai client Reverb vers un port fermé : l'échec doit se produire au même moment qu'en réalité.
+        config([
+            'broadcasting.default' => 'reverb',
+            'broadcasting.connections.reverb.key' => 'k',
+            'broadcasting.connections.reverb.secret' => 's',
+            'broadcasting.connections.reverb.app_id' => 'a',
+            'broadcasting.connections.reverb.options' => ['host' => '127.0.0.1', 'port' => 1, 'scheme' => 'http', 'useTLS' => false],
+        ]);
 
         $this->send($this->buyer, $conversation, 'Toujours là');
         $this->assertDatabaseHas('messages', ['body' => 'Toujours là']);
+        $this->assertSame(1, $this->supplier->unreadNotifications()->count());
+
+        $this->actingAs($this->supplier, 'sanctum')->postJson("/api/conversations/{$conversation->id}/read")->assertOk();
     }
 
     public function test_l_historique_est_pagine_vers_le_passe(): void

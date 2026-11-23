@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { downloadTenderAttachment } from '@/api/attachments'
 import { fetchSupplierTender, submitTenderQuote } from '@/api/supplierTenders'
+import ContactButton from '@/components/ContactButton'
 import PageHeader from '@/components/PageHeader'
 import RelevanceScoreBadge from '@/components/RelevanceScoreBadge'
 import { QuoteStatusBadge, TenderStatusBadge } from '@/components/TenderBadges'
@@ -129,9 +130,12 @@ export default function ReceivedTenderDetailPage() {
         title={tender.title}
         subtitle={`${tender.category?.name ?? 'Catégorie non précisée'} · ${tender.region?.name ?? 'Toute la Tunisie'}`}
         actions={
-          <Link to={PATHS.supplierTenders} className="btn-secondary">
-            Demandes reçues
-          </Link>
+          <>
+            <ContactButton contextType="demande" contextId={tender.id} label="Contacter le porteur" className="btn-primary" />
+            <Link to={PATHS.supplierTenders} className="btn-secondary">
+              Demandes reçues
+            </Link>
+          </>
         }
       />
 

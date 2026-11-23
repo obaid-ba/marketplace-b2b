@@ -48,7 +48,7 @@ class AppServiceProvider extends ServiceProvider
         // rescue : si Reverb est arrêté, la notification reste enregistrée.
         Event::listen(function (NotificationSent $event) {
             if ($event->channel === 'database' && $event->notifiable instanceof User) {
-                rescue(fn () => broadcast(new NotificationCreated($event->notifiable->id, $event->notification->id)));
+                rescue(fn () => event(new NotificationCreated($event->notifiable->id, $event->notification->id)));
             }
         });
 

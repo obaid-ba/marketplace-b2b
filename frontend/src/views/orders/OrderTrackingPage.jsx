@@ -7,6 +7,7 @@ import {
   fetchOrderDetails,
 } from '@/api/orders'
 import { submitBuyerReview } from '@/api/reviews'
+import ContactButton from '@/components/ContactButton'
 import { OrderStatusBadge, OrderStatusProgress } from '@/components/orders/OrderStatusBadge'
 import { selectRole, selectUser, useAuthStore } from '@/stores/auth'
 import { PATHS } from '@/router/paths'
@@ -213,6 +214,9 @@ export default function OrderTrackingPage() {
         </div>
 
         <div className="flex items-center gap-3 self-start sm:self-auto">
+          {(isBuyer || isSupplier) && (
+            <ContactButton contextType="commande" contextId={order.id} label={isSupplier ? "Contacter l'acheteur" : 'Contacter le fournisseur'} />
+          )}
           <OrderStatusBadge status={order.status} />
           <span className="text-xl font-black text-slate-900">
             {Number(order.total).toFixed(2)} <span className="text-xs font-normal">TND</span>

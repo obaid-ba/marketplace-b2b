@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { fetchBuyerOrder } from '@/api/orders'
+import ContactButton from '@/components/ContactButton'
 import PageHeader from '@/components/PageHeader'
 import StatusBadge from '@/components/StatusBadge'
 import { buyerTenderPath, PATHS } from '@/router/paths'
@@ -69,9 +70,12 @@ export default function OrderDetailPage() {
         title={`Commande n° ${order.id}`}
         subtitle={`Créée le ${formatDate(order.created_at?.slice(0, 10))} — ${order.origin_label ?? 'Devis accepté'}`}
         actions={
-          <Link to={PATHS.buyerOrders} className="btn-secondary">
-            Mes commandes
-          </Link>
+          <>
+            <ContactButton contextType="commande" contextId={order.id} label="Contacter le fournisseur" className="btn-primary" />
+            <Link to={PATHS.buyerOrders} className="btn-secondary">
+              Mes commandes
+            </Link>
+          </>
         }
       />
 

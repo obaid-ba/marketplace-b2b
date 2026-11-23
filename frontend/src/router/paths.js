@@ -30,6 +30,8 @@ export const PATHS = Object.freeze({
   buyerFavorites: '/porteur/favoris',
   supplierOrders: '/fournisseur/commandes',
   supplierReviews: '/fournisseur/avis',
+  supplierMessages: '/fournisseur/messagerie', // SCRUM-59
+  buyerMessages: '/porteur/messagerie', // SCRUM-59
   admin: '/admin',
   adminSuppliers: '/admin/fournisseurs',
   adminCategories: '/admin/categories',
@@ -39,6 +41,15 @@ export const PATHS = Object.freeze({
 /** Centre de notifications de l'espace de ce rôle (l'administrateur n'en a pas encore). */
 export function notificationsPathFor(role) {
   return { supplier: PATHS.supplierNotifications, buyer: PATHS.buyerNotifications }[role]
+}
+
+/** Messagerie de l'espace de ce rôle. */
+export function messagingPathFor(role) {
+  return role === 'supplier' ? PATHS.supplierMessages : PATHS.buyerMessages
+}
+
+export function conversationPath(role, id) {
+  return `${messagingPathFor(role)}/${id}`
 }
 
 /**

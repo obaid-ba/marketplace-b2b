@@ -228,6 +228,12 @@ export const createRoutes = () => [
             handle: { crumb: 'Mes avis' },
             lazy: page(() => import('@/views/supplier/SupplierReviewsPage')),
           },
+          {
+            path: `${PATHS.supplierMessages}/:conversationId?`,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Messagerie' },
+            lazy: page(() => import('@/views/messaging/MessagingPage')),
+          },
         ],
         () => import('@/layouts/SupplierLayout'),
       ),
@@ -276,6 +282,11 @@ export const createRoutes = () => [
             path: `${PATHS.buyerOrders}/:id`,
             handle: { crumb: 'Suivi de commande' },
             lazy: page(() => import('@/views/buyer/OrderDetailPage')),
+          },
+          {
+            path: `${PATHS.buyerMessages}/:conversationId?`,
+            handle: { crumb: 'Messagerie' },
+            lazy: page(() => import('@/views/messaging/MessagingPage')),
           },
           {
             path: PATHS.buyerNotifications,

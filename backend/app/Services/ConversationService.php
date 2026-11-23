@@ -107,7 +107,8 @@ class ConversationService
         $this->notifyRecipients($message, $sender);
 
         // Le temps réel est un confort : si Reverb est arrêté, le message est quand même envoyé.
-        rescue(fn () => broadcast(new MessageSent($message)));
+        // event() et non broadcast() : ce dernier n'envoie qu'à sa destruction, donc hors de rescue().
+        rescue(fn () => event(new MessageSent($message)));
 
         return $message;
     }
@@ -133,7 +134,7 @@ class ConversationService
             ->where('data->conversation_id', $conversation->id)
             ->update(['read_at' => now()]);
 
-        rescue(fn () => broadcast(new ConversationRead($conversation, $user->id, (int) $lastMessageId)));
+        rescue(fn () => event(new ConversationRead($conversation, $user->id, (int) $lastMessageId)));
     }
 
     public function unreadTotal(User $user): int

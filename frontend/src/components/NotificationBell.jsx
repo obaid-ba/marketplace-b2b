@@ -6,6 +6,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '@/api/notifications'
+import { isRealtimeConnected, useRealtime } from '@/realtime/realtime'
 
 /** « il y a 5 min », « hier »… pour la liste déroulante. */
 function relativeTime(value) {
@@ -32,8 +33,8 @@ function BellIcon() {
 
 /**
  * Cloche de notifications avec compteur et menu déroulant (SCRUM-62 / F15).
- * Le temps réel Reverb n'est pas encore branché : un rafraîchissement toutes
- * les 30 secondes et au retour sur l'onglet donne un comportement équivalent.
+ * Temps réel par Reverb ; s'il n'est pas disponible, rafraîchissement toutes les 30 secondes
+ * et au retour sur l'onglet.
  */
 export default function NotificationBell({ notificationsPath }) {
   const navigate = useNavigate()
@@ -51,8 +52,8 @@ export default function NotificationBell({ notificationsPath }) {
     }
   }, [])
 
-  const refreshItems = useCallback(async () => {
-    setLoading(true)
+  const refreshItems = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     try {
       const page = await fetchNotifications({ per_page: 5 })
       setItems(page.data ?? [])
@@ -65,7 +66,7 @@ export default function NotificationBell({ notificationsPath }) {
 
   useEffect(() => {
     refreshCount()
-    const interval = window.setInterval(refreshCount, 30000)
+    const interval = window.setInterval(() => !isRealtimeConnected() && refreshCount(), 30000)
     const onFocus = () => refreshCount()
     window.addEventListener('focus', onFocus)
 
@@ -74,6 +75,14 @@ export default function NotificationBell({ notificationsPath }) {
       window.removeEventListener('focus', onFocus)
     }
   }, [refreshCount])
+
+  const onNotification = () => {
+    refreshCount()
+    if (open) refreshItems({ silent: true })
+  }
+  useRealtime('notification.created', onNotification)
+  useRealtime('conversation.read', refreshCount) // lire une conversation marque sa notification comme lue
+  useRealtime('connected', refreshCount)
 
   useEffect(() => {
     if (open) refreshItems()

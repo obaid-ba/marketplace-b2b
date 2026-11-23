@@ -42,7 +42,9 @@ return [
                 'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
             ],
             'client_options' => [
-                // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
+                // Reverb injoignable : on n'attend pas, l'envoi du message ne doit pas être bloqué.
+                'connect_timeout' => 1,
+                'timeout' => 2,
             ],
         ],
 
