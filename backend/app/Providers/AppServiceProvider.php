@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Events\NotificationCreated;
+use App\Exceptions\AiUnavailableException;
 use App\Models\User;
+use App\Services\Ai\AiClient;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -23,7 +25,12 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Fournisseur d'IA choisi par AI_PROVIDER (SCRUM-119) : voir config/ai.php.
+        $this->app->bind(AiClient::class, function ($app) {
+            $driver = config('ai.drivers')[config('ai.provider')] ?? throw new AiUnavailableException('Fournisseur IA inconnu ou désactivé.');
+
+            return $app->make($driver);
+        });
     }
 
     public function boot(): void

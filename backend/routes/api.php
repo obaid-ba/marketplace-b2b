@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Buyer\BuyerOrderController;
 use App\Http\Controllers\Api\Buyer\BuyerReviewController;
 use App\Http\Controllers\Api\Buyer\OrderController as BuyerOrderLifecycleController;
 use App\Http\Controllers\Api\Buyer\QuoteController as BuyerQuoteController;
+use App\Http\Controllers\Api\Buyer\QuoteSummaryController;
 use App\Http\Controllers\Api\Buyer\TenderController as BuyerTenderController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\CategoryController;
@@ -194,6 +195,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
         Route::get('/tenders/{tender}/quotes', [BuyerQuoteController::class, 'index'])->whereNumber('tender');
         Route::post('/quotes/{quote}/accept', [BuyerQuoteController::class, 'accept'])->whereNumber('quote');
+        // Résumé automatique des devis (SCRUM-119 / F25).
+        Route::get('/tenders/{tender}/quotes/summary', [QuoteSummaryController::class, 'show'])->whereNumber('tender');
+        Route::post('/tenders/{tender}/quotes/summary', [QuoteSummaryController::class, 'store'])->whereNumber('tender');
+        Route::patch('/tenders/{tender}/quotes/summary', [QuoteSummaryController::class, 'update'])->whereNumber('tender');
 
         Route::get('/favorites', [FavoriteController::class, 'index']);
         Route::post('/favorites/{supplier}', [FavoriteSupplierController::class, 'store'])->whereNumber('supplier');
