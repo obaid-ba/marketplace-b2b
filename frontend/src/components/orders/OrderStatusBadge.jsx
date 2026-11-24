@@ -82,7 +82,7 @@ export function OrderStatusProgress({ status, statusHistory = [] }) {
 
   return (
     <div className="w-full">
-      <div className="flex items-start justify-between text-xs font-medium text-slate-500">
+      <ol className="grid grid-cols-4 text-xs font-medium text-slate-500">
         {steps.map((step, idx) => {
           const isPassed = currentStep >= step.num
           const isCurrent = currentStep === step.num
@@ -96,8 +96,17 @@ export function OrderStatusProgress({ status, statusHistory = [] }) {
             : null
 
           return (
-            <div key={step.key} className="flex flex-1 items-start">
-              <div className="flex flex-col items-center text-center min-w-[70px]">
+            <li key={step.key} aria-current={isCurrent ? 'step' : undefined} className="relative min-w-0">
+              {/* Trait jusqu'à l'étape suivante, entre les deux pastilles */}
+              {idx < steps.length - 1 && (
+                <div
+                  aria-hidden="true"
+                  className={`absolute top-3 left-[calc(50%+1.25rem)] h-1 w-[calc(100%-2.5rem)] rounded transition ${
+                    currentStep > step.num ? 'bg-brand-600' : 'bg-slate-200'
+                  }`}
+                />
+              )}
+              <div className="flex flex-col items-center text-center">
                 <span
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition ${
                     isPassed
@@ -124,23 +133,16 @@ export function OrderStatusProgress({ status, statusHistory = [] }) {
                   </span>
                 ) : isCurrent ? (
                   <span className="mt-0.5 text-[10px] text-brand-600 font-medium">
-                    (En cours)
+                    {step.num === steps.length ? '(Terminée)' : '(En cours)'}
                   </span>
                 ) : (
                   <span className="mt-0.5 text-[10px] text-slate-300">—</span>
                 )}
               </div>
-              {idx < steps.length - 1 && (
-                <div
-                  className={`mx-2 mt-3.5 h-1 flex-1 rounded transition ${
-                    currentStep > step.num ? 'bg-brand-600' : 'bg-slate-200'
-                  }`}
-                />
-              )}
-            </div>
+            </li>
           )
         })}
-      </div>
+      </ol>
     </div>
   )
 }

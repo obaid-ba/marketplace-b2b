@@ -214,12 +214,12 @@ export default function OrderTrackingPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-3 self-start sm:justify-end sm:self-auto">
           {(isBuyer || isSupplier) && (
             <ContactButton contextType="commande" contextId={order.id} label={isSupplier ? "Contacter l'acheteur" : 'Contacter le fournisseur'} />
           )}
           <OrderStatusBadge status={order.status} />
-          <span className="text-xl font-black text-slate-900">
+          <span className="text-xl font-black whitespace-nowrap text-slate-900">
             {Number(order.total).toFixed(2)} <span className="text-xs font-normal">TND</span>
           </span>
         </div>
@@ -239,7 +239,7 @@ export default function OrderTrackingPage() {
       )}
 
       {/* Ligne de temps (Timeline) en 4 étapes : Validée -> Expédiée -> Livrée -> Clôturée */}
-      <div className="card p-6 space-y-4">
+      <div className="card space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
             Évolution de la commande (Timeline)
@@ -297,9 +297,9 @@ export default function OrderTrackingPage() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-xs text-slate-500">
-                <th className="pb-2 font-medium">Désignation</th>
-                <th className="pb-2 font-medium text-center">Quantité</th>
-                <th className="pb-2 font-medium text-right">Prix unitaire</th>
+                <th className="pr-3 pb-2 font-medium">Désignation</th>
+                <th className="hidden pr-3 pb-2 text-center font-medium sm:table-cell">Quantité</th>
+                <th className="hidden pr-3 pb-2 text-right font-medium sm:table-cell">Prix unitaire</th>
                 <th className="pb-2 font-medium text-right">Sous-total</th>
               </tr>
             </thead>
@@ -310,17 +310,21 @@ export default function OrderTrackingPage() {
 
                 return (
                   <tr key={item.id} className="text-slate-800">
-                    <td className="py-3 font-medium">
+                    <td className="py-3 pr-3 font-medium">
                       {item.label}
+                      {/* Téléphone : quantité et prix sous le nom, pour garder le sous-total visible */}
+                      <span className="block text-xs font-normal text-slate-500 sm:hidden">
+                        {`${item.quantity} × ${unitPriceNum.toFixed(2)} TND`}
+                      </span>
                       {item.product_id && (
                         <span className="block text-xs text-slate-400 font-normal">
                           Réf. article #{item.product_id}
                         </span>
                       )}
                     </td>
-                    <td className="py-3 text-center">{item.quantity}</td>
-                    <td className="py-3 text-right">{unitPriceNum.toFixed(2)} TND</td>
-                    <td className="py-3 text-right font-semibold">
+                    <td className="hidden py-3 pr-3 text-center sm:table-cell">{item.quantity}</td>
+                    <td className="hidden py-3 pr-3 text-right sm:table-cell">{unitPriceNum.toFixed(2)} TND</td>
+                    <td className="py-3 text-right font-semibold whitespace-nowrap">
                       {subtotal.toFixed(2)} TND
                     </td>
                   </tr>
@@ -329,10 +333,11 @@ export default function OrderTrackingPage() {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-slate-200 text-slate-900">
-                <td colSpan="3" className="pt-3 text-right font-bold text-sm">
+                <td colSpan="2" className="hidden sm:table-cell" />
+                <td className="pt-3 pr-3 text-sm font-bold sm:text-right">
                   Total de la commande :
                 </td>
-                <td className="pt-3 text-right font-extrabold text-base text-brand-700">
+                <td className="pt-3 text-right text-base font-extrabold whitespace-nowrap text-brand-700">
                   {Number(order.total).toFixed(2)} TND
                 </td>
               </tr>
@@ -351,7 +356,7 @@ export default function OrderTrackingPage() {
             <p className="text-xs font-semibold text-slate-500 uppercase">Devis commercial</p>
             {order.origin === 'devis' ? (
               quoteDoc ? (
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-medium text-slate-800">Devis #{quoteDoc.number}</span>
                   <button
                     type="button"
@@ -374,7 +379,7 @@ export default function OrderTrackingPage() {
           <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/50">
             <p className="text-xs font-semibold text-slate-500 uppercase">Facture</p>
             {invoiceDoc ? (
-              <div className="mt-2 flex items-center justify-between">
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-medium text-slate-800">Facture #{invoiceDoc.number}</span>
                 <button
                   type="button"
@@ -521,7 +526,7 @@ export default function OrderTrackingPage() {
 
       {order.review && (
         <div className="card space-y-3 border-emerald-200 bg-emerald-50/40">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-emerald-900">Avis laissé sur cette commande</h3>
             <div className="flex items-center gap-1 text-sm font-black text-amber-500">
               {'★'.repeat(order.review.rating || 5)}{'☆'.repeat(5 - (order.review.rating || 5))}
@@ -553,7 +558,7 @@ export default function OrderTrackingPage() {
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Fournisseur</h2>
           <p className="text-base font-bold text-slate-900">{supplier?.company_name}</p>
           {supplier?.user && (
-            <p className="text-xs text-slate-600">
+            <p className="text-xs [overflow-wrap:anywhere] text-slate-600">
               Contact : {supplier.user.name} • {supplier.user.email} {supplier.user.phone ? `• ${supplier.user.phone}` : ''}
             </p>
           )}
@@ -575,7 +580,7 @@ export default function OrderTrackingPage() {
             {buyer?.organization || buyerUser?.name || 'Acheteur'}
           </p>
           {buyerUser && (
-            <p className="text-xs text-slate-600">
+            <p className="text-xs [overflow-wrap:anywhere] text-slate-600">
               Contact : {buyerUser.name} • {buyerUser.email} {buyerUser.phone ? `• ${buyerUser.phone}` : ''}
             </p>
           )}
@@ -602,8 +607,8 @@ export default function OrderTrackingPage() {
                 minute: '2-digit',
               })
               return (
-                <li key={h.id} className="flex items-center justify-between py-2 text-slate-700">
-                  <div className="flex items-center gap-2">
+                <li key={h.id} className="flex flex-col gap-1 py-2 text-slate-700 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-slate-900">Statut passé à :</span>
                     <OrderStatusBadge status={h.status} />
                     {h.changer && (
