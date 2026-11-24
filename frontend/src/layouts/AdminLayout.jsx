@@ -10,9 +10,10 @@ const NAV_ITEMS = [
   { label: 'Tableau de bord', to: PATHS.admin, end: true }, // SCRUM-122
   { label: 'Validation fournisseurs', to: PATHS.adminSuppliers }, // SCRUM-31 / SCRUM-99
   { label: 'Gestion des catégories', to: PATHS.adminCategories }, // SCRUM-32
-  { label: 'Contrôle du catalogue' }, // F29 / SCRUM-123
-  { label: 'Avis signalés' }, // F29 / SCRUM-123
-  { label: 'Litiges' }, // F23 / S5
+  { label: 'Contrôle du catalogue', to: PATHS.adminProducts }, // F29 / SCRUM-123
+  { label: 'Avis signalés', to: PATHS.adminReviews }, // F29 / SCRUM-123
+  { label: 'Litiges', to: PATHS.adminDisputes }, // F23 / S5
+  { label: 'Gestion des utilisateurs', to: PATHS.adminUsers }, // SCRUM-71
   { label: 'Paramètres du compte', to: PATHS.account },
 ]
 

@@ -23,13 +23,25 @@ export const PATHS = Object.freeze({
   buyer: '/porteur',
   buyerOrders: '/porteur/commandes',
   buyerTenders: '/porteur/demandes',
+  buyerTenderNew: '/porteur/demandes/nouvelle',
   buyerQuotes: '/porteur/devis',
   buyerFavorites: '/porteur/favoris',
+  buyerAi: '/porteur/assistant-ia', // SCRUM-124 / SCRUM-79
+  buyerDisputes: '/porteur/litiges', // SCRUM-67
+  buyerNotifications: '/parametres/notifications',
+  notificationPreferences: '/parametres/notifications',
   supplierOrders: '/fournisseur/commandes',
   supplierReviews: '/fournisseur/avis',
+  supplierAi: '/fournisseur/assistant-ia', // SCRUM-77 / SCRUM-78
+  supplierDisputes: '/fournisseur/litiges', // SCRUM-67
   admin: '/admin',
   adminSuppliers: '/admin/fournisseurs',
   adminCategories: '/admin/categories',
+  adminProducts: '/admin/catalogue', // SCRUM-72
+  adminReviews: '/admin/avis', // SCRUM-74
+  adminDisputes: '/admin/litiges', // SCRUM-73
+  adminUsers: '/admin/utilisateurs', // SCRUM-71
+  adminExports: '/admin/exports', // SCRUM-75
   forbidden: '/acces-refuse',
 })
 

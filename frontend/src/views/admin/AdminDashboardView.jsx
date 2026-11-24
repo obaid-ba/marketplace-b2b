@@ -7,6 +7,7 @@ import KpiCard from '@/components/dashboard/KpiCard'
 import PeriodPicker from '@/components/dashboard/PeriodPicker'
 import Skeleton from '@/components/dashboard/Skeleton'
 import TimeSeriesChart from '@/components/dashboard/TimeSeriesChart'
+import AdminExportDialog from './AdminExportDialog'
 import { PATHS } from '@/router/paths'
 import {
   selectAdminDashboard,
@@ -65,6 +66,7 @@ export default function AdminDashboardView() {
   const reset = useAdminDashboardStore((state) => state.reset)
 
   const [period, setPeriod] = useState(() => defaultPeriod())
+  const [exportOpen, setExportOpen] = useState(false)
 
   useEffect(() => {
     load(period)
@@ -82,7 +84,14 @@ export default function AdminDashboardView() {
       <PageHeader
         title="Tableau de bord administrateur"
         subtitle="Vue consolidée de l'activité de la plateforme : comptes, commandes, demandes et files à traiter."
+        actions={
+          <button type="button" className="btn btn-secondary" onClick={() => setExportOpen(true)}>
+            Exporter les statistiques
+          </button>
+        }
       />
+
+      <AdminExportDialog open={exportOpen} defaultRange={period} onClose={() => setExportOpen(false)} />
 
       <section className="card" aria-labelledby="period-title">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
