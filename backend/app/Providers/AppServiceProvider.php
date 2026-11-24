@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\AiClient;
 use App\Models\User;
+use App\Services\Ai\MockAiClient;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -11,14 +13,19 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // SCRUM-80 : un seul fournisseur d'IA pour toute l'application. Le mode
+        // `mock` (défaut) ne nécessite aucune clé et sert aux tests/démos.
+        $this->app->bind(AiClient::class, function () {
+            // Le fournisseur réel sera ajouté ici quand Q8 sera tranchée.
+            return new MockAiClient;
+        });
     }
 
     public function boot(): void
@@ -54,6 +61,12 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // SCRUM-80 : limite les appels IA par utilisateur (coût et abus).
+        RateLimiter::for('ai', function (Request $request) {
+            return Limit::perMinute((int) config('ai.rate_limit_per_minute', 20))
+                ->by((string) $request->user()?->id);
         });
     }
 

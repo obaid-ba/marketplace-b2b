@@ -97,4 +97,12 @@ class Order extends Model
     {
         return $this->hasOne(Review::class, 'order_id');
     }
+
+    /**
+     * Litiges ouverts sur cette commande (SCRUM-67 / F21).
+     */
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(Dispute::class);
+    }
 }
