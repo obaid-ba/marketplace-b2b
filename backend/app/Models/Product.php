@@ -132,6 +132,11 @@ class Product extends Model
         return self::API_STATUSES[$status] ?? ProductStatus::DRAFT;
     }
 
+    public function isService(): bool
+    {
+        return $this->type === self::TYPE_SERVICE;
+    }
+
     public function scopeVisible(Builder $query): void
     {
         $query->where('products.status', ProductStatus::PUBLISHED->value)

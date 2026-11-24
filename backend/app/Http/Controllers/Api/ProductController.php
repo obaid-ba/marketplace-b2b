@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\ProductStatus;
-use App\Enums\ValidationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalog\SearchProductsRequest;
 use App\Http\Resources\ProductCardResource;
+use App\Http\Resources\ProductDetailResource;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\SupplierProfile;
@@ -31,44 +31,35 @@ class ProductController extends Controller
     }
 
     /**
-     * Fiche produit détaillée avec données du fournisseur et suggestions du même fournisseur.
+     * Fiche produit (SCRUM-36) et autres produits du même fournisseur pour la commande directe (SCRUM-51).
+     * 404 « Produit introuvable » si le produit n'est pas visible. La consultation est enregistrée après la réponse.
      */
-    public function show(Request $request, Product $product, FavoriteService $favorites, ProductViewRecorder $views): JsonResponse
+    public function show(Request $request, int $product, FavoriteService $favorites, ProductViewRecorder $views): ProductDetailResource
     {
-        abort_unless(Product::query()->visible()->whereKey($product->id)->exists(), 404, 'Produit introuvable.');
+        $model = Product::query()
+            ->visible()
+            ->with(['images', 'category.parent', 'supplier.region:id,name'])
+            ->findOr($product, fn () => abort(404, 'Produit introuvable.'));
 
-        $product->load([
-            'images',
-            'category.parent',
-            'supplier.region:id,name',
-            'supplier:id,user_id,company_name,logo,delivery_days,payment_terms,validation_status,is_published,rating_avg,reviews_count',
-        ]);
-
-        $product->latest_reviews = Review::query()
+        $model->latest_reviews = Review::query()
             ->published()
-            ->where('supplier_id', $product->supplier_id)
+            ->where('supplier_id', $model->supplier_id)
             ->with('buyer.user:id,name,first_name,last_name')
             ->latest()
             ->orderByDesc('id')
             ->limit(3)
             ->get();
-        $product->is_favorite = $favorites->isFavorite($request->user('sanctum'), $product->supplier);
-
-        $views->record($product, $request);
-
-        // Produits additionnels du même fournisseur pour commande directe multi-articles sans panier
-        $supplierProducts = Product::query()
-            ->where('supplier_id', $product->supplier_id)
-            ->where('id', '!=', $product->id)
-            ->where('status', ProductStatus::PUBLISHED)
-            ->select(['id', 'supplier_id', 'title', 'price', 'unit', 'stock'])
+        $model->is_favorite = $favorites->isFavorite($request->user('sanctum'), $model->supplier);
+        $model->same_supplier_products = Product::query()
+            ->visible()
+            ->where('supplier_id', $model->supplier_id)
+            ->whereKeyNot($model->id)
             ->limit(10)
-            ->get();
+            ->get(['id', 'supplier_id', 'title', 'price', 'unit', 'stock']);
 
-        return response()->json([
-            'product' => $product,
-            'same_supplier_products' => $supplierProducts,
-        ]);
+        $views->record($model, $request);
+
+        return new ProductDetailResource($model);
     }
 
     /**

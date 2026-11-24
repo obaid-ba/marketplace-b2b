@@ -215,9 +215,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/tenders/{tender}/quotes/summary', [QuoteSummaryController::class, 'store'])->whereNumber('tender');
         Route::patch('/tenders/{tender}/quotes/summary', [QuoteSummaryController::class, 'update'])->whereNumber('tender');
 
+        // Favoris à inviter sur une demande (SCRUM-49).
         Route::get('/favorites', [FavoriteController::class, 'index']);
-        Route::post('/favorites/{supplier}', [FavoriteSupplierController::class, 'store'])->whereNumber('supplier');
-        Route::delete('/favorites/{supplier}', [FavoriteSupplierController::class, 'destroy'])->whereNumber('supplier');
 
         // Commandes passées & commande directe (SCRUM-51, SCRUM-58 / F16).
         Route::get('/orders', [BuyerOrderController::class, 'index']);
@@ -231,6 +230,13 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/orders/{order}/dispute', [DisputeController::class, 'store'])
             ->whereNumber('order')
             ->middleware('throttle:10,1');
+    });
+
+    // Fournisseurs favoris du porteur de projet (SCRUM-39). Ajout / retrait idempotents.
+    Route::middleware('role:buyer')->prefix('favorites/suppliers')->group(function () {
+        Route::get('/', [FavoriteSupplierController::class, 'index']);
+        Route::post('/{supplier}', [FavoriteSupplierController::class, 'store'])->whereNumber('supplier');
+        Route::delete('/{supplier}', [FavoriteSupplierController::class, 'destroy'])->whereNumber('supplier');
     });
 
     // Messagerie (SCRUM-59 à SCRUM-61 / F21, F22) : porteurs et fournisseurs.

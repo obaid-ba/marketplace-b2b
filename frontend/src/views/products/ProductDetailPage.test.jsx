@@ -16,23 +16,21 @@ vi.mock('@/api/orders', () => ({
 
 function mockProductData() {
   return {
-    product: {
-      id: 42,
-      supplier_id: 10,
-      title: 'Scie circulaire Pro 1800W',
-      description: 'Scie professionnelle haute précision pour chantiers.',
-      price: '450.00',
-      unit: 'pièce',
-      stock: 5,
-      availability_days: 2,
-      category: { id: 3, name: 'Outillage électroportatif' },
-      supplier: {
-        id: 10,
-        company_name: 'Quincaillerie Centrale SARL',
-        logo: null,
-        delivery_days: 3,
-        payment_terms: 'Comptant à la livraison ou virement sous 30 jours',
-      },
+    id: 42,
+    supplier_id: 10,
+    title: 'Scie circulaire Pro 1800W',
+    description: 'Scie professionnelle haute précision pour chantiers.',
+    price: '450.00',
+    unit: 'pièce',
+    stock: 5,
+    availability_days: 2,
+    category: { id: 3, name: 'Outillage électroportatif' },
+    supplier: {
+      id: 10,
+      company_name: 'Quincaillerie Centrale SARL',
+      logo_url: null,
+      delivery_days: 3,
+      payment_terms: 'Comptant à la livraison ou virement sous 30 jours',
     },
     same_supplier_products: [
       {

@@ -36,7 +36,7 @@ export default function ProductDetailPage() {
     setError(null)
     try {
       const data = await fetchProduct(id)
-      setProduct(data.product)
+      setProduct(data)
       setSameSupplierProducts(data.same_supplier_products ?? [])
 
       // Vérifier si une commande en attente était mémorisée avant connexion
@@ -415,8 +415,8 @@ export default function ProductDetailPage() {
             <div className="card space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Fournisseur vérifié</h3>
               <div className="flex items-center gap-3">
-                {supplier.logo ? (
-                  <img src={supplier.logo} alt={supplier.company_name} className="h-10 w-10 rounded-full object-cover border" />
+                {supplier.logo_url ? (
+                  <img src={supplier.logo_url} alt={supplier.company_name} className="h-10 w-10 rounded-full object-cover border" />
                 ) : (
                   <div className="grid h-10 w-10 place-items-center rounded-full bg-brand-100 font-bold text-brand-700">
                     {supplier.company_name?.charAt(0) || 'F'}
