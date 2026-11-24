@@ -142,12 +142,12 @@ export default function NotificationPreferencesPage() {
         <div className="card text-sm text-muted">Chargement des préférences…</div>
       ) : (
         <div className="card overflow-x-auto">
-          <table className="w-full min-w-140 text-sm">
+          <table className="w-full text-sm sm:min-w-140">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                 <th className="pb-3 font-medium">Événement</th>
                 {channels.map(({ id, title }) => (
-                  <th key={id} className="pb-3 text-center font-medium">
+                  <th key={id} className="px-1 pb-3 text-center font-medium">
                     {title}
                   </th>
                 ))}
