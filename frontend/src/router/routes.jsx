@@ -135,15 +135,6 @@ export const createRoutes = () => [
         lazy: page(() => import('@/views/supplier/PendingAccountPage')),
       },
 
-      // Fiche produit publique et commande directe (SCRUM-51)
-      {
-        path: '/produits/:id',
-        lazy: page(() => import('@/layouts/AppLayout')),
-        children: [
-          { index: true, lazy: page(() => import('@/views/products/ProductDetailPage')) },
-        ],
-      },
-
       // Suivi de commande (SCRUM-51, SCRUM-58)
       {
         path: '/orders/:id',

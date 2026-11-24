@@ -1,25 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { searchProducts } from '@/api/catalog'
 import { fetchProduct } from '@/api/products'
-import ContactButton from '@/components/ContactButton'
 import EmptyState from '@/components/EmptyState'
-import FavoriteButton from '@/components/FavoriteButton'
 import ProductCard from '@/components/ProductCard'
 import ProductImagePlaceholder from '@/components/ProductImagePlaceholder'
 import PublicNotFound from '@/components/PublicNotFound'
 import ReviewItem from '@/components/ReviewItem'
 import StarRating from '@/components/StarRating'
-import { catalogPath, loginPath, PATHS, supplierPublicPath } from '@/router/paths'
-import { selectRole, useAuthStore } from '@/stores/auth'
+import { catalogPath, PATHS, supplierPublicPath } from '@/router/paths'
 import { formatNumber, formatPrice, formatRating, pluralize } from '@/utils/format'
 import { initialsOf } from '@/utils/initials'
-import { ROLES } from '@/utils/roles'
+import OrderBox from './OrderBox'
 
 /**
  * Fiche détaillée d'un produit (SCRUM-36, maquette V3) : accessible sans connexion.
- * Commander (S4) arrive plus tard ; un visiteur est invité à se connecter.
- * Un fournisseur ou un administrateur connecté ne voit pas les boutons d'achat.
+ * Commande directe (SCRUM-51) : voir OrderBox.
  */
 
 function Gallery({ product }) {
@@ -64,71 +60,6 @@ function DetailRow({ label, value }) {
     <div className="flex justify-between gap-4 border-b border-line py-3 text-[15px] last:border-b-0">
       <dt className="text-muted">{label}</dt>
       <dd className="text-right text-ink">{value}</dd>
-    </div>
-  )
-}
-
-function Actions({ product }) {
-  const role = useAuthStore(selectRole)
-  const navigate = useNavigate()
-  const location = useLocation()
-  const max = product.type === 'product' ? product.stock ?? 0 : undefined
-  const [quantity, setQuantity] = useState('1')
-
-  // Fournisseur ou administrateur : pas de boutons d'achat.
-  if (role === ROLES.SUPPLIER || role === ROLES.ADMIN) return null
-
-  const guest = !role
-  const goToLogin = () => navigate(loginPath(location.pathname + location.search))
-  const outOfStock = !product.in_stock
-  const qty = Number(quantity)
-  const invalidQuantity = !Number.isInteger(qty) || qty < 1 || (max !== undefined && qty > max)
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="order-quantity" className="text-[13px] font-medium text-ink">
-            Quantité{product.unit ? ` (${product.unit})` : ''}
-          </label>
-          <input
-            id="order-quantity"
-            type="number"
-            min="1"
-            max={max}
-            step="1"
-            inputMode="numeric"
-            value={quantity}
-            disabled={outOfStock}
-            aria-invalid={invalidQuantity}
-            aria-describedby={invalidQuantity ? 'order-quantity-error' : undefined}
-            onChange={(event) => setQuantity(event.target.value)}
-            className="w-28 rounded-lg border border-line bg-surface px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-          />
-        </div>
-        <button
-          type="button"
-          className="btn-primary px-6 py-2.5 font-semibold"
-          disabled={!guest || outOfStock || invalidQuantity}
-          title={guest ? 'Connectez-vous pour commander' : 'Bientôt disponible'}
-          onClick={guest ? goToLogin : undefined}
-        >
-          Commander
-        </button>
-        <ContactButton
-          supplierId={product.supplier.id}
-          label="Contacter le fournisseur"
-          draft={`Bonjour, je suis intéressé par « ${product.title} ».`}
-          className="btn-secondary px-5 py-2.5 font-semibold"
-        />
-        <FavoriteButton supplierId={product.supplier.id} initialIsFavorite={product.supplier.is_favorite} label="Favori" />
-      </div>
-      {invalidQuantity && !outOfStock && (
-        <p id="order-quantity-error" role="alert" className="text-xs text-danger">
-          {max !== undefined ? `Choisissez une quantité entre 1 et ${formatNumber(max)}.` : 'Choisissez une quantité d’au moins 1.'}
-        </p>
-      )}
-      {!guest && <p className="text-xs text-muted">La commande en ligne arrive bientôt.</p>}
     </div>
   )
 }
@@ -307,7 +238,7 @@ export default function ProductPage() {
             </Link>
           </div>
 
-          <Actions product={product} />
+          <OrderBox key={product.id} product={product} />
         </div>
       </div>
 
