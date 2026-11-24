@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AiFeature;
 use App\Enums\DisputeStatus;
 use App\Enums\OrderStatus;
 use App\Enums\ValidationStatus;
+use App\Models\AiInteraction;
 use App\Models\AuditLog;
 use App\Models\BuyerProfile;
 use App\Models\Dispute;
@@ -16,6 +18,7 @@ use App\Notifications\DisputeDecidedNotification;
 use App\Notifications\DisputeUpdatedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -232,6 +235,49 @@ class DisputeTest extends TestCase
 
         $this->actingAs($this->makeBuyer('Tiers'), 'sanctum')->getJson("/api/disputes/{$dispute->id}")->assertNotFound();
         $this->getJson("/api/orders/{$dispute->order_id}/dispute")->assertNotFound();
+    }
+
+    public function test_chacun_liste_ses_litiges_sans_les_coordonnees(): void
+    {
+        $dispute = $this->openDispute();
+
+        foreach ([$this->buyer, $this->supplier] as $user) {
+            $this->actingAs($user, 'sanctum')->getJson('/api/disputes')
+                ->assertOk()
+                ->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.id', $dispute->id)
+                ->assertJsonPath('meta.last_page', 1)
+                ->assertJsonMissingPath('data.0.buyer.contact');
+        }
+
+        foreach ([$this->makeBuyer('Tiers'), $this->makeSupplier('Autre')] as $other) {
+            $this->actingAs($other, 'sanctum')->getJson('/api/disputes')->assertOk()->assertJsonCount(0, 'data');
+        }
+
+        $this->actingAs($this->admin, 'sanctum')->getJson('/api/disputes')->assertForbidden();
+    }
+
+    public function test_les_donnees_de_la_premiere_version_s6_sont_converties_sans_perte(): void
+    {
+        $dispute = $this->openDispute();
+        DB::table('disputes')->where('id', $dispute->id)->update(['status' => 'décidé', 'decision' => 'Avoir de 50 TND', 'decision_note' => 'Accord des parties.']);
+        DB::table('dispute_attachments')->insert(['dispute_id' => $dispute->id, 'file_path' => 'disputes/1/preuve.pdf', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('ai_interactions')->insert(['user_id' => $this->buyer->id, 'feature' => 'tender_draft', 'input' => 'Cartons', 'output' => 'Brouillon', 'created_at' => now(), 'updated_at' => now()]);
+
+        $migration = require database_path('migrations/2026_11_25_200000_convert_s6_disputes_and_ai_data.php');
+        $migration->up();
+        $migration->up(); // relancée : aucun effet
+
+        $this->actingAs($this->buyer, 'sanctum')->getJson("/api/disputes/{$dispute->id}")
+            ->assertOk()
+            ->assertJsonPath('decision', null)
+            ->assertJsonPath('decision_note', "Décision : Avoir de 50 TND\n\nAccord des parties.");
+        $this->assertNotNull($dispute->fresh()->decided_at);
+        $this->assertContains('preuve.pdf', $dispute->attachments()->pluck('original_name'));
+
+        $interaction = AiInteraction::sole();
+        $this->assertSame(AiFeature::WRITING, $interaction->feature);
+        $this->assertSame(['text' => 'Brouillon'], $interaction->output);
     }
 
     // --- Commande contestée ---

@@ -123,7 +123,7 @@ class DisputeService
             $previous = $locked->assigned_admin_id;
 
             $locked->update(['status' => DisputeStatus::IN_PROGRESS, 'assigned_admin_id' => $admin->id]);
-            $this->audit->log($admin, $wasOpen ? 'dispute.taken' : 'dispute.reassigned', "dispute:{$locked->id}", $previous ? "Repris à l'administrateur n° {$previous}" : null);
+            $this->audit->record($admin, $wasOpen ? 'dispute.taken' : 'dispute.reassigned', "dispute:{$locked->id}", $previous ? "Repris à l'administrateur n° {$previous}" : null);
 
             return $wasOpen;
         });
@@ -150,7 +150,7 @@ class DisputeService
                 'decision_note' => $note,
                 'decided_at' => now(),
             ]);
-            $this->audit->log($admin, 'dispute.decided', "dispute:{$locked->id}", "{$decision->value} — {$note}");
+            $this->audit->record($admin, 'dispute.decided', "dispute:{$locked->id}", "{$decision->value} — {$note}");
         });
 
         $dispute->refresh();

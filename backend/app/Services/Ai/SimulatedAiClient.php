@@ -4,6 +4,7 @@ namespace App\Services\Ai;
 
 use App\Enums\AiFeature;
 use App\Exceptions\AiUnavailableException;
+use Illuminate\Support\Str;
 
 /**
  * Mode simulé : des règles de calcul, sans appel extérieur ni clé. Le résultat est déterministe et
@@ -17,6 +18,10 @@ class SimulatedAiClient implements AiClient
     {
         $data = match ($request->feature) {
             AiFeature::QUOTE_SUMMARY => $this->quoteSummary($request->data),
+            AiFeature::WRITING => ['text' => $request->data['type'] === 'tender'
+                ? $this->tenderDraft($request->data)
+                : $this->productText($request->data)],
+            AiFeature::REWRITING => ['text' => $this->rephrase($request->data['text'])],
             default => throw new AiUnavailableException("Le mode simulé ne couvre pas « {$request->feature->value} »."),
         };
 
@@ -99,6 +104,42 @@ class SimulatedAiClient implements AiClient
         }
 
         return ['summary' => $summary, 'quotes' => $analysed->values()->all()];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function tenderDraft(array $data): string
+    {
+        return implode("\n", array_filter([
+            "Objet : consultation pour {$data['text']}",
+            '',
+            'Description du besoin',
+            "Nous recherchons un fournisseur capable de répondre au besoin suivant : {$data['text']}.",
+            $data['category'] ? "Catégorie : {$data['category']}." : null,
+            $data['region'] ? "Zone d'intervention : {$data['region']}." : null,
+            '',
+            "Éléments attendus dans le devis : prix unitaire, délai de livraison, conditions de paiement et validité de l'offre.",
+        ], fn (?string $line) => $line !== null));
+    }
+
+    /**
+     * Met en forme les notes du fournisseur, sans ajouter de qualité ou de promesse qu'il n'a pas écrite.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function productText(array $data): string
+    {
+        $text = $this->rephrase($data['text']);
+
+        return $data['category'] ? "{$text}\n\nCatégorie : {$data['category']}." : $text;
+    }
+
+    private function rephrase(string $text): string
+    {
+        $text = Str::ucfirst(trim((string) preg_replace('/\s+/u', ' ', $text)));
+
+        return preg_match('/[.!?]$/u', $text) ? $text : $text.'.';
     }
 
     private function money(float $amount): string

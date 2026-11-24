@@ -9,6 +9,12 @@ export async function fetchOrderDispute(orderId) {
   return data
 }
 
+/** Litiges de l'acheteur ou du fournisseur connecté (SCRUM-67). */
+export async function fetchMyDisputes(params = {}) {
+  const { data } = await http.get('/disputes', { params })
+  return data
+}
+
 export async function openDispute(orderId, { reason, description, files }) {
   const form = new FormData()
   form.append('reason', reason)

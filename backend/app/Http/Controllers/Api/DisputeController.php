@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\DisputeReason;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dispute\OpenDisputeRequest;
 use App\Http\Resources\DisputeResource;
 use App\Models\Dispute;
 use App\Models\Order;
 use App\Services\DisputeService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -20,6 +23,27 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class DisputeController extends Controller
 {
     public function __construct(private readonly DisputeService $service) {}
+
+    /**
+     * « Mes litiges » (SCRUM-67) : ceux des commandes de l'acheteur ou du fournisseur connecté.
+     */
+    public function index(Request $request): AnonymousResourceCollection
+    {
+        $user = $request->user();
+        [$column, $profileId] = $user->hasRole(UserRole::Buyer)
+            ? ['buyer_id', $user->buyerProfile?->id]
+            : ['supplier_id', $user->supplierProfile?->id];
+
+        abort_if($profileId === null, 403, 'Profil introuvable.');
+
+        return DisputeResource::collection(
+            Dispute::query()
+                ->whereHas('order', fn (Builder $order) => $order->where($column, $profileId))
+                ->with(['order.buyer.user', 'order.supplier.user', 'attachments'])
+                ->latest('id')
+                ->paginate(max(1, min(50, $request->integer('per_page', 15))))
+        );
+    }
 
     /**
      * Dernier litige d'une commande et possibilité d'en ouvrir un (bloc « Litige » de la page de suivi).

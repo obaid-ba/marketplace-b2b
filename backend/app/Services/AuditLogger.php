@@ -14,9 +14,9 @@ class AuditLogger
     /**
      * @param  string  $target  type et identifiant, ex. « user:12 », « dispute:3 »
      */
-    public function log(User $admin, string $action, string $target, ?string $reason = null): void
+    public function record(User $admin, string $action, string $target, ?string $reason = null): AuditLog
     {
-        AuditLog::create([
+        return AuditLog::create([
             'admin_id' => $admin->id,
             'action' => $action,
             'target' => $target,

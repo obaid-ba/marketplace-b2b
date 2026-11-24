@@ -241,6 +241,18 @@ export const createRoutes = () => [
             handle: { crumb: 'Messagerie' },
             lazy: page(() => import('@/views/messaging/MessagingPage')),
           },
+          {
+            path: PATHS.supplierDisputes,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Litiges reçus' },
+            lazy: page(() => import('@/views/disputes/MyDisputesPage')),
+          },
+          {
+            path: PATHS.supplierAi,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Assistant IA' },
+            lazy: page(() => import('@/views/supplier/SupplierAiPage')),
+          },
         ],
         () => import('@/layouts/SupplierLayout'),
       ),
@@ -305,6 +317,16 @@ export const createRoutes = () => [
             handle: { crumb: 'Notifications' },
             lazy: page(() => import('@/views/notifications/NotificationsPage')),
           },
+          {
+            path: PATHS.buyerDisputes,
+            handle: { crumb: 'Mes litiges' },
+            lazy: page(() => import('@/views/disputes/MyDisputesPage')),
+          },
+          {
+            path: PATHS.buyerAi,
+            handle: { crumb: 'Assistant IA' },
+            lazy: page(() => import('@/views/buyer/BuyerAiPage')),
+          },
         ],
         () => import('@/layouts/BuyerLayout'),
       ),
@@ -330,6 +352,16 @@ export const createRoutes = () => [
             path: `${PATHS.adminUsers}/:id`,
             handle: { crumb: 'Utilisateurs' },
             lazy: page(() => import('@/views/admin/AdminUserPage')),
+          },
+          {
+            path: PATHS.adminProducts,
+            handle: { crumb: 'Contrôle du catalogue' },
+            lazy: page(() => import('@/views/admin/AdminProductsPage')),
+          },
+          {
+            path: PATHS.adminReviews,
+            handle: { crumb: 'Avis signalés' },
+            lazy: page(() => import('@/views/admin/AdminReviewsPage')),
           },
           {
             path: PATHS.adminDisputes,

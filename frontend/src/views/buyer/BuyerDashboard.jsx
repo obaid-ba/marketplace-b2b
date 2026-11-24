@@ -1,160 +1,270 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { fetchBuyerOrders } from '@/api/orders'
-import { fetchBuyerTenders } from '@/api/tenders'
+import { fetchBuyerDashboard } from '@/api/buyerDashboard'
 import PageHeader from '@/components/PageHeader'
-import { TenderStatusBadge } from '@/components/TenderBadges'
-import { buyerTenderPath, PATHS } from '@/router/paths'
+import EmptyState from '@/components/dashboard/EmptyState'
+import ErrorState from '@/components/dashboard/ErrorState'
+import KpiCard from '@/components/dashboard/KpiCard'
+import PeriodPicker from '@/components/dashboard/PeriodPicker'
+import Skeleton from '@/components/dashboard/Skeleton'
+import TimeSeriesChart from '@/components/dashboard/TimeSeriesChart'
+import { PATHS, buyerTenderPath } from '@/router/paths'
 import { selectUser, useAuthStore } from '@/stores/auth'
-import { formatAmount } from '@/utils/money'
+import { formatAmount, formatCount } from '@/utils/money'
+import { defaultPeriod, formatDate } from '@/utils/period'
+
+const CHART_LINES = [
+  { key: 'orders', label: 'Commandes', color: '#12a06b' },
+  { key: 'spending', label: 'Dépenses (TND)', color: '#5b4bdb' },
+]
+
+const plural = (count, singular, pluralForm = `${singular}s`) =>
+  `${count} ${count > 1 ? pluralForm : singular}`
+
+function DashboardSkeleton() {
+  return (
+    <div role="status" className="space-y-6" aria-busy="true" aria-label="Chargement du tableau de bord">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }, (_, index) => (
+          <div key={index} className="card">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="mt-3 h-8 w-20" />
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="mt-4 h-72 w-full" />
+      </div>
+    </div>
+  )
+}
 
 /**
- * Tableau de bord du porteur de projet : accès direct aux demandes,
- * à la publication et aux commandes nées d'un devis accepté (F11–F14).
+ * Tableau de bord porteur de projet (SCRUM-121 / F27) : dépenses, commandes,
+ * demandes publiées, devis en attente et fournisseurs favoris.
  */
 export default function BuyerDashboard() {
   const user = useAuthStore(selectUser)
-  const [stats, setStats] = useState({ tenders: null, orders: null })
-  const [recent, setRecent] = useState([])
+  const [period, setPeriod] = useState(() => defaultPeriod())
+  const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const load = useCallback(
+    async (range) => {
+      setLoading(true)
+      setError(null)
+      try {
+        setData(await fetchBuyerDashboard(range))
+      } catch (requestError) {
+        setError(requestError.userMessage ?? 'Impossible de charger le tableau de bord. Réessayez.')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [],
+  )
 
   useEffect(() => {
-    let active = true
+    load(period)
+  }, [load, period])
 
-    Promise.all([
-      fetchBuyerTenders({ per_page: 5 }).catch(() => null),
-      fetchBuyerOrders({ per_page: 1 }).catch(() => null),
-    ])
-      .then(([tenders, orders]) => {
-        if (!active) return
-        setStats({
-          tenders: tenders?.meta?.total ?? 0,
-          orders: orders?.meta?.total ?? 0,
-        })
-        setRecent(tenders?.data ?? [])
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
-
-  const openTenders = recent.filter((tender) => ['ouverte', 'en négociation'].includes(tender.status))
-  const quotesReceived = recent.reduce((sum, tender) => sum + (tender.quotes_count ?? 0), 0)
+  const requests = data?.published_requests ?? []
+  const pendingQuotes = data?.pending_quotes ?? []
+  const favorites = data?.favorite_suppliers ?? []
+  const orders = data?.latest_orders ?? []
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
-        title={`Bonjour ${user?.name ?? ''}`}
-        subtitle="Publiez vos besoins, comparez les devis et suivez vos commandes."
+        title={`Bonjour ${user?.name ?? ''}`.trim()}
+        subtitle="Suivez vos dépenses, vos commandes et l'avancement de vos demandes."
         actions={
-          <Link to={PATHS.buyerTenderNew} className="btn-primary">
-            Publier une demande
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to={PATHS.buyerAi} className="btn btn-secondary">
+              Assistant IA
+            </Link>
+            <Link to={PATHS.buyerTenders} className="btn btn-primary">
+              Mes demandes
+            </Link>
+          </div>
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Link to={PATHS.buyerTenders} className="card transition hover:border-brand-100 hover:shadow-md">
-          <p className="text-sm text-muted">Demandes publiées</p>
-          <p className="mt-1 text-3xl font-semibold text-ink">
-            {loading ? '—' : (stats.tenders ?? 0)}
+      <section className="card" aria-labelledby="period-title">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <h2 id="period-title" className="text-sm font-semibold text-ink">
+            Période analysée
+          </h2>
+          <p className="text-xs text-muted">
+            {formatDate(period.from)} — {formatDate(period.to)}
           </p>
-        </Link>
-
-        <div className="card">
-          <p className="text-sm text-muted">Demandes ouvertes (5 dernières)</p>
-          <p className="mt-1 text-3xl font-semibold text-ink">{loading ? '—' : openTenders.length}</p>
         </div>
-
-        <div className="card">
-          <p className="text-sm text-muted">Devis reçus (5 dernières)</p>
-          <p className="mt-1 text-3xl font-semibold text-ink">{loading ? '—' : quotesReceived}</p>
+        <div className="mt-4">
+          <PeriodPicker from={period.from} to={period.to} onApply={setPeriod} loading={loading} />
         </div>
-
-        <Link to={PATHS.buyerOrders} className="card transition hover:border-brand-100 hover:shadow-md">
-          <p className="text-sm text-muted">Commandes</p>
-          <p className="mt-1 text-3xl font-semibold text-ink">
-            {loading ? '—' : (stats.orders ?? 0)}
-          </p>
-        </Link>
-      </div>
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <Link
-          to={PATHS.buyerTenderNew}
-          className="card border-brand-100 bg-brand-50/50 transition hover:shadow-md"
-        >
-          <p className="text-base font-semibold text-brand-700">Publier une demande</p>
-          <p className="mt-1 text-sm text-muted">
-            Décrivez votre besoin : les fournisseurs de la bonne catégorie et région sont notifiés.
-          </p>
-        </Link>
-
-        <Link to={PATHS.buyerTenders} className="card transition hover:border-brand-100 hover:shadow-md">
-          <p className="text-base font-semibold text-ink">Comparer les devis</p>
-          <p className="mt-1 text-sm text-muted">
-            Prix, délai et note fournisseur, puis acceptation en un clic.
-          </p>
-        </Link>
-
-        <Link to={PATHS.buyerOrders} className="card transition hover:border-brand-100 hover:shadow-md">
-          <p className="text-base font-semibold text-ink">Suivre mes commandes</p>
-          <p className="mt-1 text-sm text-muted">
-            Chaque devis accepté crée une commande, sans paiement en ligne.
-          </p>
-        </Link>
-      </div>
-
-      <section className="mt-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink">Dernières demandes</h2>
-          <Link to={PATHS.buyerTenders} className="text-sm font-medium text-brand-600 hover:underline">
-            Tout voir
-          </Link>
-        </div>
-
-        {loading && <div className="card text-sm text-muted">Chargement…</div>}
-
-        {!loading && recent.length === 0 && (
-          <div className="card text-sm text-muted">
-            Aucune demande publiée pour le moment.{' '}
-            <Link to={PATHS.buyerTenderNew} className="font-medium text-brand-600 hover:underline">
-              Publier la première
-            </Link>
-            .
-          </div>
-        )}
-
-        {!loading && recent.length > 0 && (
-          <ul className="space-y-2">
-            {recent.map((tender) => (
-              <li key={tender.id}>
-                <Link
-                  to={buyerTenderPath(tender.id)}
-                  className="flex flex-col gap-2 rounded-xl border border-line bg-surface px-4 py-3 transition hover:border-brand-100 hover:bg-brand-50/30 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <span className="flex min-w-0 flex-wrap items-center gap-2">
-                    <span className="truncate text-sm font-medium text-ink">{tender.title}</span>
-                    <TenderStatusBadge status={tender.status} label={tender.status_label} />
-                  </span>
-                  <span className="flex shrink-0 items-center gap-4 text-xs text-muted">
-                    <span>
-                      {tender.quotes_count ?? 0} devis · {tender.notified_count ?? 0} fournisseurs
-                    </span>
-                    <span className="font-medium text-ink">
-                      {tender.budget !== null ? formatAmount(tender.budget) : 'Budget libre'}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
-    </>
+
+      {error && !data && <ErrorState message={error} onRetry={() => load(period)} />}
+
+      {loading && !data && <DashboardSkeleton />}
+
+      {data && (
+        <>
+          <section aria-label="Indicateurs clés">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <KpiCard label="Dépenses" value={formatAmount(data.kpis.spending)} hint="Commandes passées sur la période" />
+              <KpiCard label="Commandes" value={formatCount(data.kpis.orders_count)} hint="Toutes commandes confondues" />
+              <KpiCard label="En cours" value={formatCount(data.kpis.orders_in_progress)} hint="Commandes non clôturées" />
+              <KpiCard label="Demandes publiées" value={formatCount(data.kpis.published_requests)} hint="Ouvertes ou en négociation" />
+              <KpiCard label="Devis en attente" value={formatCount(data.kpis.pending_quotes)} hint="Envoyés ou en négociation" />
+              <KpiCard label="Fournisseurs favoris" value={formatCount(data.kpis.favorite_suppliers)} />
+            </div>
+          </section>
+
+          <section className="card" aria-labelledby="activity-chart-title">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <h2 id="activity-chart-title" className="text-base font-semibold text-ink">
+                Activité des commandes
+              </h2>
+              <p className="text-xs text-muted">Commandes et dépenses par jour</p>
+            </div>
+            {data.series?.length ? (
+              <TimeSeriesChart
+                data={data.series}
+                lines={CHART_LINES}
+                allowDecimals
+                ariaLabel="Évolution des commandes et des dépenses sur la période"
+              />
+            ) : (
+              <div className="mt-4">
+                <EmptyState title="Aucune donnée sur cette période" description="Choisissez une autre période." />
+              </div>
+            )}
+          </section>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <section className="card" aria-labelledby="requests-title">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 id="requests-title" className="text-base font-semibold text-ink">
+                    Demandes publiées
+                  </h2>
+                  <p className="mt-1 text-sm text-muted">Devis reçus, statut et échéance</p>
+                </div>
+                <Link to={PATHS.buyerTenders} className="text-sm font-medium text-brand-600 hover:underline">
+                  Tout voir
+                </Link>
+              </div>
+
+              {requests.length ? (
+                <ul className="mt-4 divide-y divide-line">
+                  {requests.map((tender) => (
+                    <li key={tender.id} className="py-3">
+                      <Link to={buyerTenderPath(tender.id)} className="flex flex-col gap-1 hover:text-brand-600">
+                        <span className="font-medium text-ink">{tender.title}</span>
+                        <span className="text-xs text-muted">
+                          {plural(tender.quotes_received, 'devis reçu')} · échéance {formatDate(tender.desired_deadline)} ·
+                          budget {tender.budget !== null ? formatAmount(tender.budget) : 'libre'}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="mt-4">
+                  <EmptyState title="Aucune demande ouverte" description="Publiez une demande pour recevoir des devis." />
+                </div>
+              )}
+            </section>
+
+            <section className="card" aria-labelledby="pending-quotes-title">
+              <h2 id="pending-quotes-title" className="text-base font-semibold text-ink">
+                Devis en attente de décision
+              </h2>
+              {pendingQuotes.length ? (
+                <ul className="mt-4 divide-y divide-line">
+                  {pendingQuotes.map((quote) => (
+                    <li key={quote.id} className="flex items-start justify-between gap-3 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-ink">{quote.supplier ?? 'Fournisseur'}</p>
+                        <p className="truncate text-xs text-muted">{quote.tender}</p>
+                        <p className="mt-1 text-xs text-muted">
+                          Délai {quote.delivery_days} jours
+                          {quote.supplier_rating !== null && ` · note ${quote.supplier_rating}/5`}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold text-ink">{formatAmount(quote.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="mt-4">
+                  <EmptyState title="Aucun devis en attente" description="Les nouveaux devis apparaîtront ici." />
+                </div>
+              )}
+            </section>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <section className="card" aria-labelledby="favorites-title">
+              <div className="flex items-start justify-between gap-3">
+                <h2 id="favorites-title" className="text-base font-semibold text-ink">
+                  Fournisseurs favoris
+                </h2>
+                <Link to={PATHS.buyerFavorites} className="text-sm font-medium text-brand-600 hover:underline">
+                  Gérer
+                </Link>
+              </div>
+              {favorites.length ? (
+                <ul className="mt-4 space-y-2">
+                  {favorites.map((supplier) => (
+                    <li key={supplier.id} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="font-medium text-ink">{supplier.company_name}</span>
+                      <span className="text-muted">{supplier.rating_avg !== null ? `${supplier.rating_avg}/5` : '—'}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="mt-4">
+                  <EmptyState title="Aucun favori" description="Ajoutez des fournisseurs de confiance depuis le catalogue." />
+                </div>
+              )}
+            </section>
+
+            <section className="card" aria-labelledby="latest-orders-title">
+              <div className="flex items-start justify-between gap-3">
+                <h2 id="latest-orders-title" className="text-base font-semibold text-ink">
+                  Dernières commandes
+                </h2>
+                <Link to={PATHS.buyerOrders} className="text-sm font-medium text-brand-600 hover:underline">
+                  Tout voir
+                </Link>
+              </div>
+              {orders.length ? (
+                <ul className="mt-4 divide-y divide-line">
+                  {orders.map((order) => (
+                    <li key={order.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                      <div>
+                        <p className="font-medium text-ink">Commande #{order.id}</p>
+                        <p className="text-xs text-muted">
+                          {order.supplier ?? 'Fournisseur'} · {order.status}
+                        </p>
+                      </div>
+                      <span className="shrink-0 font-semibold text-ink">{formatAmount(order.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="mt-4">
+                  <EmptyState title="Aucune commande" description="Vos commandes apparaîtront ici." />
+                </div>
+              )}
+            </section>
+          </div>
+        </>
+      )}
+    </div>
   )
 }

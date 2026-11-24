@@ -11,8 +11,8 @@ const NAV_ITEMS = [
   { label: 'Validation fournisseurs', to: PATHS.adminSuppliers }, // SCRUM-31 / SCRUM-99
   { label: 'Utilisateurs', to: PATHS.adminUsers }, // F24 / SCRUM-118
   { label: 'Gestion des catégories', to: PATHS.adminCategories }, // SCRUM-32
-  { label: 'Contrôle du catalogue' }, // F29 / SCRUM-123
-  { label: 'Avis signalés' }, // F29 / SCRUM-123
+  { label: 'Contrôle du catalogue', to: PATHS.adminProducts }, // F29 / SCRUM-123
+  { label: 'Avis signalés', to: PATHS.adminReviews }, // F29 / SCRUM-123
   { label: 'Litiges', to: PATHS.adminDisputes }, // F23 / SCRUM-117
   { label: 'Notifications', to: PATHS.adminNotifications }, // SCRUM-62
   { label: 'Paramètres du compte', to: PATHS.account },

@@ -12,6 +12,8 @@ class ReviewReport extends Model
 {
     public const STATUS_PENDING = 'en attente';
 
+    public const STATUS_RESOLVED = 'traitée';
+
     /**
      * Motifs proposés (valeur enregistrée => libellé affiché).
      *
@@ -29,6 +31,17 @@ class ReviewReport extends Model
      * @var list<string>
      */
     protected $fillable = ['review_id', 'author_id', 'reason', 'details', 'status', 'admin_decision'];
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = ['reason_label'];
+
+    /** Libellé affiché à l'administrateur (le code n'est pas lisible). */
+    public function getReasonLabelAttribute(): string
+    {
+        return self::REASONS[$this->reason] ?? (string) $this->reason;
+    }
 
     public function review(): BelongsTo
     {

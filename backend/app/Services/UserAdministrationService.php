@@ -32,7 +32,7 @@ class UserAdministrationService
 
             $locked->forceFill(['status' => UserStatus::SUSPENDED])->save();
             $locked->tokens()->delete();
-            $this->audit->log($admin, 'user.suspended', "user:{$locked->id}", $reason);
+            $this->audit->record($admin, 'user.suspended', "user:{$locked->id}", $reason);
         });
 
         $user->refresh()->notify(new AccountSuspendedNotification($reason));
@@ -56,7 +56,7 @@ class UserAdministrationService
             $locked->forceFill([
                 'status' => $locked->hasVerifiedEmail() ? UserStatus::ACTIVE : UserStatus::EMAIL_TO_VERIFY,
             ])->save();
-            $this->audit->log($admin, 'user.reactivated', "user:{$locked->id}", $reason);
+            $this->audit->record($admin, 'user.reactivated', "user:{$locked->id}", $reason);
         });
 
         $user->refresh()->notify(new AccountReactivatedNotification);

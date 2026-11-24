@@ -96,7 +96,7 @@ describe('routes', () => {
     visit('/fournisseur')
     expect(await screen.findByRole('heading', { name: 'Bonjour Amel' })).toBeTruthy()
     expect(
-      screen.getByText('Répondez aux demandes qui correspondent à votre activité et suivez vos devis.'),
+      screen.getByText("Voici l'activité de votre entreprise : revenus, commandes, produits et demandes reçues."),
     ).toBeTruthy()
   })
 

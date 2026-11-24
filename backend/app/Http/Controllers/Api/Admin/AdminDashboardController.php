@@ -15,7 +15,7 @@ class AdminDashboardController extends Controller
 {
     public function __construct(private readonly AdminDashboardService $dashboard) {}
 
-    public function show(PeriodRangeRequest $request): JsonResponse
+    public function index(PeriodRangeRequest $request): JsonResponse
     {
         [$from, $to] = $request->range();
 

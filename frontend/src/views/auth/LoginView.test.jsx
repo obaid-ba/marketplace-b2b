@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter } from 'react-router'
 import { http } from '@/api/http'
@@ -30,6 +30,11 @@ async function fillAndSubmit({ remember = false } = {}) {
 }
 
 const buyer = { id: 1, name: 'Karim', role: 'buyer', email_verified: true }
+
+// Le tableau de bord (graphiques) est long à charger la première fois.
+beforeAll(async () => {
+  await import('@/views/buyer/BuyerDashboard')
+}, 60000)
 
 beforeEach(() => {
   localStorage.clear()

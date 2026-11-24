@@ -28,16 +28,23 @@ export const PATHS = Object.freeze({
   buyerNotifications: '/porteur/notifications',
   buyerQuotes: '/porteur/devis',
   buyerFavorites: '/porteur/favoris',
+  buyerAi: '/porteur/assistant-ia', // SCRUM-124 / SCRUM-79
+  buyerDisputes: '/porteur/litiges', // SCRUM-67
   supplierOrders: '/fournisseur/commandes',
   supplierReviews: '/fournisseur/avis',
   supplierMessages: '/fournisseur/messagerie', // SCRUM-59
   buyerMessages: '/porteur/messagerie', // SCRUM-59
-  admin: '/admin',
-  adminSuppliers: '/admin/fournisseurs',
-  adminCategories: '/admin/categories',
   adminDisputes: '/admin/litiges', // SCRUM-117
   adminUsers: '/admin/utilisateurs', // SCRUM-118
   adminNotifications: '/admin/notifications',
+  supplierAi: '/fournisseur/assistant-ia', // SCRUM-77 / SCRUM-78
+  supplierDisputes: '/fournisseur/litiges', // SCRUM-67
+  admin: '/admin',
+  adminSuppliers: '/admin/fournisseurs',
+  adminCategories: '/admin/categories',
+  adminProducts: '/admin/catalogue', // SCRUM-72
+  adminReviews: '/admin/avis', // SCRUM-74
+  adminExports: '/admin/exports', // SCRUM-75
   forbidden: '/acces-refuse',
 })
 

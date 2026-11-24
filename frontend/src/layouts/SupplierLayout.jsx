@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { label: 'Mes devis', to: PATHS.supplierQuotes }, // SCRUM-46
   { label: 'Mes commandes', to: PATHS.supplierOrders }, // SCRUM-58
   { label: 'Mes avis', to: PATHS.supplierReviews }, // SCRUM-65
+  { label: 'Litiges reçus', to: PATHS.supplierDisputes }, // SCRUM-67
+  { label: 'Assistant IA', to: PATHS.supplierAi }, // SCRUM-77 / SCRUM-78
   { label: 'Messagerie', to: PATHS.supplierMessages, badge: 'messages' }, // SCRUM-59
   { label: 'Notifications', to: PATHS.supplierNotifications }, // SCRUM-62
   { label: 'Préférences de notification', to: PATHS.notificationPreferences }, // SCRUM-63

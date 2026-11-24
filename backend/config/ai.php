@@ -15,6 +15,7 @@ return [
 
     'drivers' => [
         'simulated' => SimulatedAiClient::class,
+        'mock' => SimulatedAiClient::class, // ancien nom (S6), accepté dans les .env existants
     ],
 
     // Réservés au futur fournisseur (Q8).
