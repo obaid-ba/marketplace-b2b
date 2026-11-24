@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import ProductImagePlaceholder from '@/components/ProductImagePlaceholder'
+import ProductImage from '@/components/ProductImage'
 import { productPath } from '@/router/paths'
 import { formatPriceWithUnit, formatRating } from '@/utils/format'
 
@@ -15,16 +15,14 @@ export default function ProductCard({ product, linkable = true }) {
   const content = (
     <>
       <div className="aspect-[2/1] overflow-hidden rounded-lg">
-        {product.main_image_url ? (
-          <img
-            src={product.main_image_url}
-            alt={product.title}
-            loading="lazy"
-            className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-          />
-        ) : (
-          <ProductImagePlaceholder seed={product.id} className="h-full w-full" />
-        )}
+        <ProductImage
+          src={product.main_image_url}
+          alt={product.title}
+          seed={product.id}
+          loading="lazy"
+          className="h-full w-full"
+          imgClassName="transition group-hover:scale-[1.02]"
+        />
       </div>
       <div className="mt-3 min-w-0 space-y-1">
         <h3 className="truncate text-[15px] font-semibold text-ink">{product.title || 'Titre du produit'}</h3>

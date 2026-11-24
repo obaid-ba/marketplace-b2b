@@ -4,7 +4,7 @@ import { searchProducts } from '@/api/catalog'
 import { fetchProduct } from '@/api/products'
 import EmptyState from '@/components/EmptyState'
 import ProductCard from '@/components/ProductCard'
-import ProductImagePlaceholder from '@/components/ProductImagePlaceholder'
+import ProductImage from '@/components/ProductImage'
 import PublicNotFound from '@/components/PublicNotFound'
 import ReviewItem from '@/components/ReviewItem'
 import StarRating from '@/components/StarRating'
@@ -26,11 +26,7 @@ function Gallery({ product }) {
   return (
     <div className="space-y-3">
       <div className="aspect-[3/2] overflow-hidden rounded-xl">
-        {current ? (
-          <img src={current.url} alt={product.title} className="h-full w-full object-cover" />
-        ) : (
-          <ProductImagePlaceholder seed={product.id} label="Image principale" className="h-full w-full text-sm" />
-        )}
+        <ProductImage src={current?.url} alt={product.title} seed={product.id} label="Image principale" className="h-full w-full text-sm" />
       </div>
       {images.length > 1 && (
         <ul className="grid grid-cols-4 gap-3" aria-label="Photos du produit">
@@ -45,7 +41,7 @@ function Gallery({ product }) {
                   index === active ? 'ring-2 ring-brand-600' : 'opacity-80 hover:opacity-100'
                 }`}
               >
-                <img src={image.url} alt="" className="h-full w-full object-cover" />
+                <ProductImage src={image.url} alt="" seed={product.id} label="" className="h-full w-full" />
               </button>
             </li>
           ))}

@@ -110,7 +110,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // 6. 40 Produits (publiés, brouillons et retirés, avec photos)
+        // 6. 40 Produits (publiés, brouillons et retirés, sans photo : l'interface affiche un dégradé)
         for ($i = 1; $i <= 40; $i++) {
             $status = match (true) {
                 $i <= 30 => ProductStatus::PUBLISHED->value,
@@ -118,7 +118,7 @@ class DatabaseSeeder extends Seeder
                 default => ProductStatus::WITHDRAWN->value,
             };
 
-            $productId = DB::table('products')->insertGetId([
+            DB::table('products')->insert([
                 'supplier_id' => $supplierIds[$i % 6],
                 'category_id' => $subCategoryIds[$i % count($subCategoryIds)],
                 'type' => $i % 5 === 0 ? 'service' : 'produit',
@@ -130,14 +130,6 @@ class DatabaseSeeder extends Seeder
                 'availability_days' => rand(1, 15),
                 'status' => $status,
                 'withdrawal_reason' => $status === ProductStatus::WITHDRAWN->value ? 'Rupture de stock temporaire' : null,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-
-            DB::table('product_images')->insert([
-                'product_id' => $productId,
-                'path' => "products/demo-{$i}.jpg",
-                'position' => 1,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
