@@ -2,17 +2,16 @@
 
 namespace App\Models;
 
+use App\Enums\DisputeDecision;
 use App\Enums\DisputeStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Litige ouvert par un acheteur sur une commande (entité 27, SCRUM-67 / F21).
- *
- * Un seul litige non décidé peut être ouvert par commande. Le litige passe de
- * `ouvert` à `en cours` lors de sa prise en charge, puis à `décidé` avec une
- * décision et une note motivée.
+ * Litige ouvert par l'acheteur sur une commande (SCRUM-117 / F23).
+ * Cycle : ouvert → en cours (pris en charge par un admin) → décidé.
  */
 class Dispute extends Model
 {
@@ -28,6 +27,7 @@ class Dispute extends Model
         'assigned_admin_id',
         'decision',
         'decision_note',
+        'decided_at',
     ];
 
     /**
@@ -37,6 +37,8 @@ class Dispute extends Model
     {
         return [
             'status' => DisputeStatus::class,
+            'decision' => DisputeDecision::class,
+            'decided_at' => 'datetime',
         ];
     }
 
@@ -45,20 +47,14 @@ class Dispute extends Model
         return $this->belongsTo(Order::class);
     }
 
-    /**
-     * Utilisateur ayant ouvert le litige.
-     */
     public function opener(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'opened_by');
+        return $this->belongsTo(User::class, 'opened_by')->withTrashed();
     }
 
-    /**
-     * Administrateur en charge du litige.
-     */
     public function assignedAdmin(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'assigned_admin_id');
+        return $this->belongsTo(User::class, 'assigned_admin_id')->withTrashed();
     }
 
     public function attachments(): HasMany
@@ -66,8 +62,11 @@ class Dispute extends Model
         return $this->hasMany(DisputeAttachment::class);
     }
 
-    public function isDecided(): bool
+    /**
+     * @param  Builder<Dispute>  $query
+     */
+    public function scopeUndecided(Builder $query): void
     {
-        return $this->status === DisputeStatus::DECIDED;
+        $query->where('status', '!=', DisputeStatus::DECIDED->value);
     }
 }

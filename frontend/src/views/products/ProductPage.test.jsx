@@ -114,12 +114,12 @@ describe('ProductPage', () => {
     expect(new URLSearchParams(location.search).get('redirect')).toBe('/produits/3')
   })
 
-  it('un porteur voit Commander et Contacter désactivés (bientôt disponibles) et le bouton Favori', async () => {
+  it('un porteur voit Commander désactivé (bientôt disponible), Contacter actif (S5) et le bouton Favori', async () => {
     login('buyer')
     renderPage()
 
     expect((await screen.findByRole('button', { name: 'Commander' })).disabled).toBe(true)
-    expect(screen.getByRole('button', { name: 'Contacter le fournisseur' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Contacter le fournisseur' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'Favori' })).toBeTruthy()
   })
 

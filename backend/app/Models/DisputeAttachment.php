@@ -6,18 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Pièce jointe d'un litige (entité 28, SCRUM-67).
- * Stockée sur le disque privé et servie uniquement aux parties concernées.
+ * Preuve jointe à un litige (photo ou PDF), sur le disque privé.
  */
 class DisputeAttachment extends Model
 {
     /**
      * @var list<string>
      */
-    protected $fillable = [
-        'dispute_id',
-        'file_path',
-    ];
+    protected $fillable = ['dispute_id', 'file_path', 'original_name', 'mime', 'size'];
+
+    /**
+     * @var list<string>
+     */
+    protected $hidden = ['file_path'];
 
     public function dispute(): BelongsTo
     {

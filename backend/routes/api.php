@@ -2,27 +2,29 @@
 
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
-use App\Http\Controllers\Api\Admin\AdminDisputeController;
 use App\Http\Controllers\Api\Admin\AdminExportController;
 use App\Http\Controllers\Api\Admin\AdminProductController;
 use App\Http\Controllers\Api\Admin\AdminReviewController;
-use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Admin\AuditLogController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
+use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Buyer\BuyerDashboardController;
 use App\Http\Controllers\Api\Buyer\BuyerOrderController;
 use App\Http\Controllers\Api\Buyer\BuyerReviewController;
-use App\Http\Controllers\Api\Buyer\DisputeController as BuyerDisputeController;
 use App\Http\Controllers\Api\Buyer\FavoriteController;
 use App\Http\Controllers\Api\Buyer\FavoriteSupplierController;
 use App\Http\Controllers\Api\Buyer\OrderController as BuyerOrderLifecycleController;
 use App\Http\Controllers\Api\Buyer\QuoteController as BuyerQuoteController;
+use App\Http\Controllers\Api\Buyer\QuoteSummaryController;
 use App\Http\Controllers\Api\Buyer\TenderController as BuyerTenderController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ConversationController;
+use App\Http\Controllers\Api\DisputeController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\HomeController;
@@ -32,8 +34,8 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReferenceController;
+use App\Http\Controllers\Api\Supplier\ReviewReportController;
 use App\Http\Controllers\Api\Supplier\SupplierDashboardController;
-use App\Http\Controllers\Api\Supplier\SupplierDisputeController;
 use App\Http\Controllers\Api\Supplier\SupplierDocumentController;
 use App\Http\Controllers\Api\Supplier\SupplierOrderController;
 use App\Http\Controllers\Api\Supplier\SupplierProductController;
@@ -44,6 +46,7 @@ use App\Http\Controllers\Api\Supplier\TenderController as SupplierTenderControll
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPublicReviewController;
 use App\Http\Controllers\Api\SupplierRegistrationController;
+use App\Http\Controllers\Api\WhatsAppConsentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -115,11 +118,16 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:6,1');
     Route::delete('/account', [AccountController::class, 'destroy'])
         ->middleware('throttle:6,1');
-    Route::get('/notifications', [NotificationController::class, 'index']);
-    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereNumber('notification');
+
+    // Notifications (F15 / SCRUM-62, SCRUM-63). Les identifiants sont des UUID (table native de Laravel).
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::get('/notifications/preferences', [NotificationPreferenceController::class, 'show']);
+    Route::put('/notifications/preferences', [NotificationPreferenceController::class, 'update']);
+    Route::put('/notifications/whatsapp', [WhatsAppConsentController::class, 'update'])->middleware('throttle:20,1'); // SCRUM-133
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
-    Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show']);
-    Route::put('/notification-preferences', [NotificationPreferenceController::class, 'update']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])
+        ->whereUuid('notification');
 });
 
 // Espaces métier : connecté ET adresse e-mail vérifiée.
@@ -152,9 +160,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/reviews', [SupplierReviewController::class, 'index']);
         Route::post('/reviews/{review}/reply', [SupplierReviewController::class, 'reply'])
             ->whereNumber('review');
-
-        // Litiges reçus par le fournisseur (SCRUM-67 / F21).
-        Route::get('/disputes', [SupplierDisputeController::class, 'index']);
+        Route::post('/reviews/{review}/report', [ReviewReportController::class, 'store'])
+            ->whereNumber('review')
+            ->middleware('throttle:20,1');
 
         // Pages de vente : réservées aux fournisseurs validés par l'administrateur (SCRUM-27).
         // Ajoutez ici les routes produits (F07 / SCRUM-34…) et devis (F13 / SCRUM-46…).
@@ -200,10 +208,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/tenders/{tender}/cancel', [BuyerTenderController::class, 'cancel'])->whereNumber('tender');
         Route::post('/tenders/{tender}/invite', [BuyerTenderController::class, 'invite'])->whereNumber('tender');
 
-        Route::get('/quotes', [BuyerQuoteController::class, 'index']);
-        Route::get('/quotes/{quote}', [BuyerQuoteController::class, 'show'])->whereNumber('quote');
+        Route::get('/tenders/{tender}/quotes', [BuyerQuoteController::class, 'index'])->whereNumber('tender');
         Route::post('/quotes/{quote}/accept', [BuyerQuoteController::class, 'accept'])->whereNumber('quote');
-        Route::post('/quotes/{quote}/reject', [BuyerQuoteController::class, 'reject'])->whereNumber('quote');
+        // Résumé automatique des devis (SCRUM-119 / F25).
+        Route::get('/tenders/{tender}/quotes/summary', [QuoteSummaryController::class, 'show'])->whereNumber('tender');
+        Route::post('/tenders/{tender}/quotes/summary', [QuoteSummaryController::class, 'store'])->whereNumber('tender');
+        Route::patch('/tenders/{tender}/quotes/summary', [QuoteSummaryController::class, 'update'])->whereNumber('tender');
 
         Route::get('/favorites', [FavoriteController::class, 'index']);
         Route::post('/favorites/{supplier}', [FavoriteSupplierController::class, 'store'])->whereNumber('supplier');
@@ -217,15 +227,31 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
             ->whereNumber('order');
         Route::post('/orders/{order}/review', [BuyerReviewController::class, 'store'])
             ->whereNumber('order');
-
-        // Litiges : ouverture entre expédition et livraison (SCRUM-67 / F21).
-        Route::get('/disputes', [BuyerDisputeController::class, 'index']);
-        Route::post('/orders/{order}/disputes', [BuyerDisputeController::class, 'store'])
-            ->whereNumber('order');
-        Route::get('/disputes/{dispute}/attachments/{attachment}', [BuyerDisputeController::class, 'downloadAttachment'])
-            ->whereNumber('dispute')
-            ->whereNumber('attachment');
+        // « Signaler un problème » (SCRUM-117 / F23).
+        Route::post('/orders/{order}/dispute', [DisputeController::class, 'store'])
+            ->whereNumber('order')
+            ->middleware('throttle:10,1');
     });
+
+    // Messagerie (SCRUM-59 à SCRUM-61 / F21, F22) : porteurs et fournisseurs.
+    Route::middleware('role:buyer,supplier')->prefix('conversations')->whereNumber(['conversation', 'message'])->group(function () {
+        Route::get('/', [ConversationController::class, 'index']);
+        Route::post('/', [ConversationController::class, 'store'])->middleware('throttle:30,1');
+        Route::get('/unread-count', [ConversationController::class, 'unreadCount']);
+        Route::get('/{conversation}', [ConversationController::class, 'show']);
+        Route::get('/{conversation}/messages', [ConversationController::class, 'messages']);
+        Route::post('/{conversation}/messages', [ConversationController::class, 'send'])->middleware('throttle:messages');
+        Route::post('/{conversation}/read', [ConversationController::class, 'markRead']);
+        Route::get('/{conversation}/messages/{message}/attachment', [ConversationController::class, 'attachment']);
+    });
+
+    // Litiges (SCRUM-117 / F23) : les deux parties de la commande ; les admins aussi pour un litige et ses pièces jointes.
+    Route::get('/disputes', [DisputeController::class, 'index'])->middleware('role:buyer,supplier');
+    Route::get('/orders/{order}/dispute', [DisputeController::class, 'forOrder'])->whereNumber('order');
+    Route::get('/disputes/{dispute}', [DisputeController::class, 'show'])->whereNumber('dispute');
+    Route::get('/disputes/{dispute}/attachments/{attachment}', [DisputeController::class, 'attachment'])
+        ->whereNumber('dispute')
+        ->whereNumber('attachment');
 
     // Suivi de commande et téléchargement de documents (SCRUM-58 / F16, SCRUM-57 / F19).
     Route::get('/orders/{order}', [OrderController::class, 'show'])
@@ -237,10 +263,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         ->whereNumber('document');
 
     // Assistants IA (SCRUM-124, SCRUM-77, SCRUM-78, SCRUM-79 / F30).
-    Route::middleware('throttle:ai')->prefix('ai')->group(function () {
+    Route::prefix('ai')->group(function () { // limite par utilisateur : AiService
         Route::post('/tender-draft', [AiController::class, 'tenderDraft']);
         Route::post('/product-text', [AiController::class, 'productText']);
-        Route::post('/quote-summary', [AiController::class, 'quoteSummary']);
         Route::post('/interactions/{interaction}/accept', [AiController::class, 'accept'])
             ->whereNumber('interaction');
     });
@@ -269,27 +294,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/reported-reviews/{review}/hide', [AdminReviewController::class, 'hide'])
             ->whereNumber('review');
 
-        // Gestion des comptes utilisateurs (SCRUM-71).
-        Route::get('/users', [AdminUserController::class, 'index']);
-        Route::post('/users/{user}/suspend', [AdminUserController::class, 'suspend'])
-            ->whereNumber('user');
-        Route::post('/users/{user}/reactivate', [AdminUserController::class, 'reactivate'])
-            ->whereNumber('user');
-        Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])
-            ->whereNumber('user');
-
-        // Litiges : file triée par urgence, prise en charge et décision (SCRUM-73).
-        Route::get('/disputes', [AdminDisputeController::class, 'index']);
-        Route::get('/disputes/{dispute}', [AdminDisputeController::class, 'show'])
-            ->whereNumber('dispute');
-        Route::post('/disputes/{dispute}/assign', [AdminDisputeController::class, 'assign'])
-            ->whereNumber('dispute');
-        Route::post('/disputes/{dispute}/decide', [AdminDisputeController::class, 'decide'])
-            ->whereNumber('dispute');
-        Route::get('/disputes/{dispute}/attachments/{attachment}', [AdminDisputeController::class, 'downloadAttachment'])
-            ->whereNumber('dispute')
-            ->whereNumber('attachment');
-
         Route::get('/categories', [AdminCategoryController::class, 'index']);
         Route::post('/categories', [AdminCategoryController::class, 'store']);
         Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->whereNumber('category');
@@ -306,6 +310,18 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
             ->whereNumber('supplier');
         Route::post('/suppliers/{supplier}/reject', [SupplierValidationController::class, 'reject'])
             ->whereNumber('supplier');
+
+        // Gestion des utilisateurs (SCRUM-118 / F24).
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/{user}', [AdminUserController::class, 'show'])->whereNumber('user');
+        Route::post('/users/{user}/suspend', [AdminUserController::class, 'suspend'])->whereNumber('user');
+        Route::post('/users/{user}/reactivate', [AdminUserController::class, 'reactivate'])->whereNumber('user');
+
+        // Gestion des litiges (SCRUM-117 / F23).
+        Route::get('/disputes', [AdminDisputeController::class, 'index']);
+        Route::get('/disputes/{dispute}', [AdminDisputeController::class, 'show'])->whereNumber('dispute');
+        Route::post('/disputes/{dispute}/take', [AdminDisputeController::class, 'take'])->whereNumber('dispute');
+        Route::post('/disputes/{dispute}/decide', [AdminDisputeController::class, 'decide'])->whereNumber('dispute');
 
         // Alias historique conservé pour les clients du back-office.
         Route::get('/supplier-applications', [SupplierValidationController::class, 'index']);

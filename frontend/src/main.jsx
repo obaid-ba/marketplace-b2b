@@ -5,6 +5,7 @@ import { router } from './router'
 import { PATHS, loginPath } from './router/paths'
 import { onAuthError } from './api/http'
 import { selectIsAuthenticated, useAuthStore } from './stores/auth'
+import { startRealtime } from './realtime/realtime'
 import './style.css'
 
 // 401 : jeton expiré ou révoqué → retour à la connexion.
@@ -27,6 +28,8 @@ onAuthError((status, error) => {
     router.navigate(PATHS.forbidden)
   }
 })
+
+startRealtime()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

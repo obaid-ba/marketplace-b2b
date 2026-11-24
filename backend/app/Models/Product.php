@@ -134,7 +134,7 @@ class Product extends Model
 
     public function scopeVisible(Builder $query): void
     {
-        $query->where('status', ProductStatus::PUBLISHED->value)
-            ->whereHas('supplier', fn (Builder $supplier) => $supplier->where('is_published', true));
+        $query->where('products.status', ProductStatus::PUBLISHED->value)
+            ->whereHas('supplier', fn (Builder $supplier) => $supplier->visibleInCatalog());
     }
 }

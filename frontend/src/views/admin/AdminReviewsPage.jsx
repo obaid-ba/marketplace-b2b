@@ -150,7 +150,8 @@ export default function AdminReviewsPage() {
                         <ul className="mt-2 space-y-1 text-xs text-muted">
                           {review.reports.map((report) => (
                             <li key={report.id}>
-                              Signalement : {report.reason}
+                              Signalement : {report.reason_label ?? report.reason}
+                              {report.details ? ` (${report.details})` : ''}
                               {report.author?.name ? ` — ${report.author.name}` : ''}
                             </li>
                           ))}

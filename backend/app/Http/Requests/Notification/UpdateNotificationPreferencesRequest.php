@@ -27,6 +27,7 @@ class UpdateNotificationPreferencesRequest extends FormRequest
             'preferences.*.channel' => ['required', 'string', Rule::in([
                 NotificationPreference::CHANNEL_SITE,
                 NotificationPreference::CHANNEL_EMAIL,
+                NotificationPreference::CHANNEL_WHATSAPP,
             ])],
             'preferences.*.enabled' => ['required', 'boolean'],
         ];

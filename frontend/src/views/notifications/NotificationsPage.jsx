@@ -6,6 +6,7 @@ import {
   markNotificationRead,
 } from '@/api/notifications'
 import PageHeader from '@/components/PageHeader'
+import { useRealtime } from '@/realtime/realtime'
 import EmptyState from '@/components/dashboard/EmptyState'
 import { PATHS } from '@/router/paths'
 
@@ -34,8 +35,8 @@ export default function NotificationsPage() {
   const [error, setError] = useState(null)
   const [acting, setActing] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     setError(null)
     try {
       setResult(await fetchNotifications({ page, per_page: 20 }))
@@ -49,6 +50,9 @@ export default function NotificationsPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Nouvelle notification : la première page se met à jour sans clignoter (SCRUM-62).
+  useRealtime('notification.created', () => page === 1 && load({ silent: true }))
 
   const notifications = result?.data ?? []
   const meta = result?.meta
@@ -125,7 +129,7 @@ export default function NotificationsPage() {
       {!loading && error && (
         <div className="card border-danger-soft bg-danger-soft/40 text-sm text-danger">
           {error}
-          <button type="button" className="btn-secondary ml-4" onClick={load}>
+          <button type="button" className="btn-secondary ml-4" onClick={() => load()}>
             Réessayer
           </button>
         </div>

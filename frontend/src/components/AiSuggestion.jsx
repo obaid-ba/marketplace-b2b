@@ -38,7 +38,7 @@ export default function AiSuggestion({ result, onAccepted }) {
   return (
     <div className="mt-4 space-y-3 rounded-xl border border-brand-200 bg-brand-50/40 p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-brand-700">
-        Suggestion IA — à relire et modifier
+        {result.simulated ? 'Mode simulé, sans IA' : 'Suggestion IA'} — à relire et modifier
       </p>
 
       {result.before !== null && result.before !== undefined && (

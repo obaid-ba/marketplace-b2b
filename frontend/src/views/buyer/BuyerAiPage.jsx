@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { generateQuoteSummary, generateTenderDraft } from '@/api/ai'
+import { Link } from 'react-router'
+import { generateTenderDraft } from '@/api/ai'
 import { fetchBuyerTenders } from '@/api/tenders'
 import AiSuggestion from '@/components/AiSuggestion'
 import PageHeader from '@/components/PageHeader'
+import { buyerTenderQuotesPath } from '@/router/paths'
 
 /**
  * Assistant IA du porteur de projet (SCRUM-124 / SCRUM-79 / F30) :
- * brouillon de demande et aide à la décision sur les devis reçus.
+ * brouillon de demande et accès au résumé des devis (page de comparaison).
  */
 export default function BuyerAiPage() {
   const [prompt, setPrompt] = useState('')
@@ -18,9 +20,6 @@ export default function BuyerAiPage() {
 
   const [tenders, setTenders] = useState([])
   const [tenderId, setTenderId] = useState('')
-  const [summary, setSummary] = useState(null)
-  const [summaryLoading, setSummaryLoading] = useState(false)
-  const [summaryError, setSummaryError] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -57,24 +56,6 @@ export default function BuyerAiPage() {
       setDraftError(requestError.userMessage ?? 'La génération a échoué.')
     } finally {
       setDraftLoading(false)
-    }
-  }
-
-  async function submitSummary(event) {
-    event.preventDefault()
-    if (!tenderId) {
-      setSummaryError('Choisissez une demande.')
-      return
-    }
-
-    setSummaryLoading(true)
-    setSummaryError(null)
-    try {
-      setSummary(await generateQuoteSummary(Number(tenderId)))
-    } catch (requestError) {
-      setSummaryError(requestError.userMessage ?? 'La comparaison a échoué.')
-    } finally {
-      setSummaryLoading(false)
     }
   }
 
@@ -150,10 +131,10 @@ export default function BuyerAiPage() {
           Comparer les devis
         </h2>
         <p className="mt-1 text-sm text-muted">
-          L'assistant résume les devis reçus pour vous aider à décider. Il ne choisit pas à votre place.
+          Le résumé des devis est sur la page de comparaison. Il vous aide à décider, sans choisir à votre place.
         </p>
 
-        <form onSubmit={submitSummary} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" noValidate>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1 text-sm">
             <span className="mb-1 block font-medium text-ink">Demande</span>
             <select
@@ -169,22 +150,16 @@ export default function BuyerAiPage() {
               ))}
             </select>
           </label>
-          <button type="submit" className="btn btn-primary" disabled={summaryLoading}>
-            {summaryLoading ? 'Analyse…' : 'Comparer'}
-          </button>
-        </form>
+          {tenderId && (
+            <Link to={buyerTenderQuotesPath(tenderId)} className="btn btn-primary">
+              Comparer
+            </Link>
+          )}
+        </div>
 
         {tenders.length === 0 && (
           <p className="mt-2 text-xs text-muted">Publiez une demande pour pouvoir comparer les devis reçus.</p>
         )}
-
-        {summaryError && (
-          <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-2 text-sm text-rose-800">
-            {summaryError}
-          </p>
-        )}
-
-        <AiSuggestion result={summary} />
       </section>
     </div>
   )

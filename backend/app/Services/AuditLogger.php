@@ -4,21 +4,15 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Journal d'audit des actions d'administration (SCRUM-76).
- *
- * Chaque action d'un administrateur sur une ressource sensible (validation,
- * catalogue, avis, litiges, comptes, export) doit laisser une trace immuable :
- * qui, quoi, sur quoi, pourquoi et quand. La table `audit_logs` ne possède pas
- * de `updated_at` : une entrée n'est jamais modifiée ni supprimée.
+ * Journal des actions des administrateurs (table audit_logs, non modifiable) — SCRUM-118 / F24.
  */
 class AuditLogger
 {
     /**
-     * Enregistre une action d'administration.
-     *
-     * @param  string  $target  ressource visée, au format `type:id` (ex. `product:12`)
+     * @param  string  $target  type et identifiant, ex. « user:12 », « dispute:3 »
      */
     public function record(User $admin, string $action, string $target, ?string $reason = null): AuditLog
     {
@@ -28,5 +22,22 @@ class AuditLogger
             'target' => $target,
             'reason' => $reason,
         ]);
+    }
+
+    /**
+     * Historique d'un ou plusieurs éléments, du plus récent au plus ancien.
+     *
+     * @param  list<string>  $targets
+     * @return Collection<int, AuditLog>
+     */
+    public function historyOf(array $targets, int $limit = 20): Collection
+    {
+        return AuditLog::query()
+            ->with(['admin' => fn ($query) => $query->withTrashed()->select(['id', 'name'])])
+            ->whereIn('target', $targets)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
     }
 }

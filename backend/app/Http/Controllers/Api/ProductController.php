@@ -35,6 +35,8 @@ class ProductController extends Controller
      */
     public function show(Request $request, Product $product, FavoriteService $favorites, ProductViewRecorder $views): JsonResponse
     {
+        abort_unless(Product::query()->visible()->whereKey($product->id)->exists(), 404, 'Produit introuvable.');
+
         $product->load([
             'images',
             'category.parent',
@@ -75,6 +77,7 @@ class ProductController extends Controller
     public function bySupplier(SupplierProfile $supplier): JsonResponse
     {
         $products = Product::query()
+            ->visible()
             ->where('supplier_id', $supplier->id)
             ->where('status', ProductStatus::PUBLISHED)
             ->select(['id', 'supplier_id', 'category_id', 'title', 'description', 'price', 'unit', 'stock'])

@@ -68,7 +68,7 @@ class Review extends Model
     }
 
     /**
-     * Signalements déposés sur cet avis (SCRUM-74 / F29).
+     * Signalements de cet avis (SCRUM-66).
      */
     public function reports(): HasMany
     {

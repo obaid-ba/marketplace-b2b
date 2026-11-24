@@ -2,49 +2,38 @@
 
 namespace App\Notifications;
 
+use App\Enums\UserRole;
 use App\Models\Dispute;
+use App\Models\NotificationPreference;
+use App\Models\User;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Notification aux parties lors de la prise en charge ou de la décision d'un litige
- * (SCRUM-73).
+ * Litige ouvert (fournisseur et admins) ou pris en charge (acheteur et fournisseur) — SCRUM-117 / F23.
  */
-class DisputeUpdatedNotification extends Notification
+class DisputeUpdatedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsNotificationPreferences;
 
-    /**
-     * @param  string  $event  `assigned` ou `decided`
-     */
-    public function __construct(public Dispute $dispute, public string $event) {}
+    public const OPENED = 'opened';
+
+    public const TAKEN = 'taken';
+
+    public function __construct(public Dispute $dispute, public string $step)
+    {
+        $this->afterCommit();
+    }
 
     /**
      * @return list<string>
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
-    }
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        $mail = (new MailMessage)
-            ->subject("Litige #{$this->dispute->id} — mise à jour")
-            ->greeting("Bonjour {$notifiable->name},")
-            ->line("Le litige #{$this->dispute->id} sur la commande #{$this->dispute->order_id} a été mis à jour.");
-
-        if ($this->event === 'assigned') {
-            $mail->line('Votre litige a été pris en charge par l\'administration et est désormais « en cours ».');
-        } else {
-            $mail->line("Décision : {$this->dispute->decision}");
-            if ($this->dispute->decision_note) {
-                $mail->line("Note : {$this->dispute->decision_note}");
-            }
-        }
-
-        return $mail->line('Connectez-vous à la plateforme pour consulter le détail.');
+        return $notifiable instanceof User ? $this->channelsFor($notifiable) : ['database'];
     }
 
     /**
@@ -53,14 +42,40 @@ class DisputeUpdatedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'event_type' => 'dispute.'.$this->event,
+            'event' => $this->eventType(),
+            'title' => $this->title(),
+            'message' => "Commande n° {$this->dispute->order_id} — {$this->dispute->reason}",
             'dispute_id' => $this->dispute->id,
-            'order_id' => $this->dispute->order_id,
-            'status' => $this->dispute->status?->value,
-            'decision' => $this->dispute->decision,
-            'message' => $this->event === 'assigned'
-                ? "Le litige #{$this->dispute->id} est en cours de traitement."
-                : "Le litige #{$this->dispute->id} a été décidé.",
+            'url' => $this->path($notifiable),
         ];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject("{$this->title()} — commande n° {$this->dispute->order_id}")
+            ->greeting("Bonjour {$notifiable->name},")
+            ->line($this->step === self::OPENED
+                ? "Un problème a été signalé sur la commande n° {$this->dispute->order_id}."
+                : "Un administrateur examine le litige de la commande n° {$this->dispute->order_id}.")
+            ->line("Motif : {$this->dispute->reason}")
+            ->action('Voir le litige', $this->frontendUrl($this->path($notifiable)));
+    }
+
+    protected function eventType(): string
+    {
+        return NotificationPreference::EVENT_DISPUTE_UPDATE;
+    }
+
+    private function title(): string
+    {
+        return $this->step === self::OPENED ? 'Litige ouvert' : 'Litige pris en charge';
+    }
+
+    private function path(object $notifiable): string
+    {
+        $admin = $notifiable instanceof User && $notifiable->hasRole(UserRole::Admin);
+
+        return ($admin ? '/admin/litiges/' : '/litiges/').$this->dispute->id;
     }
 }

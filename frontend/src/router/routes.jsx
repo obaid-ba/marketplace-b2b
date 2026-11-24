@@ -153,6 +153,13 @@ export const createRoutes = () => [
           { index: true, lazy: page(() => import('@/views/orders/OrderTrackingPage')) },
         ],
       },
+      // Litige (SCRUM-117) : l'API n'y donne accès qu'aux deux parties de la commande.
+      {
+        path: '/litiges/:id',
+        loader: guard({ roles: [ROLES.BUYER, ROLES.SUPPLIER] }),
+        lazy: page(() => import('@/layouts/AppLayout')),
+        children: [{ index: true, lazy: page(() => import('@/views/disputes/DisputePage')) }],
+      },
       {
         path: '/commandes/:id',
         loader: guard({ authenticated: true }),
@@ -229,10 +236,16 @@ export const createRoutes = () => [
             lazy: page(() => import('@/views/supplier/SupplierReviewsPage')),
           },
           {
+            path: `${PATHS.supplierMessages}/:conversationId?`,
+            loader: supplierOnly(false),
+            handle: { crumb: 'Messagerie' },
+            lazy: page(() => import('@/views/messaging/MessagingPage')),
+          },
+          {
             path: PATHS.supplierDisputes,
             loader: supplierOnly(false),
             handle: { crumb: 'Litiges reçus' },
-            lazy: page(() => import('@/views/supplier/SupplierDisputesPage')),
+            lazy: page(() => import('@/views/disputes/MyDisputesPage')),
           },
           {
             path: PATHS.supplierAi,
@@ -254,7 +267,7 @@ export const createRoutes = () => [
             lazy: page(() => import('@/views/buyer/TendersPage')),
           },
           {
-            path: `${PATHS.buyerTenders}/nouvelle`,
+            path: PATHS.buyerTenderNew,
             handle: { crumb: 'Nouvelle demande' },
             lazy: page(() => import('@/views/buyer/NewTenderPage')),
           },
@@ -265,6 +278,12 @@ export const createRoutes = () => [
           },
           {
             path: `${PATHS.buyerQuotes}/:id/comparer`,
+            handle: { crumb: 'Comparer les devis' },
+            lazy: page(() => import('@/views/buyer/CompareQuotesPage')),
+          },
+          // Adresse utilisée par les notifications « Nouveau devis » (e-mails déjà envoyés compris).
+          {
+            path: `${PATHS.buyerTenders}/:id/devis`,
             handle: { crumb: 'Comparer les devis' },
             lazy: page(() => import('@/views/buyer/CompareQuotesPage')),
           },
@@ -279,9 +298,29 @@ export const createRoutes = () => [
             lazy: page(() => import('@/views/buyer/BuyerOrdersPage')),
           },
           {
+            path: `${PATHS.buyerOrders}/:id/litige`,
+            handle: { crumb: 'Signaler un problème' },
+            lazy: page(() => import('@/views/disputes/NewDisputePage')),
+          },
+          {
+            path: `${PATHS.buyerOrders}/:id`,
+            handle: { crumb: 'Suivi de commande' },
+            lazy: page(() => import('@/views/buyer/OrderDetailPage')),
+          },
+          {
+            path: `${PATHS.buyerMessages}/:conversationId?`,
+            handle: { crumb: 'Messagerie' },
+            lazy: page(() => import('@/views/messaging/MessagingPage')),
+          },
+          {
+            path: PATHS.buyerNotifications,
+            handle: { crumb: 'Notifications' },
+            lazy: page(() => import('@/views/notifications/NotificationsPage')),
+          },
+          {
             path: PATHS.buyerDisputes,
             handle: { crumb: 'Mes litiges' },
-            lazy: page(() => import('@/views/buyer/BuyerDisputesPage')),
+            lazy: page(() => import('@/views/disputes/MyDisputesPage')),
           },
           {
             path: PATHS.buyerAi,
@@ -289,6 +328,7 @@ export const createRoutes = () => [
             lazy: page(() => import('@/views/buyer/BuyerAiPage')),
           },
         ],
+        () => import('@/layouts/BuyerLayout'),
       ),
       space(
         PATHS.admin,
@@ -302,6 +342,16 @@ export const createRoutes = () => [
           {
             path: PATHS.adminCategories,
             lazy: page(() => import('@/views/admin/CategoryManagementPage')),
+          },
+          {
+            path: PATHS.adminUsers,
+            handle: { crumb: 'Utilisateurs' },
+            lazy: page(() => import('@/views/admin/AdminUsersPage')),
+          },
+          {
+            path: `${PATHS.adminUsers}/:id`,
+            handle: { crumb: 'Utilisateurs' },
+            lazy: page(() => import('@/views/admin/AdminUserPage')),
           },
           {
             path: PATHS.adminProducts,
@@ -319,9 +369,14 @@ export const createRoutes = () => [
             lazy: page(() => import('@/views/admin/AdminDisputesPage')),
           },
           {
-            path: PATHS.adminUsers,
-            handle: { crumb: 'Gestion des utilisateurs' },
-            lazy: page(() => import('@/views/admin/AdminUsersPage')),
+            path: `${PATHS.adminDisputes}/:id`,
+            handle: { crumb: 'Litiges' },
+            lazy: page(() => import('@/views/admin/AdminDisputePage')),
+          },
+          {
+            path: PATHS.adminNotifications,
+            handle: { crumb: 'Notifications' },
+            lazy: page(() => import('@/views/notifications/NotificationsPage')),
           },
         ],
         () => import('@/layouts/AdminLayout'),

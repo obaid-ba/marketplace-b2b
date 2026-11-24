@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router'
 import { searchProducts } from '@/api/catalog'
 import { fetchSupplier, fetchSupplierReviews } from '@/api/suppliers'
+import ContactButton from '@/components/ContactButton'
 import EmptyState from '@/components/EmptyState'
 import FavoriteButton from '@/components/FavoriteButton'
 import Pagination from '@/components/Pagination'
@@ -269,10 +270,7 @@ export default function SupplierPublicPage() {
         </div>
         <div className="flex flex-wrap gap-3">
           <FavoriteButton supplierId={supplier.id} initialIsFavorite={supplier.is_favorite} />
-          {/* Messagerie : S5 */}
-          <button type="button" className="btn-primary px-5 py-2.5 font-semibold" disabled title="Bientôt disponible">
-            Contacter
-          </button>
+          <ContactButton supplierId={supplier.id} className="btn-primary px-5 py-2.5 font-semibold" />
         </div>
       </section>
 

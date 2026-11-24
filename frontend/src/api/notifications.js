@@ -24,15 +24,22 @@ export async function markAllNotificationsRead() {
   return data
 }
 
+/** @returns {Promise<{ preferences: object[], whatsapp: object }>} */
 export async function fetchNotificationPreferences() {
   const { data } = await http.get('/notifications/preferences')
-  return data.preferences
+  return data
 }
 
 /**
- * @param {Array<{ event_type: string, channel: 'site'|'email', enabled: boolean }>} preferences
+ * @param {Array<{ event_type: string, channel: 'site'|'email'|'whatsapp', enabled: boolean }>} preferences
  */
 export async function updateNotificationPreferences(preferences) {
   const { data } = await http.put('/notifications/preferences', { preferences })
-  return data.preferences
+  return data
+}
+
+/** Consentement aux notifications WhatsApp (SCRUM-133). Renvoie { preferences, whatsapp }. */
+export async function setWhatsAppConsent(enabled) {
+  const { data } = await http.put('/notifications/whatsapp', { enabled })
+  return data
 }

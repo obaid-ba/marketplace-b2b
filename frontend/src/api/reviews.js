@@ -26,9 +26,18 @@ export async function replyToSupplierReview(reviewId, reply) {
 }
 
 /**
+ * Signale un avis abusif à l'administrateur (SCRUM-66).
+ * payload: { reason: string, details?: string }
+ */
+export async function reportReview(reviewId, payload) {
+  const { data } = await http.post(`/supplier/reviews/${reviewId}/report`, payload)
+  return data
+}
+
+/**
  * Récupère les avis publiés d'un fournisseur (consultation publique).
  */
 export async function fetchPublicSupplierReviews(supplierId, page = 1) {
-  const { data } = await http.get(`/suppliers/${supplierId}/reviews`, { params: { page } })
+  const { data } = await http.get(`/suppliers/${supplierId}/public-reviews`, { params: { page } })
   return data
 }

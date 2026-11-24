@@ -3,28 +3,38 @@
 namespace App\Notifications;
 
 use App\Enums\OrderStatus;
+use App\Models\NotificationPreference;
 use App\Models\Order;
+use App\Models\User;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * Notification envoyée à l'acheteur lors de l'évolution du statut de sa commande (SCRUM-54, SCRUM-55).
  */
-class OrderStatusUpdatedNotification extends Notification
+class OrderStatusUpdatedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsNotificationPreferences;
+
+    public OrderStatus $status;
 
     public function __construct(
         public Order $order
-    ) {}
+    ) {
+        // La commande peut encore avancer avant l'envoi (file d'attente) : on garde l'étape annoncée.
+        $this->status = $order->status;
+        $this->afterCommit();
+    }
 
     /**
      * @return list<string>
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return $notifiable instanceof User ? $this->channelsFor($notifiable) : ['database'];
     }
 
     /**
@@ -32,7 +42,7 @@ class OrderStatusUpdatedNotification extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $statusLabel = $this->order->status->value;
+        $statusLabel = $this->status->value;
         $orderId = $this->order->id;
         $frontendUrl = rtrim((string) config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/');
 
@@ -41,11 +51,11 @@ class OrderStatusUpdatedNotification extends Notification
             ->greeting("Bonjour {$notifiable->name},")
             ->line("Le statut de votre commande #{$orderId} a évolué vers : « {$statusLabel} ».");
 
-        if ($this->order->status === OrderStatus::SHIPPED) {
+        if ($this->status === OrderStatus::SHIPPED) {
             $mail->line("Votre fournisseur a expédié votre commande. Elle est actuellement en cours d'acheminement.");
-        } elseif ($this->order->status === OrderStatus::DELIVERED) {
+        } elseif ($this->status === OrderStatus::DELIVERED) {
             $mail->line("Votre fournisseur a marqué la commande comme livrée. Veuillez vérifier la conformité des articles reçus.");
-        } elseif ($this->order->status === OrderStatus::CLOSED) {
+        } elseif ($this->status === OrderStatus::CLOSED) {
             $mail->line("Votre commande est désormais clôturée.");
         }
 
@@ -60,12 +70,20 @@ class OrderStatusUpdatedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
+            'event' => $this->eventType(),
             'event_type' => 'order.status_updated',
+            'title' => "Commande n° {$this->order->id} : {$this->status->value}",
+            'url' => "/orders/{$this->order->id}",
             'order_id' => $this->order->id,
-            'status' => $this->order->status->value,
+            'status' => $this->status->value,
             'buyer_id' => $this->order->buyer_id,
             'supplier_id' => $this->order->supplier_id,
-            'message' => "Le statut de votre commande #{$this->order->id} est désormais « {$this->order->status->value} ».",
+            'message' => "Le statut de votre commande #{$this->order->id} est désormais « {$this->status->value} ».",
         ];
+    }
+
+    protected function eventType(): string
+    {
+        return NotificationPreference::EVENT_ORDER_STATUS;
     }
 }

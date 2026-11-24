@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { fetchSupplierReviews, replyToSupplierReview } from '@/api/reviews'
+import { fetchSupplierReviews, replyToSupplierReview, reportReview } from '@/api/reviews'
 import SupplierReviewsPage from './SupplierReviewsPage'
 
 vi.mock('@/api/reviews', () => ({
   fetchSupplierReviews: vi.fn(),
   replyToSupplierReview: vi.fn(),
+  reportReview: vi.fn(),
 }))
 
 function mockReviewsResponse(overrides = {}) {
@@ -117,6 +118,31 @@ describe('SupplierReviewsPage (SCRUM-65 / F20)', () => {
       expect(screen.getByText(/Votre réponse a été publiée avec succès/)).toBeTruthy()
       expect(screen.getByText(/Merci Hedi, ravi que le matériel vous convienne !/)).toBeTruthy()
     })
+  })
+
+  it('signale un avis abusif : motif obligatoire, puis avis en attente de décision (SCRUM-66)', async () => {
+    const message = "Avis signalé. L'administrateur va l'examiner ; l'avis reste visible jusqu'à sa décision."
+    vi.mocked(reportReview).mockResolvedValue({ message, report: { id: 1, reason: 'autre', status: 'en attente' } })
+    render(
+      <MemoryRouter>
+        <SupplierReviewsPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click((await screen.findAllByRole('button', { name: /Signaler cet avis/ }))[0])
+    const send = screen.getByRole('button', { name: 'Envoyer le signalement' })
+    expect(send.disabled).toBe(true)
+
+    // « Autre motif » exige des précisions
+    fireEvent.click(screen.getByLabelText('Autre motif'))
+    expect(send.disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText(/Précisions/), { target: { value: ' Chantage ' } })
+    fireEvent.click(send)
+
+    expect(await screen.findByText(/en attente de décision/)).toBeTruthy()
+    expect(reportReview).toHaveBeenCalledWith(1, { reason: 'autre', details: 'Chantage' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getAllByRole('button', { name: /Signaler cet avis/ })).toHaveLength(1)
   })
 
   it('affiche un état vide si aucun avis n’a été reçu', async () => {

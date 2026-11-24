@@ -4,6 +4,7 @@ namespace App\Notifications\Concerns;
 
 use App\Models\NotificationPreference;
 use App\Models\User;
+use App\Notifications\Channels\WhatsAppChannel;
 
 /**
  * Applique les préférences de notification (événement × canal) au moment de l'envoi.
@@ -27,6 +28,11 @@ trait RespectsNotificationPreferences
 
         if (NotificationPreference::allows($user, $this->eventType(), NotificationPreference::CHANNEL_EMAIL)) {
             $channels[] = 'mail';
+        }
+
+        // Échec WhatsApp : repli sur l'e-mail, géré par le canal (R6).
+        if (NotificationPreference::allows($user, $this->eventType(), NotificationPreference::CHANNEL_WHATSAPP)) {
+            $channels[] = WhatsAppChannel::class;
         }
 
         // Un utilisateur ne peut pas se retrouver sans aucune trace d'un événement.

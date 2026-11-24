@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // Temps réel : POST /api/broadcasting/auth, avec le même jeton Bearer que l'API.
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        ['prefix' => 'api', 'middleware' => ['auth:sanctum']],
+    )
     ->withMiddleware(function (Middleware $middleware): void {
         // Usage dans les routes : ->middleware('role:supplier') ou 'role:admin,buyer'
         // 'supplier.validated' : pages de vente réservées aux fournisseurs validés (SCRUM-27).

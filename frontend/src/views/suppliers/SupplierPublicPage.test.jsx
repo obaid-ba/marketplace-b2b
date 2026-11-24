@@ -86,7 +86,7 @@ describe('SupplierPublicPage', () => {
     expect(await screen.findByText('Cartons ondulés sur mesure')).toBeTruthy()
     expect(catalogApi.searchProducts).toHaveBeenCalledWith({ supplier_id: 7, page: 1, per_page: 12 }, expect.anything())
     expect(screen.getByText('Spécialiste des emballages en carton ondulé depuis 2009.')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Contacter' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Contacter' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'Ajouter aux favoris' })).toBeTruthy()
   })
 

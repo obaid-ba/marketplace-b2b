@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { fetchSupplierReviews, replyToSupplierReview } from '@/api/reviews'
+import ReportReviewModal from './ReportReviewModal'
 
 export default function SupplierReviewsPage() {
   const [data, setData] = useState(null)
@@ -14,6 +15,7 @@ export default function SupplierReviewsPage() {
   const [replySubmitting, setReplySubmitting] = useState(false)
   const [replyError, setReplyError] = useState(null)
   const [replySuccess, setReplySuccess] = useState(null)
+  const [reportedReview, setReportedReview] = useState(null) // avis en cours de signalement (SCRUM-66)
 
   const loadReviews = useCallback(async (pageNumber = 1) => {
     setLoading(true)
@@ -39,6 +41,18 @@ export default function SupplierReviewsPage() {
     if (!replyDrafts[reviewId]) {
       setReplyDrafts((prev) => ({ ...prev, [reviewId]: '' }))
     }
+  }
+
+  const handleReported = (result) => {
+    setData((prev) => ({
+      ...prev,
+      reviews: {
+        ...prev.reviews,
+        data: prev.reviews.data.map((r) => (r.id === reportedReview.id ? { ...r, reports: [result.report] } : r)),
+      },
+    }))
+    setReplySuccess(result.message)
+    setReportedReview(null)
   }
 
   const handleCancelReply = () => {
@@ -249,6 +263,21 @@ export default function SupplierReviewsPage() {
                     </p>
                   )}
 
+                  {/* Signalement à l'administrateur (SCRUM-66) */}
+                  {review.reports?.length > 0 ? (
+                    <p className="text-xs font-medium text-accent">
+                      ⚑ {review.reports[0].status === 'en attente' ? 'Avis signalé : en attente de décision' : `Signalement : ${review.reports[0].status}`}
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setReportedReview(review)}
+                      className="text-xs font-medium text-muted hover:text-danger hover:underline"
+                    >
+                      ⚑ Signaler cet avis
+                    </button>
+                  )}
+
                   {/* Section Réponse Fournisseur */}
                   {review.supplier_reply ? (
                     <div className="rounded-xl border border-brand-200 bg-brand-50/50 p-3.5 text-xs space-y-1">
@@ -314,6 +343,10 @@ export default function SupplierReviewsPage() {
               )
             })}
           </div>
+        )}
+
+        {reportedReview && (
+          <ReportReviewModal review={reportedReview} onClose={() => setReportedReview(null)} onReported={handleReported} />
         )}
 
         {/* Pagination */}

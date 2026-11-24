@@ -1,7 +1,7 @@
 import { http } from './http'
 
 /**
- * Assistants IA (SCRUM-124, SCRUM-77, SCRUM-78, SCRUM-79 / F30).
+ * Assistants IA (SCRUM-124, SCRUM-77, SCRUM-78 / F30).
  * Le texte renvoyé est toujours une suggestion modifiable.
  */
 export async function generateTenderDraft(payload) {
@@ -11,11 +11,6 @@ export async function generateTenderDraft(payload) {
 
 export async function generateProductText(payload) {
   const { data } = await http.post('/ai/product-text', payload)
-  return data
-}
-
-export async function generateQuoteSummary(tenderId) {
-  const { data } = await http.post('/ai/quote-summary', { tender_id: tenderId })
   return data
 }
 

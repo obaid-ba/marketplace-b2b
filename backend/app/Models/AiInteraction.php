@@ -2,15 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\AiFeature;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Trace d'un appel à l'IA (SCRUM-80 / F25).
- *
- * Toute sortie générée est conservée avec son entrée et son contexte, afin de
- * pouvoir l'auditer. `accepted` passe à vrai quand l'utilisateur garde le texte
- * proposé (les fonctionnalités IA restent des aides à la décision).
+ * Sortie d'une fonctionnalité IA (docs/ENTITIES.md, règle 10) : toujours enregistrée, modifiable par l'utilisateur.
+ * « output » garde la sortie d'origine ; « edited_output » la version de l'utilisateur.
  */
 class AiInteraction extends Model
 {
@@ -24,6 +22,10 @@ class AiInteraction extends Model
         'input',
         'output',
         'accepted',
+        'provider',
+        'model',
+        'input_hash',
+        'edited_output',
     ];
 
     /**
@@ -32,6 +34,10 @@ class AiInteraction extends Model
     protected function casts(): array
     {
         return [
+            'feature' => AiFeature::class,
+            'input' => 'array',
+            'output' => 'array',
+            'edited_output' => 'array',
             'accepted' => 'boolean',
         ];
     }

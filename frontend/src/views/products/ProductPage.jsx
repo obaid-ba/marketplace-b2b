@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { searchProducts } from '@/api/catalog'
 import { fetchProduct } from '@/api/products'
+import ContactButton from '@/components/ContactButton'
 import EmptyState from '@/components/EmptyState'
 import FavoriteButton from '@/components/FavoriteButton'
 import ProductCard from '@/components/ProductCard'
@@ -17,7 +18,7 @@ import { ROLES } from '@/utils/roles'
 
 /**
  * Fiche détaillée d'un produit (SCRUM-36, maquette V3) : accessible sans connexion.
- * Commander (S4) et Contacter (S5) arrivent plus tard ; un visiteur est invité à se connecter.
+ * Commander (S4) arrive plus tard ; un visiteur est invité à se connecter.
  * Un fournisseur ou un administrateur connecté ne voit pas les boutons d'achat.
  */
 
@@ -114,15 +115,12 @@ function Actions({ product }) {
         >
           Commander
         </button>
-        <button
-          type="button"
+        <ContactButton
+          supplierId={product.supplier.id}
+          label="Contacter le fournisseur"
+          draft={`Bonjour, je suis intéressé par « ${product.title} ».`}
           className="btn-secondary px-5 py-2.5 font-semibold"
-          disabled={!guest}
-          title={guest ? 'Connectez-vous pour contacter le fournisseur' : 'Bientôt disponible'}
-          onClick={guest ? goToLogin : undefined}
-        >
-          Contacter le fournisseur
-        </button>
+        />
         <FavoriteButton supplierId={product.supplier.id} initialIsFavorite={product.supplier.is_favorite} label="Favori" />
       </div>
       {invalidQuantity && !outOfStock && (
@@ -130,7 +128,7 @@ function Actions({ product }) {
           {max !== undefined ? `Choisissez une quantité entre 1 et ${formatNumber(max)}.` : 'Choisissez une quantité d’au moins 1.'}
         </p>
       )}
-      {!guest && <p className="text-xs text-muted">La commande en ligne et la messagerie arrivent bientôt.</p>}
+      {!guest && <p className="text-xs text-muted">La commande en ligne arrive bientôt.</p>}
     </div>
   )
 }

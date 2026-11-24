@@ -19,6 +19,8 @@ class SupplierPublicReviewController extends Controller
      */
     public function index(Request $request, SupplierProfile $supplier): JsonResponse
     {
+        abort_unless(SupplierProfile::query()->visibleInCatalog()->whereKey($supplier->id)->exists(), 404, 'Fournisseur introuvable.');
+
         $perPage = max(1, min(50, (int) $request->query('per_page', 10)));
 
         $reviews = Review::query()

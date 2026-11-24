@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { acceptQuote, fetchTenderQuotes } from '@/api/buyerQuotes'
 import { fetchBuyerTender } from '@/api/tenders'
+import ContactButton from '@/components/ContactButton'
 import PageHeader from '@/components/PageHeader'
+import QuoteSummaryCard from '@/components/QuoteSummaryCard'
 import EmptyState from '@/components/dashboard/EmptyState'
 import { QuoteStatusBadge, TenderStatusBadge } from '@/components/TenderBadges'
 import { buyerOrderPath, buyerTenderPath, PATHS } from '@/router/paths'
@@ -145,6 +147,8 @@ export default function CompareQuotesPage() {
         </div>
       )}
 
+      {quotes.length > 0 && <QuoteSummaryCard tenderId={tender.id} quotes={quotes} />}
+
       {quotes.length === 0 ? (
         <EmptyState
           title="Aucun devis pour le moment"
@@ -206,7 +210,8 @@ export default function CompareQuotesPage() {
                   Reçu le {formatDate(quote.created_at?.slice(0, 10))}
                 </p>
 
-                <div className="mt-auto pt-4">
+                <div className="mt-auto space-y-2 pt-4">
+                  <ContactButton contextType="devis" contextId={quote.id} label="Discuter de ce devis" className="btn-secondary" />
                   {canAccept ? (
                     <button
                       type="button"

@@ -1,266 +1,154 @@
-import { useCallback, useEffect, useState } from 'react'
-import { assignDispute, decideDispute, fetchAdminDisputes } from '@/api/disputes'
-import Modal from '@/components/Modal'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
+import { fetchAdminDisputes } from '@/api/disputes'
+import { DISPUTE_STATUS, DisputeStatusBadge } from '@/components/disputes/DisputeParts'
+import EmptyState from '@/components/EmptyState'
 import PageHeader from '@/components/PageHeader'
 import Pagination from '@/components/Pagination'
+import { useRealtime } from '@/realtime/realtime'
+import { adminDisputePath } from '@/router/paths'
 import { formatAmount } from '@/utils/money'
-import { formatDate } from '@/utils/period'
+import { formatRelativeDate } from '@/utils/relativeDate'
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'Tous les litiges' },
-  { value: 'ouvert', label: 'Ouverts' },
-  { value: 'en cours', label: 'En cours' },
-  { value: 'décidé', label: 'Décidés' },
+const TABS = [
+  { value: '', label: 'Tous' },
+  { value: DISPUTE_STATUS.OPEN, label: 'Ouverts' },
+  { value: DISPUTE_STATUS.IN_PROGRESS, label: 'En cours' },
+  { value: DISPUTE_STATUS.DECIDED, label: 'Décidés' },
 ]
 
-const STATUS_CLASSES = {
-  ouvert: 'bg-rose-50 text-rose-800',
-  'en cours': 'bg-amber-50 text-amber-800',
-  décidé: 'bg-emerald-50 text-emerald-800',
-}
-
-/**
- * Litiges (SCRUM-73 / F21) : file triée par urgence, prise en charge puis
- * décision motivée. Les deux parties sont notifiées à chaque étape.
- */
+/** Gestion des litiges (SCRUM-117 / F23) : les plus urgents d'abord. Filtres conservés dans l'adresse. */
 export default function AdminDisputesPage() {
-  const [status, setStatus] = useState('')
-  const [page, setPage] = useState(1)
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [params, setParams] = useSearchParams()
+  const status = params.get('statut') ?? ''
+  const search = params.get('q') ?? ''
+  const mine = params.get('moi') === '1'
+  const page = Math.max(1, Number(params.get('page')) || 1)
+
+  const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
-  const [notice, setNotice] = useState(null)
+  const [text, setText] = useState(search)
+  const latest = useRef(0)
 
-  const [target, setTarget] = useState(null)
-  const [decision, setDecision] = useState('')
-  const [note, setNote] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [actionError, setActionError] = useState(null)
-
-  const load = useCallback(async (currentStatus, currentPage) => {
-    setLoading(true)
-    setError(null)
+  const load = useCallback(async () => {
+    const request = ++latest.current
     try {
-      const params = { page: currentPage, per_page: 20 }
-      if (currentStatus) params.status = currentStatus
-      setData(await fetchAdminDisputes(params))
-    } catch (requestError) {
-      setError(requestError.userMessage ?? 'Impossible de charger les litiges.')
-    } finally {
-      setLoading(false)
+      const data = await fetchAdminDisputes({ status: status || undefined, search: search || undefined, mine: mine ? 1 : undefined, page })
+      if (request !== latest.current) return
+      setResult(data)
+      setError(null)
+    } catch (err) {
+      if (request === latest.current) setError(err.userMessage ?? 'Impossible de charger les litiges.')
     }
-  }, [])
+  }, [mine, page, search, status])
 
   useEffect(() => {
-    load(status, page)
-  }, [load, status, page])
+    load()
+  }, [load])
+  useRealtime('notification.created', load)
 
-  function changeStatus(value) {
-    setPage(1)
-    setStatus(value)
+  function update(changes) {
+    setParams((current) => {
+      const next = new URLSearchParams(current)
+      next.delete('page')
+      Object.entries(changes).forEach(([key, value]) => (value ? next.set(key, value) : next.delete(key)))
+      return next
+    })
   }
 
-  async function take(dispute) {
-    setActionError(null)
-    setNotice(null)
-    try {
-      const result = await assignDispute(dispute.id)
-      setNotice(result?.message ?? 'Le litige est en cours de traitement.')
-      await load(status, page)
-    } catch (requestError) {
-      setActionError(requestError.userMessage ?? 'La prise en charge a échoué.')
-    }
-  }
-
-  function openDecide(dispute) {
-    setTarget(dispute)
-    setDecision('')
-    setNote('')
-    setActionError(null)
-    setNotice(null)
-  }
-
-  async function submitDecision(event) {
-    event.preventDefault()
-    if (decision.trim().length < 3) {
-      setActionError('La décision doit contenir au moins 3 caractères.')
-      return
-    }
-    if (note.trim().length < 5) {
-      setActionError('La note doit contenir au moins 5 caractères.')
-      return
-    }
-
-    setSubmitting(true)
-    setActionError(null)
-    try {
-      const result = await decideDispute(target.id, { decision: decision.trim(), note: note.trim() })
-      setNotice(result?.message ?? 'La décision a été enregistrée.')
-      setTarget(null)
-      await load(status, page)
-    } catch (requestError) {
-      setActionError(requestError.userMessage ?? "La décision n'a pas pu être enregistrée.")
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const disputes = data?.data ?? []
+  const total = result ? Object.values(result.counts).reduce((sum, count) => sum + count, 0) : null
+  const countFor = (value) => (result ? (value ? result.counts[value] : total) : null)
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Litiges"
-        subtitle="Les litiges ouverts sont traités en premier, du plus ancien au plus récent."
-      />
+    <>
+      <PageHeader title="Litiges" subtitle="Les litiges ouverts les plus anciens d'abord." />
 
-      {notice && (
-        <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-          {notice}
-        </p>
-      )}
-      {actionError && !target && (
-        <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-          {actionError}
-        </p>
-      )}
-
-      <section className="card" aria-label="Filtre des litiges">
-        <label className="block text-sm sm:w-64">
-          <span className="mb-1 block font-medium text-ink">Statut</span>
-          <select
-            value={status}
-            onChange={(event) => changeStatus(event.target.value)}
-            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink"
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {TABS.map((tab) => (
+          <button
+            key={tab.label}
+            type="button"
+            aria-pressed={status === tab.value}
+            onClick={() => update({ statut: tab.value })}
+            className={status === tab.value ? 'btn-primary' : 'btn-secondary'}
           >
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            {tab.label}
+            {countFor(tab.value) !== null && ` (${countFor(tab.value)})`}
+          </button>
+        ))}
+        <label className="ml-2 flex items-center gap-2 text-sm text-muted">
+          <input type="checkbox" className="accent-brand-600" checked={mine} onChange={(event) => update({ moi: event.target.checked ? '1' : '' })} />
+          Pris en charge par moi
         </label>
-      </section>
+        <form
+          role="search"
+          className="flex w-full gap-2 sm:ml-auto sm:w-auto"
+          onSubmit={(event) => {
+            event.preventDefault()
+            update({ q: text.trim() })
+          }}
+        >
+          <input type="search" className="input sm:w-64" placeholder="N° de commande, société…" aria-label="Rechercher un litige" value={text} onChange={(event) => setText(event.target.value)} />
+          <button type="submit" className="btn-secondary">
+            Rechercher
+          </button>
+        </form>
+      </div>
 
       {error && (
-        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800">
-          <p>{error}</p>
-          <button type="button" className="btn btn-secondary mt-3" onClick={() => load(status, page)}>
+        <div role="alert" className="card mb-4 border-danger-soft bg-danger-soft/40 text-sm text-danger">
+          {error}{' '}
+          <button type="button" className="font-medium underline" onClick={load}>
             Réessayer
           </button>
         </div>
       )}
+      {!result && !error && <div className="card text-sm text-muted">Chargement des litiges…</div>}
+      {result?.data.length === 0 && <EmptyState title="Aucun litige" description="Aucun litige ne correspond à ces critères." />}
 
-      {loading && !data && <p className="text-sm text-muted">Chargement des litiges…</p>}
-
-      {data && (
-        <section className="card" aria-labelledby="disputes-title">
-          <h2 id="disputes-title" className="text-base font-semibold text-ink">
-            {data.total ?? disputes.length} litige(s)
-          </h2>
-
-          {disputes.length === 0 ? (
-            <p className="mt-4 text-sm text-muted">Aucun litige ne correspond à ce filtre.</p>
-          ) : (
-            <ul className="mt-4 divide-y divide-line">
-              {disputes.map((dispute) => (
-                <li key={dispute.id} className="py-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium text-ink">Litige #{dispute.id}</p>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            STATUS_CLASSES[dispute.status] ?? 'bg-page text-muted'
-                          }`}
-                        >
-                          {dispute.status}
-                        </span>
-                        <span className="text-xs text-muted">
-                          Commande #{dispute.order?.id ?? '—'} · {formatAmount(dispute.order?.total)}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm font-medium text-ink">{dispute.reason}</p>
-                      <p className="mt-1 text-sm text-muted">{dispute.description}</p>
-                      <p className="mt-2 text-xs text-muted">
-                        Ouvert par {dispute.opener?.name ?? 'un utilisateur'} le{' '}
-                        {formatDate(dispute.created_at?.slice(0, 10))}
-                        {dispute.order?.supplier?.company_name
-                          ? ` · fournisseur ${dispute.order.supplier.company_name}`
-                          : ''}
-                        {dispute.assigned_admin?.name ? ` · suivi par ${dispute.assigned_admin.name}` : ''}
-                      </p>
-                      {dispute.decision && (
-                        <p className="mt-2 rounded-lg bg-page p-2 text-xs text-ink">
-                          Décision : {dispute.decision}
-                          {dispute.decision_note ? ` — ${dispute.decision_note}` : ''}
-                        </p>
-                      )}
-                    </div>
-
-                    {dispute.status !== 'décidé' && (
-                      <div className="flex shrink-0 flex-wrap gap-2">
-                        {dispute.status === 'ouvert' && (
-                          <button type="button" className="btn btn-secondary" onClick={() => take(dispute)}>
-                            Prendre en charge
-                          </button>
-                        )}
-                        <button type="button" className="btn btn-primary" onClick={() => openDecide(dispute)}>
-                          Rendre une décision
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <Pagination currentPage={data.current_page} lastPage={data.last_page} onChange={setPage} className="mt-6" />
-        </section>
+      {result?.data.length > 0 && (
+        <ul className="space-y-2">
+          {result.data.map((dispute) => (
+            <li key={dispute.id}>
+              <Link
+                to={adminDisputePath(dispute.id)}
+                className="flex flex-col gap-2 rounded-xl border border-line bg-surface px-4 py-3 transition hover:border-brand-100 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-ink">Commande n° {dispute.order_id}</span>
+                    <DisputeStatusBadge status={dispute.status} />
+                  </span>
+                  <span className="mt-1 block truncate text-sm text-muted">
+                    {dispute.reason} · {dispute.buyer.name} → {dispute.supplier.name}
+                  </span>
+                </span>
+                <span className="flex shrink-0 flex-col text-sm sm:items-end">
+                  <span className="font-medium text-ink">{formatAmount(dispute.order.total)}</span>
+                  <span className="text-xs text-muted">
+                    {formatRelativeDate(dispute.created_at)}
+                    {dispute.assigned_admin && ` · ${dispute.assigned_admin.name}`}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
-
-      {target && (
-        <Modal title={`Décision du litige #${target.id}`} onClose={() => setTarget(null)}>
-          <form onSubmit={submitDecision} className="space-y-4" noValidate>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-ink">Décision</span>
-              <input
-                type="text"
-                value={decision}
-                onChange={(event) => setDecision(event.target.value)}
-                maxLength={255}
-                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink"
-                placeholder="Ex. remboursement partiel"
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-ink">Note motivée</span>
-              <textarea
-                rows="4"
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                maxLength={5000}
-                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink"
-                placeholder="Expliquez la décision aux deux parties"
-              />
-            </label>
-            {actionError && (
-              <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-sm text-rose-800">
-                {actionError}
-              </p>
-            )}
-            <div className="flex justify-end gap-3">
-              <button type="button" className="btn btn-secondary" onClick={() => setTarget(null)}>
-                Annuler
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={submitting}>
-                {submitting ? 'Enregistrement…' : 'Enregistrer la décision'}
-              </button>
-            </div>
-          </form>
-        </Modal>
+      {result && (
+        <Pagination
+          className="mt-6"
+          currentPage={result.meta.current_page}
+          lastPage={result.meta.last_page}
+          onChange={(value) =>
+            setParams((current) => {
+              const next = new URLSearchParams(current)
+              next.set('page', String(value))
+              return next
+            })
+          }
+        />
       )}
-    </div>
+    </>
   )
 }

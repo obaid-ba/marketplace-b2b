@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { generateQuoteSummary, generateTenderDraft } from '@/api/ai'
+import { MemoryRouter } from 'react-router'
+import { generateTenderDraft } from '@/api/ai'
 import { fetchBuyerTenders } from '@/api/tenders'
 import BuyerAiPage from './BuyerAiPage'
 
 vi.mock('@/api/ai', () => ({
-  generateQuoteSummary: vi.fn(),
   generateTenderDraft: vi.fn(),
   generateProductText: vi.fn(),
   acceptAiSuggestion: vi.fn(),
@@ -21,17 +21,10 @@ beforeEach(() => {
     interaction_id: 11,
     output: 'Brouillon structuré pour des cartons.',
     editable: true,
-    label: 'Brouillon généré par IA',
+    simulated: true,
+    label: 'Mode simulé, sans IA',
     before: null,
     after: 'Brouillon structuré pour des cartons.',
-  })
-  generateQuoteSummary.mockResolvedValue({
-    interaction_id: 12,
-    output: 'Atlas est moins cher, Médina plus rapide.',
-    editable: true,
-    label: 'Aide à la décision générée par IA',
-    before: null,
-    after: 'Atlas est moins cher, Médina plus rapide.',
   })
 })
 
@@ -42,7 +35,7 @@ afterEach(() => {
 
 describe('BuyerAiPage (SCRUM-124 / SCRUM-79)', () => {
   it('génère un brouillon de demande modifiable', async () => {
-    render(<BuyerAiPage />)
+    render(<BuyerAiPage />, { wrapper: MemoryRouter })
 
     fireEvent.change(screen.getByLabelText('Votre besoin'), {
       target: { value: 'fourniture de cartons double cannelure' },
@@ -59,20 +52,16 @@ describe('BuyerAiPage (SCRUM-124 / SCRUM-79)', () => {
     await waitFor(() =>
       expect(screen.getByLabelText('Texte proposé').value).toBe('Brouillon structuré pour des cartons.'),
     )
+    expect(screen.getByText(/Mode simulé, sans IA/)).toBeTruthy()
   })
 
-  it('compare les devis d’une demande', async () => {
-    render(<BuyerAiPage />)
+  it('mène à la page de comparaison de la demande choisie', async () => {
+    render(<BuyerAiPage />, { wrapper: MemoryRouter })
 
     const option = await screen.findByRole('option', { name: 'Achat de cartons' })
     expect(option).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText('Demande'), { target: { value: '9' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Comparer' }))
-
-    await waitFor(() => expect(generateQuoteSummary).toHaveBeenCalledWith(9))
-    await waitFor(() =>
-      expect(screen.getByLabelText('Texte proposé').value).toContain('Atlas est moins cher'),
-    )
+    expect(screen.getByRole('link', { name: 'Comparer' }).getAttribute('href')).toBe('/porteur/devis/9/comparer')
   })
 })

@@ -97,6 +97,13 @@ class BuyerOrderController extends Controller
             ], 422);
         }
 
+        // Vérification 2 bis : compte suspendu, désactivé ou supprimé (SCRUM-118)
+        if (! $supplier->canSell()) {
+            return response()->json([
+                'message' => "Ce fournisseur n'est plus disponible. La commande n'a pas été passée.",
+            ], 422);
+        }
+
         // Vérification 3 : Chaque produit doit être publié et en stock suffisant
         foreach ($requestedItems as $productId => $itemData) {
             $product = $products->get($productId);
@@ -201,6 +208,14 @@ class BuyerOrderController extends Controller
         }
 
         DB::transaction(function () use ($order, $request, $documentService) {
+            // Même verrou qu'à l'ouverture d'un litige : une commande contestée ne se clôture pas (SCRUM-117).
+            Order::query()->lockForUpdate()->find($order->id);
+            abort_if(
+                $order->disputes()->undecided()->exists(),
+                422,
+                "Un litige est en cours sur cette commande : elle pourra être clôturée après la décision de l'administrateur.",
+            );
+
             $order->update([
                 'status' => OrderStatus::CLOSED,
             ]);

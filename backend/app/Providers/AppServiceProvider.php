@@ -2,29 +2,43 @@
 
 namespace App\Providers;
 
-use App\Contracts\AiClient;
+use App\Events\NotificationCreated;
+use App\Exceptions\AiUnavailableException;
 use App\Models\User;
-use App\Services\Ai\MockAiClient;
+use App\Services\Ai\AiClient;
+use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // SCRUM-80 : un seul fournisseur d'IA pour toute l'application. Le mode
-        // `mock` (défaut) ne nécessite aucune clé et sert aux tests/démos.
-        $this->app->bind(AiClient::class, function () {
-            // Le fournisseur réel sera ajouté ici quand Q8 sera tranchée.
-            return new MockAiClient;
+        // Fournisseur d'IA choisi par AI_PROVIDER (SCRUM-119) : voir config/ai.php.
+        $this->app->bind(AiClient::class, function ($app) {
+            $driver = config('ai.drivers')[config('ai.provider')] ?? throw new AiUnavailableException('Fournisseur IA inconnu ou désactivé.');
+
+            return $app->make($driver);
+        });
+
+        // Fournisseur WhatsApp choisi par WHATSAPP_PROVIDER (SCRUM-133) : voir config/whatsapp.php.
+        $this->app->bind(WhatsAppClient::class, function ($app) {
+            $driver = config('whatsapp.drivers')[config('whatsapp.provider')] ?? throw new RuntimeException('Fournisseur WhatsApp inconnu ou désactivé.');
+
+            return $app->make($driver);
         });
     }
 
@@ -41,6 +55,25 @@ class AppServiceProvider extends ServiceProvider
         // Inscriptions : protège la création de comptes et l'envoi d'e-mails.
         RateLimiter::for('register', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
+        });
+
+        // Les jetons sont supprimés à la suspension (SCRUM-118). Filet de sécurité : un jeton créé
+        // au même instant ne donne pas accès à un compte suspendu, désactivé ou supprimé.
+        Sanctum::authenticateAccessTokensUsing(
+            fn (PersonalAccessToken $token, bool $isValid) => $isValid && $token->tokenable instanceof User && ! $token->tokenable->isBlocked()
+        );
+
+        // Messagerie : 30 messages par minute et par utilisateur (SCRUM-60).
+        RateLimiter::for('messages', function (Request $request) {
+            return Limit::perMinute(30)->by((string) $request->user()?->id);
+        });
+
+        // Toute notification ajoutée au centre est aussi signalée en temps réel (SCRUM-62).
+        // rescue : si Reverb est arrêté, la notification reste enregistrée.
+        Event::listen(function (NotificationSent $event) {
+            if ($event->channel === 'database' && $event->notifiable instanceof User) {
+                rescue(fn () => event(new NotificationCreated($event->notifiable->id, $event->notification->id)));
+            }
         });
 
         // « Renvoyer le lien » : une fois par minute et par utilisateur.
@@ -61,12 +94,6 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
-        });
-
-        // SCRUM-80 : limite les appels IA par utilisateur (coût et abus).
-        RateLimiter::for('ai', function (Request $request) {
-            return Limit::perMinute((int) config('ai.rate_limit_per_minute', 20))
-                ->by((string) $request->user()?->id);
         });
     }
 
