@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Avis client lié à une commande (SCRUM-65).
@@ -64,6 +65,14 @@ class Review extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(SupplierProfile::class, 'supplier_id');
+    }
+
+    /**
+     * Signalements déposés sur cet avis (SCRUM-74 / F29).
+     */
+    public function reports(): HasMany
+    {
+        return $this->hasMany(ReviewReport::class);
     }
 
     public function scopePublished(Builder $query): void
