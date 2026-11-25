@@ -12,12 +12,13 @@ import {
 import { fetchSupplierProfile } from '@/api/supplierProfile'
 import ProductCard from '@/components/ProductCard'
 import { PATHS, supplierProductEditPath } from '@/router/paths'
+import ProductAiText from './ProductAiText'
 import ProductImagesField from './ProductImagesField'
 
 /**
  * Ajouter / modifier un produit ou un service (SCRUM-33, maquette F3).
  * « Enregistrer le brouillon » ou « Publier » ; un produit retiré par l'administrateur reste retiré.
- * Les fonctions IA (rédaction S6, estimation de prix S7) et la mise en avant ne sont pas encore disponibles.
+ * L'estimation de prix IA (S7) et la mise en avant ne sont pas encore disponibles.
  */
 
 export const UNITS = [
@@ -377,15 +378,12 @@ export default function ProductFormPage() {
               />
             </Field>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <button type="button" className="btn-secondary" disabled title="Bientôt disponible">
-                ✦ Rédiger avec l’IA
-              </button>
-              <button type="button" className="btn-secondary" disabled title="Bientôt disponible">
-                ✦ Reformuler
-              </button>
-              <span className="text-xs text-muted">Les suggestions IA restent modifiables.</span>
-            </div>
+            <ProductAiText
+              title={form.title}
+              description={form.description}
+              category={categories.flatMap((root) => [root, ...root.children]).find((item) => String(item.id) === form.category_id)?.name}
+              onUse={(text) => update('description', text)}
+            />
           </div>
 
           <h2 className="mt-8 mb-4 text-lg font-semibold text-ink">Prix et disponibilité</h2>

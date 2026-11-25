@@ -165,4 +165,21 @@ class AiEndpointsTest extends TestCase
             ->assertOk()
             ->assertJsonPath('simulated', true);
     }
+
+    public function test_le_titre_est_repris_et_la_version_retenue_est_conservee(): void
+    {
+        $buyer = $this->buyer();
+        $response = $this->actingAs($buyer, 'sanctum')
+            ->postJson('/api/ai/tender-draft', ['title' => 'Cartons de luxe', 'prompt' => '2000 cartons, double cannelure'])
+            ->assertOk();
+        $this->assertStringStartsWith('Objet : Cartons de luxe', $response->json('output'));
+
+        $url = "/api/ai/interactions/{$response->json('interaction_id')}/accept";
+        $this->postJson($url, ['text' => 'Ma version'])->assertOk();
+
+        $interaction = AiInteraction::sole();
+        $this->assertTrue($interaction->accepted);
+        $this->assertSame($response->json('output'), $interaction->output['text']);
+        $this->assertSame(['text' => 'Ma version'], $interaction->edited_output);
+    }
 }

@@ -19,7 +19,7 @@ class WritingAssistant
 
     public const PRODUCT_TEXT = 'product_text';
 
-    private const MAX_LENGTH = 8000;
+    private const MAX_LENGTH = 5000;
 
     private const COMMON_INSTRUCTIONS = <<<'TXT'
         Réponds en français, dans un style professionnel et factuel, en texte brut.
@@ -29,10 +29,11 @@ class WritingAssistant
 
     public function __construct(private readonly AiService $ai) {}
 
-    public function tenderDraft(User $user, string $need, ?string $category, ?string $region): AiInteraction
+    public function tenderDraft(User $user, string $need, ?string $category, ?string $region, ?string $title = null): AiInteraction
     {
         return $this->run($user, AiFeature::WRITING, self::TENDER_DRAFT, 'Rédige le brouillon d\'une demande de devis à partir du besoin décrit.', [
             'type' => 'tender',
+            'title' => $title,
             'text' => $need,
             'category' => $category,
             'region' => $region,

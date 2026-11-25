@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import { createTender, fetchTenderReferences } from '@/api/tenders'
 import PageHeader from '@/components/PageHeader'
 import { buyerTenderPath, PATHS } from '@/router/paths'
+import TenderAiDraft from './TenderAiDraft'
 
 const MAX_FILES = 5
 const MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -176,6 +177,12 @@ export default function NewTenderPage() {
           />
           <p className="mt-1 text-xs text-muted">{form.description.length} / 5000 caractères</p>
           {fieldErrors.description && <p className="mt-1 text-sm text-danger">{fieldErrors.description[0]}</p>}
+          <TenderAiDraft
+            title={form.title}
+            category={references.categories?.find((item) => String(item.id) === String(form.category_id))?.name}
+            region={references.regions?.find((item) => String(item.id) === String(form.region_id))?.name}
+            onUse={(text) => update('description', text)}
+          />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

@@ -14,7 +14,8 @@ export async function generateProductText(payload) {
   return data
 }
 
-export async function acceptAiSuggestion(id) {
-  const { data } = await http.post(`/ai/interactions/${id}/accept`)
+/** text : version retenue par l'utilisateur (la sortie d'origine est conservée). */
+export async function acceptAiSuggestion(id, text) {
+  const { data } = await http.post(`/ai/interactions/${id}/accept`, text?.trim() ? { text } : {})
   return data
 }

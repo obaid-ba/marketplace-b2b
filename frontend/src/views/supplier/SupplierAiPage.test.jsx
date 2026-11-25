@@ -46,7 +46,7 @@ describe('SupplierAiPage (SCRUM-77 / SCRUM-78)', () => {
 
     expect(screen.getAllByText('perceuse 18v 2 batteries').length).toBeGreaterThan(0)
     await waitFor(() =>
-      expect(screen.getByLabelText('Texte proposé').value).toBe(
+      expect(screen.getByLabelText('Après').value).toBe(
         'Perceuse sans fil 18 V livrée avec deux batteries.',
       ),
     )

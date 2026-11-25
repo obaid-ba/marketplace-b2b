@@ -112,7 +112,7 @@ class SimulatedAiClient implements AiClient
     private function tenderDraft(array $data): string
     {
         return implode("\n", array_filter([
-            "Objet : consultation pour {$data['text']}",
+            'Objet : '.($data['title'] ?: "consultation pour {$data['text']}"),
             '',
             'Description du besoin',
             "Nous recherchons un fournisseur capable de répondre au besoin suivant : {$data['text']}.",

@@ -27,6 +27,7 @@ class AiController extends Controller
         }
 
         $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:150'],
             'prompt' => ['required', 'string', 'min:5', 'max:5000'],
             'category' => ['nullable', 'string', 'max:100'],
             'region' => ['nullable', 'string', 'max:100'],
@@ -37,6 +38,7 @@ class AiController extends Controller
             $validated['prompt'],
             $validated['category'] ?? null,
             $validated['region'] ?? null,
+            $validated['title'] ?? null,
         ));
     }
 
@@ -66,7 +68,14 @@ class AiController extends Controller
             return response()->json(['message' => 'Interaction introuvable.'], 404);
         }
 
-        $interaction->update(['accepted' => true]);
+        $validated = $request->validate(['text' => ['sometimes', 'string', 'max:5000']]);
+        $text = trim($validated['text'] ?? '');
+
+        $interaction->update([
+            'accepted' => true,
+            // Texte retenu par l'utilisateur, si différent ; la sortie d'origine est conservée.
+            ...($text !== '' && $text !== ($interaction->output['text'] ?? null) ? ['edited_output' => ['text' => $text]] : []),
+        ]);
 
         return response()->json([
             'message' => 'La suggestion a été marquée comme acceptée.',
