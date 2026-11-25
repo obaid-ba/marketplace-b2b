@@ -67,27 +67,33 @@ Mot de passe : `password`
 | Fournisseur | fournisseur@marketplace.test |
 | Porteur de projet | porteur@marketplace.test |
 
-### Catalogue de démonstration (sprint 2)
+### Démonstration complète
 
-Fournisseurs, produits, avis et favoris des maquettes (Atlas Emballages, Djerba Pack, PalettesPlus…) :
+Toutes les pages remplies avec des données réalistes : 14 fournisseurs avec logo (dont un en attente de validation et un refusé), 42 produits et services avec photo dans toutes les catégories, demandes avec devis à comparer, commandes à chaque étape (devis et factures PDF), avis analysés par l'IA, litiges, messagerie, avis signalé, alerte d'anomalie et notifications.
 
 ```bash
 cd backend
-php artisan storage:link                            # photos des produits et logos (disque « public »)
-php artisan db:seed --class=CatalogueDemoSeeder     # relançable sans doublons
+php artisan storage:link                         # photos des produits et logos (disque « public »)
+php artisan db:seed --class=FullDemoSeeder       # relançable sans doublons
 ```
 
-Il est aussi lancé par `php artisan migrate --seed` lorsque `DatabaseSeeder::SEED_DEMO_DATA` vaut `true`.
-Mot de passe : `password`.
+Elle est aussi lancée par `php artisan migrate --seed` lorsque `DatabaseSeeder::SEED_DEMO_DATA` vaut `true`.
+Si l'API ne tourne pas sur le port 8000, mettez la bonne adresse dans `APP_URL` (sinon les photos ne s'affichent pas).
+Les images sont dans `backend/database/seeders/demo-images/` (script de génération `generate.cjs`).
 
-| Rôle | E-mail |
-|---|---|
-| Fournisseur validé (Atlas Emballages) | atlas@marketplace.test |
-| Porteur de projet avec 6 favoris (Sana Ben Salah) | sana@marketplace.test |
+Mot de passe de tous les comptes : `password`.
 
-Parcours de démo : accueil → recherche → catalogue filtré → fiche produit → fiche fournisseur → favori ;
-côté fournisseur : Mes produits → Ajouter un produit → le voir dans le catalogue.
+| Rôle | E-mail | À montrer |
+|---|---|---|
+| Administrateur | admin@marketplace.test | tableau de bord, alerte d'anomalie, fournisseur en attente, avis signalé, litiges |
+| Porteur de projet | sana@marketplace.test | demande avec 3 devis à comparer (résumé IA, prix du marché), commandes, messagerie |
+| Porteur de projet | karim@marketplace.test | litige ouvert sur une commande livrée |
+| Porteur de projet | youssef@marketplace.test | litige décidé, commande validée |
+| Fournisseur | atlas@marketplace.test | demandes reçues, devis, produits mis en avant, avis et résumé IA |
+| Fournisseur | batisud@marketplace.test | avis suspect signalé à l'administrateur |
 
+Parcours de démo : accueil → catalogue → fiche produit → fiche fournisseur → connexion porteur → comparer les devis → accepter ;
+côté fournisseur : demandes reçues → envoyer un devis → faire avancer une commande ; côté admin : anomalies, modération, litiges.
 ## Tests
 
 ```bash

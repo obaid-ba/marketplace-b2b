@@ -1,6 +1,6 @@
 {
     "info": {
-        "name": "Marketplace B2B",
+        "name": "TijaraLink",
         "description": "Collection générée par « php artisan api:docs ». Renseignez les variables base_url et token (POST /api/auth/login).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },

@@ -8,7 +8,6 @@ use App\Enums\DisputeReason;
 use App\Enums\OrderStatus;
 use App\Enums\ProductStatus;
 use App\Enums\ReviewStatus;
-use App\Enums\TenderStatus;
 use App\Enums\UserStatus;
 use App\Enums\ValidationStatus;
 use App\Jobs\AnalyzeReviewJob;
@@ -199,12 +198,41 @@ class FullDemoSeeder extends Seeder
         $this->seedImagesAndLogos();
 
         if (Tender::query()->where('title', self::SCENARIO_MARKER)->exists()) {
-            $this->command?->info('Scénario déjà présent : seules les fiches et les images ont été mises à jour.');
-
-            return;
+            $this->command?->info('Scénario déjà présent : fiches, images et avis complémentaires mis à jour.');
+        } else {
+            $this->seedScenario();
         }
 
-        $this->seedScenario();
+        $this->seedExtraReviews();
+    }
+
+    /**
+     * Avis positifs des nouveaux fournisseurs (relançable : un avis par commentaire), pour que chacun ait une note
+     * réaliste et non seulement l'avis suspect de la démonstration.
+     */
+    private function seedExtraReviews(): void
+    {
+        $karim = $this->buyer('karim@marketplace.test', 'Karim', 'Trabelsi', 'Chantiers Trabelsi');
+        $leila = $this->buyer('leila@marketplace.test', 'Leila', 'Mansour', 'Cabinet Mansour');
+
+        $reviews = [
+            [$karim, 'Rond à béton HA12 (barre de 12 m)', 80, 5, 'Acier conforme, livré sur le chantier à l’heure prévue. Très bon fournisseur.'],
+            [$leila, 'Tubes PPR Ø25 (barre de 4 m)', 120, 4, 'Bonne qualité et prix correct, livraison rapide à Sfax.'],
+            [$karim, 'Gilets haute visibilité', 50, 4, 'Gilets solides, bon rapport qualité-prix.'],
+            [$leila, 'Rédaction de contrats commerciaux', 1, 5, 'Équipe réactive et contrats clairs, je recommande.'],
+            [$karim, 'Nettoyage de bureaux', 1, 4, 'Service sérieux et ponctuel.'],
+            [$leila, 'Dattes Deglet Nour (carton de 5 kg)', 20, 5, 'Dattes excellentes, très appréciées par nos clients.'],
+            [$karim, 'Switch réseau 24 ports PoE', 2, 4, 'Matériel conforme, installation rapide.'],
+        ];
+
+        foreach ($reviews as [$buyer, $title, $quantity, $rating, $comment]) {
+            if (Review::query()->where('comment', $comment)->exists()) {
+                continue;
+            }
+            $order = $this->catalogueOrder($buyer, $this->product($title), $quantity, OrderStatus::DELIVERED, random_int(20, 50));
+            $this->close($order, random_int(5, 15));
+            $this->review($order, $rating, $comment, null);
+        }
     }
 
     private function seedSuppliers(): void
