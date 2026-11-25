@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Supplier;
 
+use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -10,9 +11,15 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class StoreProductImagesRequest extends FormRequest
 {
+    /**
+     * Contrôle de propriété AVANT la validation (SCRUM-90) : le produit d'un autre fournisseur répond 403,
+     * sans détail sur ses champs.
+     */
     public function authorize(): bool
     {
-        return true;
+        $product = $this->route('product');
+
+        return ! $product instanceof Product || (bool) $this->user()?->can('update', $product);
     }
 
     /**

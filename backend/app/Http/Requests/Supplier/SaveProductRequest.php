@@ -15,9 +15,15 @@ class SaveProductRequest extends FormRequest
 {
     public const UNITS_MAX_LENGTH = 30;
 
+    /**
+     * Contrôle de propriété AVANT la validation (SCRUM-90) : le produit d'un autre fournisseur répond 403,
+     * sans détail sur ses champs.
+     */
     public function authorize(): bool
     {
-        return true;
+        $product = $this->route('product');
+
+        return ! $product instanceof Product || (bool) $this->user()?->can('update', $product);
     }
 
     protected function prepareForValidation(): void
