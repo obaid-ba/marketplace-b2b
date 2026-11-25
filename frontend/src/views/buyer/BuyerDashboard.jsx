@@ -14,6 +14,7 @@ import { PATHS, buyerTenderPath, buyerTenderQuotesPath, orderTrackingPath, suppl
 import { selectUser, useAuthStore } from '@/stores/auth'
 import { formatAmount, formatCount } from '@/utils/money'
 import { defaultPeriod, formatDate } from '@/utils/period'
+import RecommendedSuppliers from './RecommendedSuppliers'
 
 const CHART_LINES = [
   { key: 'orders', label: 'Commandes', color: '#12a06b' },
@@ -145,6 +146,9 @@ export default function BuyerDashboard() {
               </div>
             )}
           </section>
+
+          {/* Fournisseurs recommandés selon les achats passés (SCRUM-87) */}
+          <RecommendedSuppliers />
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <section className="card" aria-labelledby="requests-title">

@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Buyer\FavoriteSupplierController;
 use App\Http\Controllers\Api\Buyer\OrderController as BuyerOrderLifecycleController;
 use App\Http\Controllers\Api\Buyer\QuoteController as BuyerQuoteController;
 use App\Http\Controllers\Api\Buyer\QuoteSummaryController;
+use App\Http\Controllers\Api\Buyer\RecommendationController;
 use App\Http\Controllers\Api\Buyer\TenderAiController;
 use App\Http\Controllers\Api\Buyer\TenderController as BuyerTenderController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
@@ -207,6 +208,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
         // Tableau de bord porteur de projet (SCRUM-121 / F27).
         Route::get('/dashboard', [BuyerDashboardController::class, 'index']);
+        // Fournisseurs recommandés selon les achats passés (SCRUM-87).
+        Route::get('/recommendations', [RecommendationController::class, 'index']);
 
         Route::get('/tenders', [BuyerTenderController::class, 'index']);
         Route::post('/tenders', [BuyerTenderController::class, 'store']);
