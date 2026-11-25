@@ -8,9 +8,11 @@ use App\Enums\ProductStatus;
 use App\Enums\UserStatus;
 use App\Enums\ValidationStatus;
 use App\Http\Requests\Dashboard\PeriodRangeRequest;
+use App\Models\AnomalyAlert;
 use App\Models\Review;
 use App\Models\SupplierProfile;
 use App\Models\User;
+use App\Services\AnomalyDetector;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -65,7 +67,10 @@ class AdminDashboardService
             'urgent_disputes' => $this->urgentDisputes(),
             'reported_reviews' => $this->reportedReviews(),
             'top_categories' => $this->topCategories(),
-            'anomaly_alerts' => [], // V2 — SCRUM-86 : emplacement réservé.
+            // Alertes « nouvelles » les plus graves (SCRUM-86) ; la liste complète est sur /admin/anomalies.
+            'anomaly_alerts' => app(AnomalyDetector::class)->present(
+                AnomalyAlert::query()->open()->orderByDesc('score')->latest('id')->limit(5)->get()
+            )->all(),
             'generated_at' => CarbonImmutable::now(PeriodRangeRequest::TIMEZONE)->toIso8601String(),
         ];
     }

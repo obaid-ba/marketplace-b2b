@@ -9,6 +9,7 @@ import Skeleton from '@/components/dashboard/Skeleton'
 import TimeSeriesChart from '@/components/dashboard/TimeSeriesChart'
 import { PATHS, adminDisputePath } from '@/router/paths'
 import AdminExportDialog from './AdminExportDialog'
+import AnomalyAlertsCard from './AnomalyAlertsCard'
 import {
   selectAdminDashboard,
   selectAdminDashboardError,
@@ -320,19 +321,8 @@ export default function AdminDashboardView() {
               )}
             </section>
 
-            <section className="card" aria-labelledby="anomaly-alerts-title">
-              <SectionHeader
-                id="anomaly-alerts-title"
-                title="Alertes d'anomalie"
-                subtitle="Emplacement réservé à la détection automatique"
-              />
-              <div className="mt-4">
-                <EmptyState
-                  title="Aucune alerte d'anomalie"
-                  description="La détection automatique sera livrée en V2 (SCRUM-86)."
-                />
-              </div>
-            </section>
+            {/* Comptes et commandes au comportement inhabituel (SCRUM-86) */}
+            <AnomalyAlertsCard initialAlerts={data.anomaly_alerts ?? []} />
           </div>
         </>
       )}

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminExportController;
 use App\Http\Controllers\Api\Admin\AdminProductController;
 use App\Http\Controllers\Api\Admin\AdminReviewController;
+use App\Http\Controllers\Api\Admin\AnomalyAlertController;
 use App\Http\Controllers\Api\Admin\AuditLogController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\DisputeController as AdminDisputeController;
@@ -291,6 +292,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/ping', fn () => ['space' => 'admin']);
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+
+        // Alertes d'anomalie : comptes et commandes au comportement inhabituel (SCRUM-86).
+        Route::get('/anomalies', [AnomalyAlertController::class, 'index']);
+        Route::post('/anomalies/scan', [AnomalyAlertController::class, 'scan'])->middleware('throttle:10,1');
+        Route::post('/anomalies/{alert}/handle', [AnomalyAlertController::class, 'handle'])->whereNumber('alert');
+        Route::post('/anomalies/{alert}/ignore', [AnomalyAlertController::class, 'ignore'])->whereNumber('alert');
 
         // Journal d'audit immuable des actions d'administration (SCRUM-76).
         Route::get('/audit-logs', [AuditLogController::class, 'index']);
