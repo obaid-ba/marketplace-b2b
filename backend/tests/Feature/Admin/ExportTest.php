@@ -2,13 +2,19 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Category;
 use App\Models\Export;
+use App\Models\Product;
 use App\Models\User;
 use App\Notifications\ExportReadyNotification;
+use App\Services\Export\CsvWriter;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use ZipArchive;
 
 /**
  * SCRUM-75 / F28 — export des statistiques d'administration.
@@ -16,6 +22,13 @@ use Tests\TestCase;
 class ExportTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        CarbonImmutable::setTestNow();
+
+        parent::tearDown();
+    }
 
     protected function setUp(): void
     {
@@ -68,14 +81,54 @@ class ExportTest extends TestCase
         Notification::assertSentTo($admin, ExportReadyNotification::class);
     }
 
-    public function test_le_format_xlsx_est_refuse_tant_que_la_dependance_n_est_pas_validee(): void
+    public function test_un_export_xlsx_contient_les_indicateurs_choisis(): void
     {
-        $response = $this->actingAs($this->admin(), 'sanctum')
-            ->postJson('/api/admin/exports', ['format' => 'xlsx'])
-            ->assertStatus(422);
+        CarbonImmutable::setTestNow('2027-01-20 12:00:00');
+        $admin = $this->admin();
+        DB::table('users')->where('id', $admin->id)->update(['created_at' => '2027-01-10 10:00:00']);
+        Category::factory()->create(['name' => '=1+1 & <Bois>']);
+        $product = Product::factory()->published()->create(['category_id' => Category::first()->id]);
+        DB::table('users')->where('id', $product->supplier->user_id)->update(['created_at' => '2026-12-01 10:00:00']);
 
-        $this->assertStringContainsString('Q7', $response->json('message'));
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/admin/exports', ['from' => '2027-01-01', 'to' => '2027-01-31', 'format' => 'xlsx', 'indicators' => ['signups', 'categories']])
+            ->assertStatus(202)
+            ->assertJsonPath('export.status', Export::STATUS_READY);
 
+        $export = Export::findOrFail($response->json('export.id'));
+        $this->assertStringEndsWith('.xlsx', $export->file_path);
+
+        $zip = new ZipArchive;
+        $this->assertTrue($zip->open(Storage::disk('local')->path($export->file_path)));
+        foreach (['[Content_Types].xml', '_rels/.rels', 'xl/workbook.xml', 'xl/_rels/workbook.xml.rels', 'xl/worksheets/sheet1.xml', 'xl/worksheets/sheet3.xml'] as $part) {
+            $this->assertNotFalse(simplexml_load_string((string) $zip->getFromName($part)), $part);
+        }
+        $this->assertStringContainsString('Par jour', $zip->getFromName('xl/workbook.xml'));
+        $daily = $zip->getFromName('xl/worksheets/sheet2.xml');
+        $this->assertStringContainsString('Inscriptions', $daily);
+        $this->assertStringNotContainsString('Commandes', $daily);
+        $this->assertStringContainsString('=1+1 &amp; &lt;Bois&gt;', $zip->getFromName('xl/worksheets/sheet3.xml'));
+        $zip->close();
+
+        $this->actingAs($admin, 'sanctum')->get("/api/admin/exports/{$export->id}/download")
+            ->assertOk()
+            ->assertDownload('statistiques-2027-01-01-2027-01-31.xlsx');
+    }
+
+    public function test_le_csv_neutralise_les_formules_et_utilise_la_virgule(): void
+    {
+        $csv = app(CsvWriter::class)->build(['Essai' => [['=cmd()', 12.5], ['Texte', 3]], 'Suite' => [['a']]]);
+
+        $this->assertSame("\xEF\xBB\xBFEssai\n'=cmd();12,5\nTexte;3\n\nSuite\na\n", $csv);
+    }
+
+    public function test_les_indicateurs_sont_controles(): void
+    {
+        $this->actingAs($this->admin(), 'sanctum');
+
+        $this->postJson('/api/admin/exports', ['indicators' => []])->assertJsonValidationErrors('indicators');
+        $this->postJson('/api/admin/exports', ['indicators' => ['mots_de_passe']])->assertJsonValidationErrors('indicators.0');
+        $this->postJson('/api/admin/exports', ['format' => 'exe'])->assertJsonValidationErrors('format');
         $this->assertDatabaseCount('exports', 0);
     }
 
@@ -93,13 +146,17 @@ class ExportTest extends TestCase
             ->getJson('/api/admin/exports')
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $export->id);
+            ->assertJsonPath('data.0.id', $export->id)
+            ->assertJsonPath('data.0.period_from', '2027-01-01')
+            ->assertJsonPath('data.0.period_to', '2027-01-31');
 
         $download = $this->actingAs($admin, 'sanctum')
             ->get("/api/admin/exports/{$export->id}/download")
             ->assertOk();
 
-        $this->assertStringContainsString('section;libelle;valeur', $download->streamedContent());
+        $content = $download->streamedContent();
+        $this->assertStringContainsString('Indicateur;Valeur', $content);
+        $this->assertStringContainsString('2027-01-31;0;0;0;0', $content);
     }
 
     public function test_un_admin_ne_telecharge_pas_l_export_d_un_autre(): void

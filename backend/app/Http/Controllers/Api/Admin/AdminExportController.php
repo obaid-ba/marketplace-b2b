@@ -14,8 +14,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Exports des statistiques d'administration (SCRUM-75 / F28).
- *
- * CSV uniquement : XLSX reste bloqué par la validation de dépendance (Q7).
+ * CSV ou XLSX, avec les indicateurs choisis.
  */
 class AdminExportController extends Controller
 {
@@ -31,19 +30,12 @@ class AdminExportController extends Controller
 
     public function store(ExportRequest $request): JsonResponse
     {
-        $format = $request->input('format', Export::FORMAT_CSV);
-
-        if ($format === Export::FORMAT_XLSX) {
-            return response()->json([
-                'message' => "Le format XLSX n'est pas encore disponible : la dépendance doit être validée (question Q7). Utilisez le format CSV.",
-            ], 422);
-        }
-
         [$from, $to] = $request->range();
 
         $export = Export::create([
             'user_id' => $request->user()->id,
-            'format' => Export::FORMAT_CSV,
+            'format' => $request->validated('format') ?? Export::FORMAT_CSV,
+            'indicators' => $request->validated('indicators'),
             'period_from' => $from->toDateString(),
             'period_to' => $to->toDateString(),
             'status' => Export::STATUS_QUEUED,
@@ -74,6 +66,6 @@ class AdminExportController extends Controller
             return response()->json(['message' => 'Le fichier de l\'export est introuvable.'], 404);
         }
 
-        return $disk->download($export->file_path, "statistiques-{$export->period_from->toDateString()}-{$export->period_to->toDateString()}.csv");
+        return $disk->download($export->file_path, "statistiques-{$export->period_from->toDateString()}-{$export->period_to->toDateString()}.{$export->format}");
     }
 }

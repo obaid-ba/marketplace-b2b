@@ -33,8 +33,8 @@ class ExportReadyNotification extends Notification
             ->subject("Votre export #{$this->export->id} est prêt")
             ->greeting("Bonjour {$notifiable->name},")
             ->line("L'export des statistiques du {$from} au {$to} est disponible au format ".strtoupper($this->export->format).'.')
-            ->action('Télécharger l\'export', rtrim((string) config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/').'/admin/exports')
-            ->line('Le fichier reste disponible depuis la page des exports du back-office.');
+            ->action('Télécharger l\'export', rtrim((string) config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/').'/admin?exports=1')
+            ->line('Le fichier reste disponible depuis le tableau de bord, « Exporter les statistiques ».');
     }
 
     /**
@@ -43,6 +43,8 @@ class ExportReadyNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
+            'title' => 'Export prêt',
+            'url' => '/admin?exports=1',
             'event_type' => 'export.ready',
             'export_id' => $this->export->id,
             'format' => $this->export->format,

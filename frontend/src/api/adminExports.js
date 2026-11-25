@@ -10,18 +10,18 @@ export async function fetchExports(params = {}) {
   return data
 }
 
-export async function createExport({ from, to, format = 'csv' } = {}) {
-  const { data } = await http.post('/admin/exports', { from, to, format })
+export async function createExport({ from, to, format = 'csv', indicators } = {}) {
+  const { data } = await http.post('/admin/exports', { from, to, format, indicators })
   return data
 }
 
 /** Télécharge le fichier et déclenche l'enregistrement dans le navigateur. */
-export async function downloadExport(id) {
+export async function downloadExport(id, format = 'csv') {
   const response = await http.get(`/admin/exports/${id}/download`, { responseType: 'blob' })
   const url = URL.createObjectURL(response.data)
   const link = document.createElement('a')
   link.href = url
-  link.download = `statistiques-${id}.csv`
+  link.download = `statistiques-${id}.${format}`
   document.body.appendChild(link)
   link.click()
   link.remove()
