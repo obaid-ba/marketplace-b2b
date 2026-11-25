@@ -86,7 +86,7 @@ export default function MessagingPage() {
             <input
               type="search"
               className="input"
-              placeholder="Rechercher un contact…"
+              placeholder="Contact ou message…"
               aria-label="Rechercher une conversation"
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}

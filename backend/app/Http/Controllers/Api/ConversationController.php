@@ -43,7 +43,10 @@ class ConversationController extends Controller
                 $term = '%'.addcslashes($request->string('search')->toString(), '%_\\').'%';
 
                 $query->where(fn (Builder $q) => $q
-                    ->whereHas('supplier', fn (Builder $supplier) => $supplier->where('company_name', 'like', $term))
+                    ->whereHas('messages', fn (Builder $message) => $message
+                        ->where('body', 'like', $term)
+                        ->orWhere('attachment_name', 'like', $term))
+                    ->orWhereHas('supplier', fn (Builder $supplier) => $supplier->where('company_name', 'like', $term))
                     ->orWhereHas('buyer', fn (Builder $buyer) => $buyer
                         ->where('organization', 'like', $term)
                         ->orWhereHas('user', fn (Builder $owner) => $owner->where('name', 'like', $term))));

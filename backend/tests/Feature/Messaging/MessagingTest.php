@@ -346,8 +346,13 @@ class MessagingTest extends TestCase
         $this->getJson('/api/conversations/unread-count')->assertJsonPath('count', 2);
         $this->getJson('/api/conversations?unread=1')->assertJsonCount(1, 'data');
         $this->getJson('/api/conversations?search=amel')->assertJsonCount(1, 'data');
+        $this->getJson('/api/conversations?search=deu')->assertJsonCount(1, 'data'); // texte d'un ancien message
         $this->getJson('/api/conversations?search=inconnu')->assertJsonCount(0, 'data');
         $this->getJson('/api/conversations?search=%25')->assertJsonCount(0, 'data');
+
+        // La recherche ne sort jamais des conversations de l'utilisateur.
+        $this->actingAs($this->makeSupplier('Curieux'), 'sanctum')->getJson('/api/conversations?search=deu')->assertJsonCount(0, 'data');
+        $this->actingAs($this->supplier, 'sanctum');
 
         Event::fake([ConversationRead::class]);
         $this->postJson("/api/conversations/{$conversation->id}/read")->assertJsonPath('unread_total', 0);
