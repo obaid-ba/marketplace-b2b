@@ -180,6 +180,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
             Route::get('/products', [SupplierProductController::class, 'index']);
             Route::patch('/products/{product}/unpublish', [SupplierProductController::class, 'unpublish'])->whereNumber('product');
+            // Mise en avant pour une durée limitée (SCRUM-40).
+            Route::post('/products/{product}/feature', [SupplierProductController::class, 'feature'])->whereNumber('product');
+            Route::delete('/products/{product}/feature', [SupplierProductController::class, 'unfeature'])->whereNumber('product');
             Route::delete('/products/{product}', [SupplierProductController::class, 'destroy'])->whereNumber('product');
             Route::post('/products', [SupplierProductController::class, 'store']);
             Route::get('/products/{product}', [SupplierProductController::class, 'show'])->whereNumber('product');

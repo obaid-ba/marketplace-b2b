@@ -26,6 +26,8 @@ class ProductCardResource extends JsonResource
             'price' => (float) $this->price,
             'unit' => $this->unit,
             'main_image_url' => $this->mainImage?->url(),
+            // Mis en avant (SCRUM-40) : la carte affiche un badge pendant la période.
+            'featured' => $this->featured_until?->isFuture() === true,
             'supplier' => [
                 'id' => $this->supplier->id,
                 'company_name' => $this->supplier->company_name,

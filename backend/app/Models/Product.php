@@ -22,6 +22,7 @@ class Product extends Model
     use HasFactory, SoftDeletes;
 
     public const TYPE_PRODUCT = 'produit';
+
     public const TYPE_SERVICE = 'service';
 
     /**
@@ -125,6 +126,22 @@ class Product extends Model
     public function isWithdrawn(): bool
     {
         return $this->status === ProductStatus::WITHDRAWN;
+    }
+
+    /**
+     * Mis en avant (SCRUM-40) : la période se termine d'elle-même, sans tâche planifiée.
+     */
+    public function isFeatured(): bool
+    {
+        return $this->status === ProductStatus::PUBLISHED && $this->featured_until?->isFuture() === true;
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     */
+    public function scopeFeatured(Builder $query): void
+    {
+        $query->where('products.featured_until', '>', now());
     }
 
     public static function statusFromApi(string $status): ProductStatus

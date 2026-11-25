@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { fetchCategories } from '@/api/categories'
-import { deleteSupplierProduct, fetchSupplierProducts, unpublishSupplierProduct } from '@/api/supplierProducts'
+import {
+  FEATURE_DURATIONS,
+  deleteSupplierProduct,
+  featureSupplierProduct,
+  fetchSupplierProducts,
+  unfeatureSupplierProduct,
+  unpublishSupplierProduct,
+} from '@/api/supplierProducts'
 import EmptyState from '@/components/EmptyState'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
@@ -27,7 +34,22 @@ const STATUS = {
   withdrawn: { variant: 'danger', label: 'Retiré' },
 }
 
-function ActionsMenu({ product, onUnpublish, onDelete }) {
+const formatDay = (iso) =>
+  new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Africa/Tunis' }).format(
+    new Date(iso),
+  )
+
+/** Badge « En avant jusqu'au … » (SCRUM-40). */
+function FeaturedBadge({ product }) {
+  if (!product.is_featured) return null
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-accent">
+      ★ En avant jusqu’au {formatDay(product.featured_until)}
+    </span>
+  )
+}
+
+function ActionsMenu({ product, onUnpublish, onDelete, onFeature, onUnfeature }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -58,6 +80,20 @@ function ActionsMenu({ product, onUnpublish, onDelete }) {
       </button>
       {open && (
         <div role="menu" className="absolute right-0 z-10 mt-1 w-44 rounded-lg border border-line bg-surface py-1 shadow-lg">
+          {product.status === 'published' && (
+            <button
+              type="button"
+              role="menuitem"
+              className="block w-full px-4 py-2 text-left text-sm text-ink hover:bg-page"
+              onClick={() => {
+                setOpen(false)
+                if (product.is_featured) onUnfeature(product)
+                else onFeature(product)
+              }}
+            >
+              {product.is_featured ? 'Arrêter la mise en avant' : 'Mettre en avant'}
+            </button>
+          )}
           {product.status === 'published' && (
             <button
               type="button"
@@ -120,6 +156,8 @@ export default function MyProductsPage() {
   const [notice, setNotice] = useState(null)
   const [reasonFor, setReasonFor] = useState(null)
   const [deleting, setDeleting] = useState(null) // produit à confirmer
+  const [featuring, setFeaturing] = useState(null) // produit à mettre en avant (SCRUM-40)
+  const [featureDays, setFeatureDays] = useState(FEATURE_DURATIONS[0])
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
@@ -167,6 +205,40 @@ export default function MyProductsPage() {
       setNotice({ type: 'error', text: err.userMessage ?? 'La dépublication a échoué.' })
     }
   }
+
+  function openFeature(product) {
+    setFeatureDays(FEATURE_DURATIONS[0])
+    setFeaturing(product)
+  }
+
+  async function confirmFeature() {
+    setBusy(true)
+    setNotice(null)
+    try {
+      const data = await featureSupplierProduct(featuring.id, featureDays)
+      setNotice({ type: 'success', text: data.message })
+      setFeaturing(null)
+      await load()
+    } catch (err) {
+      setNotice({ type: 'error', text: err.userMessage ?? 'La mise en avant a échoué.' })
+      setFeaturing(null)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function unfeature(product) {
+    setNotice(null)
+    try {
+      const data = await unfeatureSupplierProduct(product.id)
+      setNotice({ type: 'success', text: data.message })
+      await load()
+    } catch (err) {
+      setNotice({ type: 'error', text: err.userMessage ?? 'L’arrêt de la mise en avant a échoué.' })
+    }
+  }
+
+  const menuProps = { onUnpublish: unpublish, onDelete: setDeleting, onFeature: openFeature, onUnfeature: unfeature }
 
   async function confirmDelete() {
     setBusy(true)
@@ -308,7 +380,10 @@ export default function MyProductsPage() {
               <tbody>
                 {products.map((product) => (
                   <tr key={product.id} className="border-t border-line">
-                    <td className="max-w-64 truncate px-4 py-4 font-medium text-ink">{product.title}</td>
+                    <td className="max-w-64 px-4 py-4">
+                      <p className="truncate font-medium text-ink">{product.title}</p>
+                      <FeaturedBadge product={product} />
+                    </td>
                     <td className="px-4 py-4 text-muted">{product.category?.name ?? '—'}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-ink">{priceOf(product)}</td>
                     <td className="px-4 py-4 text-ink">{stockOf(product)}</td>
@@ -319,7 +394,7 @@ export default function MyProductsPage() {
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         <PrimaryAction product={product} onShowReason={setReasonFor} />
-                        <ActionsMenu product={product} onUnpublish={unpublish} onDelete={setDeleting} />
+                        <ActionsMenu product={product} {...menuProps} />
                       </div>
                     </td>
                   </tr>
@@ -336,6 +411,7 @@ export default function MyProductsPage() {
                   <div className="min-w-0">
                     <p className="truncate font-medium text-ink">{product.title}</p>
                     <p className="text-xs text-muted">{product.category?.name ?? '—'}</p>
+                    <FeaturedBadge product={product} />
                   </div>
                   <StatusBadge variant={STATUS[product.status]?.variant}>{STATUS[product.status]?.label}</StatusBadge>
                 </div>
@@ -355,7 +431,7 @@ export default function MyProductsPage() {
                 </dl>
                 <div className="mt-3 flex justify-end gap-2">
                   <PrimaryAction product={product} onShowReason={setReasonFor} />
-                  <ActionsMenu product={product} onUnpublish={unpublish} onDelete={setDeleting} />
+                  <ActionsMenu product={product} {...menuProps} />
                 </div>
               </li>
             ))}
@@ -392,6 +468,51 @@ export default function MyProductsPage() {
           <Link to={supplierProductEditPath(reasonFor.id)} className="mt-3 inline-block font-medium text-brand-600 hover:underline">
             Modifier le produit
           </Link>
+        </Modal>
+      )}
+
+      {featuring && (
+        <Modal
+          title={`Mettre en avant « ${featuring.title} »`}
+          onClose={() => !busy && setFeaturing(null)}
+          actions={
+            <>
+              <button type="button" className="btn-secondary" onClick={() => setFeaturing(null)} disabled={busy}>
+                Annuler
+              </button>
+              <button type="button" className="btn-primary" onClick={confirmFeature} disabled={busy}>
+                {busy ? 'Enregistrement…' : 'Mettre en avant'}
+              </button>
+            </>
+          }
+        >
+          <p>
+            Pendant cette période, le produit apparaît sur la page d’accueil et en tête des résultats du catalogue. La mise en
+            avant s’arrête automatiquement à la date de fin.
+          </p>
+          <fieldset className="mt-4">
+            <legend className="text-sm font-medium text-ink">Durée</legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {FEATURE_DURATIONS.map((days) => (
+                <label
+                  key={days}
+                  className={`cursor-pointer rounded-lg border px-4 py-2 text-sm ${
+                    featureDays === days ? 'border-brand-600 bg-brand-50 font-medium text-brand-600' : 'border-line text-ink'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="feature-days"
+                    value={days}
+                    checked={featureDays === days}
+                    onChange={() => setFeatureDays(days)}
+                    className="sr-only"
+                  />
+                  {days} jours
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </Modal>
       )}
 

@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 /**
  * Produits du fournisseur connecté et validé
@@ -117,6 +118,41 @@ class SupplierProductController extends Controller
 
         return response()->json([
             'message' => 'Produit dépublié : il n’apparaît plus dans le catalogue.',
+            'product' => new SupplierProductResource($product->load(['category', 'images'])),
+        ]);
+    }
+
+    /**
+     * Mettre en avant (SCRUM-40) : { days: 7 | 14 | 30 }.
+     */
+    public function feature(Request $request, Product $product): JsonResponse
+    {
+        Gate::authorize('update', $product);
+
+        $validated = $request->validate(
+            ['days' => ['required', 'integer', Rule::in(ProductService::FEATURE_DURATIONS)]],
+            ['days.required' => 'Choisissez une durée.', 'days.in' => 'Durée possible : 7, 14 ou 30 jours.'],
+        );
+
+        $product = $this->products->feature($product, (int) $validated['days']);
+
+        return response()->json([
+            'message' => 'Produit mis en avant jusqu’au '.$product->featured_until->timezone('Africa/Tunis')->format('d/m/Y').'.',
+            'product' => new SupplierProductResource($product->load(['category', 'images'])),
+        ]);
+    }
+
+    /**
+     * Arrêter la mise en avant (SCRUM-40).
+     */
+    public function unfeature(Request $request, Product $product): JsonResponse
+    {
+        Gate::authorize('update', $product);
+
+        $product = $this->products->unfeature($product);
+
+        return response()->json([
+            'message' => 'La mise en avant est arrêtée.',
             'product' => new SupplierProductResource($product->load(['category', 'images'])),
         ]);
     }

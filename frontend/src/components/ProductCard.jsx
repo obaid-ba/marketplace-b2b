@@ -14,7 +14,13 @@ export default function ProductCard({ product, linkable = true }) {
 
   const content = (
     <>
-      <div className="aspect-[2/1] overflow-hidden rounded-lg">
+      <div className="relative aspect-[2/1] overflow-hidden rounded-lg">
+        {product.featured && (
+          // Produit mis en avant par son fournisseur (SCRUM-40)
+          <span className="absolute top-2 left-2 z-[1] rounded-full bg-surface/95 px-2.5 py-0.5 text-xs font-semibold text-accent shadow-sm">
+            ★ Mis en avant
+          </span>
+        )}
         <ProductImage
           src={product.main_image_url}
           alt={product.title}
