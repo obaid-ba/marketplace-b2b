@@ -36,6 +36,8 @@ class AdminProductController extends Controller
                 'supplier:id,company_name,user_id',
                 'category:id,name',
             ])
+            // Annonces signalées par l'IA en premier (celles déjà retirées ne sont plus à traiter).
+            ->orderByRaw('case when ai_flag_reason is not null and status <> ? then 0 else 1 end', [ProductStatus::WITHDRAWN->value])
             ->latest('id');
 
         if (! empty($filters['q'])) {

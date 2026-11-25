@@ -19,7 +19,7 @@ const STATUS_CLASSES = {
 }
 
 /**
- * Contrôle du catalogue (SCRUM-72 / F29) : rechercher, filtrer et retirer un
+ * Contrôle du catalogue (SCRUM-72 / F29), annonces signalées par l'IA en premier : rechercher, filtrer et retirer un
  * produit avec un motif. Le retrait notifie le fournisseur et reste audité.
  */
 export default function AdminProductsPage() {
@@ -179,6 +179,9 @@ export default function AdminProductsPage() {
                       {product.supplier?.company_name ?? 'Fournisseur'} · {product.category?.name ?? 'Sans catégorie'} ·{' '}
                       {formatAmount(product.price)}
                     </p>
+                    {product.ai_flag_reason && product.status !== 'retiré' && (
+                      <p className="mt-1 text-xs font-medium text-accent">⚑ Signalé par l’IA : {product.ai_flag_reason}</p>
+                    )}
                     {product.withdrawal_reason && (
                       <p className="mt-1 text-xs text-rose-700">Motif de retrait : {product.withdrawal_reason}</p>
                     )}

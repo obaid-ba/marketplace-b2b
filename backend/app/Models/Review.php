@@ -76,6 +76,20 @@ class Review extends Model
     }
 
     /**
+     * File de modération (SCRUM-74) : les plus signalés d'abord, puis les plus anciens.
+     */
+    public function scopePendingModeration(Builder $query): void
+    {
+        $query->where(fn (Builder $review) => $review
+            ->where('reviews.status', ReviewStatus::REPORTED->value)
+            ->orWhereHas('reports', fn (Builder $report) => $report->where('status', ReviewReport::STATUS_PENDING)))
+            ->withCount(['reports as pending_reports_count' => fn (Builder $report) => $report->where('status', ReviewReport::STATUS_PENDING)])
+            ->orderByDesc('pending_reports_count')
+            ->orderBy('reviews.created_at')
+            ->orderBy('reviews.id');
+    }
+
+    /**
      * Avis visibles et comptés dans la note : publiés, et signalés tant que l'admin n'a pas décidé (SCRUM-66).
      */
     public function scopePublished(Builder $query): void

@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
  *
  * L'administrateur conserve l'avis ou le masque. Masquer un avis recalcule
  * immédiatement la note du fournisseur ; chaque décision est auditée et
- * l'auteur de l'avis est notifié.
+ * l'auteur de l'avis et le fournisseur sont notifiés.
  */
 class AdminReviewController extends Controller
 {
@@ -40,17 +40,13 @@ class AdminReviewController extends Controller
                 'supplier:id,company_name',
                 'order:id,created_at,total',
                 'reports.author:id,name',
-            ])
-            ->latest('id');
+            ]);
 
-        // File de modération : avis signalés ou portant au moins un signalement.
+        // File de modération : avis signalés en attente de décision.
         if (! empty($filters['status'])) {
-            $query->where('status', $filters['status']);
+            $query->where('status', $filters['status'])->latest('id');
         } else {
-            $query->where(function ($builder) {
-                $builder->where('status', ReviewStatus::REPORTED->value)
-                    ->orWhereHas('reports');
-            });
+            $query->pendingModeration();
         }
 
         return response()->json($query->paginate((int) ($filters['per_page'] ?? 20)));
@@ -97,11 +93,12 @@ class AdminReviewController extends Controller
             );
         });
 
-        $review->load(['buyer.user', 'supplier:id,company_name']);
+        $review->load(['buyer.user', 'supplier:id,company_name,user_id', 'supplier.user']);
 
         if ($review->buyer?->user) {
             $review->buyer->user->notify(new ReviewModeratedNotification($review, $decision, $reason));
         }
+        $review->supplier?->user?->notify(new ReviewModeratedNotification($review, $decision, $reason));
 
         return response()->json([
             'message' => $decision === 'masqué'

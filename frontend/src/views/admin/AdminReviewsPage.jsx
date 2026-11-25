@@ -25,7 +25,7 @@ function Stars({ rating }) {
 
 /**
  * Avis signalés (SCRUM-74 / F29) : la modération conserve ou masque l'avis.
- * Masquer recalcule la note du fournisseur et notifie l'auteur.
+ * Masquer recalcule la note du fournisseur ; l'auteur et le fournisseur sont notifiés.
  */
 export default function AdminReviewsPage() {
   const [page, setPage] = useState(1)
@@ -146,6 +146,12 @@ export default function AdminReviewsPage() {
                         </span>
                       </div>
                       {review.comment && <p className="mt-2 text-sm text-ink">« {review.comment} »</p>}
+                      <p className="mt-1 text-xs text-muted">
+                        Indice de suspicion :{' '}
+                        {review.ai_suspicion_score === null || review.ai_suspicion_score === undefined
+                          ? 'non calculé'
+                          : `${Math.round(Number(review.ai_suspicion_score))} %`}
+                      </p>
                       {review.reports?.length > 0 && (
                         <ul className="mt-2 space-y-1 text-xs text-muted">
                           {review.reports.map((report) => (
@@ -180,7 +186,7 @@ export default function AdminReviewsPage() {
         <Modal title="Masquer cet avis" onClose={() => setTarget(null)}>
           <form onSubmit={submitHide} className="space-y-4" noValidate>
             <p className="text-sm text-muted">
-              L'avis sera retiré de la fiche fournisseur et la note moyenne recalculée. L'auteur sera notifié.
+              L'avis sera retiré de la fiche fournisseur et la note moyenne recalculée. L'auteur et le fournisseur seront notifiés.
             </p>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-ink">Motif (facultatif)</span>
