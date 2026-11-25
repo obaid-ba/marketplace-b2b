@@ -120,7 +120,7 @@
             <tr>
                 <td>
                     <h1 class="title">FACTURE</h1>
-                    <p style="margin: 4px 0 0; color: #64748b;">Marketplace B2B Tunisie</p>
+                    <p style="margin: 4px 0 0; color: #64748b;">TijaraLink — commerce B2B en Tunisie</p>
                 </td>
                 <td class="doc-meta">
                     <p style="margin: 0;"><strong>N° Facture :</strong> {{ $number }}</p>
@@ -219,7 +219,7 @@
     </div>
 
     <div class="footer">
-        Facture générée automatiquement par la Marketplace B2B le {{ $issued_at->format('d/m/Y à H:i') }}.<br>
+        Facture générée automatiquement par TijaraLink le {{ $issued_at->format('d/m/Y à H:i') }}.<br>
         Document commercial faisant foi de la réception et de la clôture de la commande #{{ $order->id }}.
     </div>
 </body>

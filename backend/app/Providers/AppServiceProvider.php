@@ -127,11 +127,11 @@ class AppServiceProvider extends ServiceProvider
             return (new MailMessage)
                 ->subject('Confirmez votre adresse e-mail')
                 ->greeting("Bonjour {$user->name},")
-                ->line('Merci pour votre inscription sur Marketplace B2B. Cliquez sur le bouton ci-dessous pour confirmer votre adresse e-mail.')
+                ->line('Merci pour votre inscription sur TijaraLink. Cliquez sur le bouton ci-dessous pour confirmer votre adresse e-mail.')
                 ->action('Confirmer mon adresse e-mail', $url)
                 ->line("Ce lien est valable {$minutes} minutes et ne peut être utilisé qu'une seule fois.")
                 ->line("Si vous n'avez pas créé de compte, ignorez simplement cet e-mail.")
-                ->salutation("L'équipe Marketplace B2B");
+                ->salutation("L'équipe TijaraLink");
         });
     }
 
@@ -154,11 +154,11 @@ class AppServiceProvider extends ServiceProvider
             return (new MailMessage)
                 ->subject('Réinitialisation de votre mot de passe')
                 ->greeting("Bonjour {$user->name},")
-                ->line('Vous avez demandé à changer le mot de passe de votre compte Marketplace B2B.')
+                ->line('Vous avez demandé à changer le mot de passe de votre compte TijaraLink.')
                 ->action('Choisir un nouveau mot de passe', $url)
                 ->line("Ce lien est valable {$minutes} minutes et ne peut être utilisé qu'une seule fois.")
                 ->line("Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé.")
-                ->salutation("L'équipe Marketplace B2B");
+                ->salutation("L'équipe TijaraLink");
         });
     }
 }

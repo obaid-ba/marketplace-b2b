@@ -1,4 +1,4 @@
-# Marketplace B2B
+# TijaraLink
 
 Plateforme de gestion des achats et des ventes entre **fournisseurs** et **porteurs de projet** — projet d'intégration, ISET Djerba.
 

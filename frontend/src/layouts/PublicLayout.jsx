@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import Logo from '@/components/Logo'
 import NotificationBell from '@/components/NotificationBell'
+import { APP_NAME } from '@/config/brand'
 import { selectIsAuthenticated, selectUser, useAuthStore } from '@/stores/auth'
 import { notificationsPathFor, PATHS } from '@/router/paths'
 import { initialsOf } from '@/utils/initials'
@@ -11,19 +13,8 @@ import { landingPathFor } from '@/utils/roles'
  * Accessible sans connexion ; un utilisateur connecté voit son avatar et un lien vers son espace.
  */
 
-function Logo({ inverted = false }) {
-  return (
-    <span className="flex items-center gap-2.5">
-      <span
-        className={`grid h-8 w-8 place-items-center rounded-lg text-base font-bold ${
-          inverted ? 'bg-surface text-brand-600' : 'bg-brand-600 text-white'
-        }`}
-      >
-        M
-      </span>
-      <span className={`text-[17px] font-bold ${inverted ? 'text-white' : 'text-ink'}`}>Marketplace B2B</span>
-    </span>
-  )
+function BrandLogo({ inverted = false }) {
+  return <Logo size={34} variant={inverted ? 'light' : 'default'} />
 }
 
 const linkClass = ({ isActive }) =>
@@ -118,8 +109,8 @@ export function PublicHeader() {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface">
       <div className="mx-auto flex h-[72px] max-w-[1276px] items-center justify-between gap-6 px-4 sm:px-6">
-        <Link to={PATHS.home} aria-label="Marketplace B2B — accueil">
-          <Logo />
+        <Link to={PATHS.home} aria-label={`${APP_NAME} — accueil`}>
+          <BrandLogo />
         </Link>
 
         <nav aria-label="Navigation principale" className="hidden lg:block">
@@ -165,8 +156,8 @@ export function PublicFooter() {
   return (
     <footer className="bg-ink text-white">
       <div className="mx-auto flex max-w-[1276px] flex-col gap-6 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-        <Link to={PATHS.home} aria-label="Marketplace B2B — accueil">
-          <Logo inverted />
+        <Link to={PATHS.home} aria-label={`${APP_NAME} — accueil`}>
+          <BrandLogo inverted />
         </Link>
         <nav aria-label="Liens du pied de page">
           <ul className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-white/85">
@@ -192,7 +183,7 @@ export function PublicFooter() {
             </li>
           </ul>
         </nav>
-        <p className="text-xs text-white/70">© 2026 Marketplace B2B - ISET Djerba</p>
+        <p className="text-xs text-white/70">© 2026 {APP_NAME} - ISET Djerba</p>
       </div>
     </footer>
   )

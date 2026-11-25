@@ -32,7 +32,7 @@ class AccountReactivatedNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Votre compte est réactivé')
             ->greeting("Bonjour {$notifiable->name},")
-            ->line('Un administrateur a réactivé votre compte Marketplace B2B.')
+            ->line('Un administrateur a réactivé votre compte TijaraLink.')
             ->action('Se connecter', rtrim((string) config('app.frontend_url'), '/').'/connexion');
     }
 

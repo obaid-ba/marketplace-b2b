@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router'
+import Logo from '@/components/Logo'
 import LogoutButton from '@/components/LogoutButton'
+import { APP_NAME } from '@/config/brand'
 import NotificationBell from '@/components/NotificationBell'
 import { notificationsPathFor, PATHS } from '@/router/paths'
 import { selectRole, selectUser, useAuthStore } from '@/stores/auth'
@@ -52,8 +54,8 @@ export default function AppLayout() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-6">
-            <Link to={landingPathFor(user)} className="text-lg font-semibold whitespace-nowrap text-brand-700">
-              Marketplace B2B
+            <Link to={landingPathFor(user)} aria-label={`${APP_NAME} — mon espace`}>
+              <Logo size={32} />
             </Link>
             {adminLinks.length > 0 && (
               <nav aria-label="Administration" className="hidden items-center gap-1 md:flex">

@@ -120,7 +120,7 @@
             <tr>
                 <td>
                     <h1 class="title">DEVIS COMMERCIAL</h1>
-                    <p style="margin: 4px 0 0; color: #64748b;">Marketplace B2B Tunisie</p>
+                    <p style="margin: 4px 0 0; color: #64748b;">TijaraLink — commerce B2B en Tunisie</p>
                 </td>
                 <td class="doc-meta">
                     <p style="margin: 0;"><strong>N° Devis :</strong> {{ $number }}</p>
@@ -220,7 +220,7 @@
     </div>
 
     <div class="footer">
-        Devis généré automatiquement par la Marketplace B2B le {{ $issued_at->format('d/m/Y à H:i') }}.<br>
+        Devis généré automatiquement par TijaraLink le {{ $issued_at->format('d/m/Y à H:i') }}.<br>
         Document précontractuel pour la commande #{{ $order->id }}.
     </div>
 </body>

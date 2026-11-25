@@ -35,7 +35,7 @@ class ApiDocsTest extends TestCase
         $this->assertSame([], $spec['paths']['/api/auth/login']['post']['security']);
 
         $postman = json_decode(File::get("{$directory}/postman_collection.json"), true);
-        $this->assertSame('Marketplace B2B', $postman['info']['name']);
+        $this->assertSame('TijaraLink', $postman['info']['name']);
         $this->assertNotEmpty($postman['item']);
 
         File::deleteDirectory($directory);
@@ -44,6 +44,6 @@ class ApiDocsTest extends TestCase
     public function test_swagger_accessible_depuis_la_demo(): void
     {
         $this->get('/api/docs')->assertOk()->assertSee('swagger-ui', false);
-        $this->getJson('/api/docs/openapi.json')->assertOk()->assertJsonPath('info.title', 'API Marketplace B2B');
+        $this->getJson('/api/docs/openapi.json')->assertOk()->assertJsonPath('info.title', 'API TijaraLink');
     }
 }

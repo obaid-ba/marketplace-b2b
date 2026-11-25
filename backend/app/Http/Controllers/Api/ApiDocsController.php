@@ -23,7 +23,7 @@ class ApiDocsController extends Controller
               <head>
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <title>API Marketplace B2B — documentation</title>
+                <title>API TijaraLink — documentation</title>
                 <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css" />
               </head>
               <body>
