@@ -59,7 +59,7 @@ class BuyerReviewController extends Controller
             // Recalcul immédiat de la note moyenne du fournisseur
             $stats = Review::query()
                 ->where('supplier_id', $order->supplier_id)
-                ->where('status', ReviewStatus::PUBLISHED->value)
+                ->published()
                 ->selectRaw('AVG(rating) as avg_rating, COUNT(*) as total_count')
                 ->first();
 

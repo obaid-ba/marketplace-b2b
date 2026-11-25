@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
 use App\Models\SupplierProfile;
@@ -25,7 +24,7 @@ class SupplierPublicReviewController extends Controller
 
         $reviews = Review::query()
             ->where('supplier_id', $supplier->id)
-            ->where('status', ReviewStatus::PUBLISHED->value)
+            ->published()
             ->with([
                 'buyer.user:id,name',
                 'buyer:id,user_id,organization',

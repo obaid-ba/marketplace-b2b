@@ -143,6 +143,14 @@ export default function SupplierReviewsPage() {
         </p>
       </div>
 
+      {/* Emplacement du résumé IA de ce que les clients apprécient ou critiquent (SCRUM-65) */}
+      {data?.ai_summary && (
+        <section aria-label="Résumé des avis" className="card space-y-2">
+          <span className="rounded-full bg-info-soft px-3 py-1 text-xs font-medium text-info">Résumé généré par IA</span>
+          <p className="text-sm text-ink">{data.ai_summary}</p>
+        </section>
+      )}
+
       {replySuccess && (
         <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-medium text-emerald-800">
           ✓ {replySuccess}

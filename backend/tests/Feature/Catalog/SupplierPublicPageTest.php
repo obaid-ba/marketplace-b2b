@@ -143,7 +143,7 @@ class SupplierPublicPageTest extends TestCase
             ->assertJsonPath('data.1.supplier_reply', 'Merci !');
     }
 
-    public function test_les_avis_masques_ou_signales_sont_exclus(): void
+    public function test_les_avis_masques_sont_exclus_et_les_signales_restent_visibles(): void
     {
         $this->review(['comment' => 'Visible']);
         $this->review(['comment' => 'Masqué', 'status' => ReviewStatus::HIDDEN]);
@@ -151,7 +151,8 @@ class SupplierPublicPageTest extends TestCase
 
         $comments = collect($this->getJson("/api/suppliers/{$this->supplier->id}/reviews")->json('data'))->pluck('comment');
 
-        $this->assertSame(['Visible'], $comments->all());
+        // SCRUM-66 : un avis signalé reste visible jusqu'à la décision de l'admin.
+        $this->assertEqualsCanonicalizing(['Visible', 'Signalé'], $comments->all());
     }
 
     public function test_les_avis_ne_contiennent_pas_l_identite_complete(): void

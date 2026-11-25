@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\Supplier;
 
-use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
 use App\Notifications\ReviewReplyNotification;
@@ -28,14 +27,14 @@ class SupplierReviewController extends Controller
         // Statistiques globales
         $stats = Review::query()
             ->where('supplier_id', $supplierProfile->id)
-            ->where('status', ReviewStatus::PUBLISHED->value)
+            ->published()
             ->selectRaw('AVG(rating) as avg_rating, COUNT(*) as total_count')
             ->first();
 
         // Répartition par étoiles
         $distribution = Review::query()
             ->where('supplier_id', $supplierProfile->id)
-            ->where('status', ReviewStatus::PUBLISHED->value)
+            ->published()
             ->selectRaw('rating, COUNT(*) as count')
             ->groupBy('rating')
             ->orderBy('rating', 'desc')
@@ -50,7 +49,7 @@ class SupplierReviewController extends Controller
         $perPage = max(1, min(50, (int) $request->query('per_page', 10)));
         $reviews = Review::query()
             ->where('supplier_id', $supplierProfile->id)
-            ->where('status', ReviewStatus::PUBLISHED->value)
+            ->published()
             ->with([
                 'buyer.user:id,name',
                 'buyer:id,user_id,organization',
@@ -65,6 +64,8 @@ class SupplierReviewController extends Controller
             'rating_avg' => $stats->avg_rating ? round((float) $stats->avg_rating, 2) : 0,
             'reviews_count' => (int) ($stats->total_count ?? 0),
             'star_distribution' => $starDistribution,
+            // Emplacement du résumé IA des avis (SCRUM-65), pas encore généré.
+            'ai_summary' => null,
             'reviews' => $reviews,
         ]);
     }

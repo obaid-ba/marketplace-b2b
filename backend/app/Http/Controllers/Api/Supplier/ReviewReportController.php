@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Supplier;
 
+use App\Enums\ReviewStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
@@ -10,11 +11,12 @@ use App\Models\User;
 use App\Notifications\ReviewReportedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 
 /**
- * Signaler un avis abusif (SCRUM-66). L'avis reste visible et compté dans la note jusqu'à la décision
+ * Signaler un avis abusif (SCRUM-66). L'avis passe « signalé », mais reste visible et compté dans la note jusqu'à la décision
  * de l'administrateur : un signalement ne doit pas permettre de masquer une mauvaise note.
  */
 class ReviewReportController extends Controller
@@ -35,10 +37,22 @@ class ReviewReportController extends Controller
             'details.max' => 'Les précisions ne doivent pas dépasser 1000 caractères.',
         ]);
 
-        $report = ReviewReport::query()->firstOrCreate(
-            ['review_id' => $review->id, 'author_id' => $request->user()->id],
-            [...$validated, 'status' => ReviewReport::STATUS_PENDING],
-        );
+        $report = DB::transaction(function () use ($request, $review, $validated) {
+            $locked = Review::query()->lockForUpdate()->findOrFail($review->id);
+
+            abort_if($locked->status === ReviewStatus::HIDDEN, 422, "Cet avis n'est plus visible.");
+
+            $report = ReviewReport::query()->firstOrCreate(
+                ['review_id' => $locked->id, 'author_id' => $request->user()->id],
+                [...$validated, 'status' => ReviewReport::STATUS_PENDING],
+            );
+
+            if ($report->wasRecentlyCreated) {
+                $locked->update(['status' => ReviewStatus::REPORTED]);
+            }
+
+            return $report;
+        });
 
         if (! $report->wasRecentlyCreated) {
             return response()->json(['message' => 'Vous avez déjà signalé cet avis.'], 422);

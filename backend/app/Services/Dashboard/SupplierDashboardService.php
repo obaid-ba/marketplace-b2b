@@ -4,7 +4,6 @@ namespace App\Services\Dashboard;
 
 use App\Enums\OrderStatus;
 use App\Enums\QuoteStatus;
-use App\Enums\ReviewStatus;
 use App\Enums\TenderStatus;
 use App\Http\Requests\Dashboard\PeriodRangeRequest;
 use App\Models\Order;
@@ -56,7 +55,7 @@ class SupplierDashboardService
 
         $negativeReviews = Review::query()
             ->where('supplier_id', $supplier->id)
-            ->where('status', ReviewStatus::PUBLISHED->value)
+            ->published()
             ->where('rating', '<=', 2)
             ->whereBetween('created_at', [$fromDb, $toDb])
             ->count();
@@ -236,7 +235,7 @@ class SupplierDashboardService
     {
         return Review::query()
             ->where('supplier_id', $supplier->id)
-            ->where('status', ReviewStatus::PUBLISHED->value)
+            ->published()
             ->with('buyer.user:id,name,first_name,last_name')
             ->orderByDesc('created_at')
             ->limit(5)

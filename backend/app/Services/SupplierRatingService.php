@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\ReviewStatus;
 use App\Models\Review;
 use App\Models\SupplierProfile;
 
@@ -18,7 +17,7 @@ class SupplierRatingService
     {
         $stats = Review::query()
             ->where('supplier_id', $supplierId)
-            ->where('status', ReviewStatus::PUBLISHED->value)
+            ->published()
             ->selectRaw('AVG(rating) as avg_rating, COUNT(*) as total_count')
             ->first();
 

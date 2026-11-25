@@ -75,9 +75,12 @@ class Review extends Model
         return $this->hasMany(ReviewReport::class);
     }
 
+    /**
+     * Avis visibles et comptés dans la note : publiés, et signalés tant que l'admin n'a pas décidé (SCRUM-66).
+     */
     public function scopePublished(Builder $query): void
     {
-        $query->where('reviews.status', ReviewStatus::PUBLISHED->value);
+        $query->whereIn('reviews.status', [ReviewStatus::PUBLISHED->value, ReviewStatus::REPORTED->value]);
     }
 
     public function authorDisplayName(): string

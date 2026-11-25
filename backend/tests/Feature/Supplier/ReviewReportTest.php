@@ -11,6 +11,7 @@ use App\Models\Review;
 use App\Models\SupplierProfile;
 use App\Models\User;
 use App\Notifications\ReviewReportedNotification;
+use App\Services\SupplierRatingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -81,7 +82,23 @@ class ReviewReportTest extends TestCase
         $review = $this->makeReview($supplier);
         $this->actingAs($supplier, 'sanctum')->postJson("/api/supplier/reviews/{$review->id}/report", ['reason' => 'faux_avis'])->assertCreated();
 
+        $this->assertSame(ReviewStatus::REPORTED, $review->fresh()->status);
+        $this->getJson('/api/supplier/reviews')->assertJsonPath('reviews_count', 1)->assertJsonPath('reviews.data.0.status', 'signalé');
+
+        // Toujours compté dans la note, puis « publié » s'il est conservé, retiré s'il est masqué.
+        app(SupplierRatingService::class)->recompute($supplier->supplierProfile->id);
+        $this->assertSame(1, $supplier->supplierProfile->fresh()->reviews_count);
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin, 'sanctum')->postJson("/api/admin/reported-reviews/{$review->id}/keep")->assertOk();
         $this->assertSame(ReviewStatus::PUBLISHED, $review->fresh()->status);
+        $this->postJson("/api/admin/reported-reviews/{$review->id}/hide", ['reason' => 'Propos injurieux'])->assertOk();
+        $this->assertSame(0, $supplier->supplierProfile->fresh()->reviews_count);
+
+        $this->actingAs($supplier, 'sanctum');
+        $review->reports()->delete();
+        $this->postJson("/api/supplier/reviews/{$review->id}/report", ['reason' => 'faux_avis'])->assertStatus(422);
+        $this->assertSame(ReviewStatus::HIDDEN, $review->fresh()->status);
+        $review->update(['status' => ReviewStatus::REPORTED]);
         $this->getJson('/api/suppliers/'.$supplier->supplierProfile->id.'/public-reviews')->assertJsonCount(1, 'reviews.data');
     }
 
@@ -94,6 +111,19 @@ class ReviewReportTest extends TestCase
         $this->actingAs($supplier, 'sanctum')->postJson($url, ['reason' => 'insultes'])->assertCreated();
         $this->postJson($url, ['reason' => 'hors_sujet'])->assertStatus(422)->assertJsonPath('message', 'Vous avez déjà signalé cet avis.');
         $this->assertDatabaseCount('review_reports', 1);
+    }
+
+    public function test_les_signalements_en_attente_deja_enregistres_sont_marques(): void
+    {
+        $supplier = $this->makeSupplier();
+        [$pending, $other] = [$this->makeReview($supplier), $this->makeReview($supplier)];
+        $pending->reports()->create(['author_id' => $supplier->id, 'reason' => 'faux_avis', 'status' => 'en attente']);
+        $other->reports()->create(['author_id' => $supplier->id, 'reason' => 'faux_avis', 'status' => 'traitée']);
+
+        (require database_path('migrations/2026_11_25_300000_mark_reported_reviews.php'))->up();
+
+        $this->assertSame(ReviewStatus::REPORTED, $pending->fresh()->status);
+        $this->assertSame(ReviewStatus::PUBLISHED, $other->fresh()->status);
     }
 
     public function test_le_motif_est_controle(): void
