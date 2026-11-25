@@ -48,7 +48,7 @@ describe('QuoteSummaryCard (SCRUM-119)', () => {
     vi.mocked(fetchQuoteSummary).mockResolvedValue(result())
     show()
     expect(await screen.findByText('Deux devis proches.')).toBeTruthy()
-    expect(screen.getByText('Mode simulé, sans IA')).toBeTruthy()
+    expect(screen.getByText('Aide à la décision, mode simulé sans IA')).toBeTruthy()
     expect(screen.getByText(/la décision vous appartient/)).toBeTruthy()
     expect(generateQuoteSummary).not.toHaveBeenCalled()
 
@@ -60,7 +60,7 @@ describe('QuoteSummaryCard (SCRUM-119)', () => {
   it('distingue une réponse d’IA du mode simulé', async () => {
     vi.mocked(fetchQuoteSummary).mockResolvedValue(result({ simulated: false }))
     show()
-    expect(await screen.findByText('Généré par IA')).toBeTruthy()
+    expect(await screen.findByText('Aide à la décision générée par IA')).toBeTruthy()
   })
 
   it.each([

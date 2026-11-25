@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import NotificationBell from '@/components/NotificationBell'
 import { selectIsAuthenticated, selectUser, useAuthStore } from '@/stores/auth'
-import { PATHS } from '@/router/paths'
+import { notificationsPathFor, PATHS } from '@/router/paths'
 import { initialsOf } from '@/utils/initials'
 import { landingPathFor } from '@/utils/roles'
 
@@ -110,6 +111,7 @@ function AccountActions({ onNavigate, stacked = false }) {
 }
 
 export function PublicHeader() {
+  const user = useAuthStore(selectUser)
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
 
@@ -124,22 +126,25 @@ export function PublicHeader() {
           <NavLinks />
         </nav>
 
-        <div className="hidden lg:block">
-          <AccountActions />
-        </div>
+        <div className="flex items-center gap-3">
+          {user?.email_verified && <NotificationBell notificationsPath={notificationsPathFor(user.role)} />}
+          <div className="hidden lg:block">
+            <AccountActions />
+          </div>
 
-        <button
-          type="button"
-          className="btn-ghost -mr-2 px-2 lg:hidden"
-          aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
-          aria-expanded={open}
-          aria-controls="public-mobile-menu"
-          onClick={() => setOpen((value) => !value)}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6" aria-hidden="true">
-            {open ? <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /> : <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />}
-          </svg>
-        </button>
+          <button
+            type="button"
+            className="btn-ghost -mr-2 px-2 lg:hidden"
+            aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={open}
+            aria-controls="public-mobile-menu"
+            onClick={() => setOpen((value) => !value)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6" aria-hidden="true">
+              {open ? <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /> : <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />}
+            </svg>
+          </button>
+        </div>
       </div>
 
       {open && (

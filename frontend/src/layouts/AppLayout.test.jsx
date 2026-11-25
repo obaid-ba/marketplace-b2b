@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router'
 import { useAuthStore } from '@/stores/auth'
 import AppLayout from './AppLayout'
 
-vi.mock('@/api/http', () => ({ http: { get: vi.fn(), post: vi.fn() }, onAuthError: vi.fn() }))
+vi.mock('@/api/http', () => ({ http: { get: vi.fn().mockResolvedValue({ data: { count: 0 } }), post: vi.fn() }, onAuthError: vi.fn() }))
 
 afterEach(cleanup)
 
@@ -16,6 +16,22 @@ function show(role) {
     </MemoryRouter>,
   )
 }
+
+describe('AppLayout : cloche de notifications (SCRUM-62)', () => {
+  it('est affichée, sauf si l’e-mail reste à vérifier', () => {
+    show('buyer')
+    expect(screen.getByRole('button', { name: /^Notifications/ })).toBeTruthy()
+    cleanup()
+
+    useAuthStore.setState({ user: { id: 1, name: 'Sana', role: 'buyer', email_verified: false }, token: 't', loaded: true })
+    render(
+      <MemoryRouter>
+        <AppLayout />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByRole('button', { name: /^Notifications/ })).toBeNull()
+  })
+})
 
 describe('AppLayout : menu sur téléphone', () => {
   it('ouvre le menu du compte et le referme après un choix', () => {

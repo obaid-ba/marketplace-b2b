@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router'
 import LogoutButton from '@/components/LogoutButton'
-import { PATHS } from '@/router/paths'
+import NotificationBell from '@/components/NotificationBell'
+import { notificationsPathFor, PATHS } from '@/router/paths'
 import { selectRole, selectUser, useAuthStore } from '@/stores/auth'
 import { ROLES, ROLE_LABELS, landingPathFor } from '@/utils/roles'
 
@@ -65,23 +66,26 @@ export default function AppLayout() {
             )}
           </div>
 
-          <div className="hidden min-w-0 items-center gap-3 md:flex">
-            <div className="min-w-0 text-right text-sm">{identity}</div>
-            <AccountLinks role={role} className="btn-ghost shrink-0" />
-          </div>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="hidden min-w-0 text-right text-sm md:block">{identity}</div>
+            {user?.email_verified && <NotificationBell notificationsPath={notificationsPathFor(role)} />}
+            <div className="hidden shrink-0 items-center gap-3 md:flex">
+              <AccountLinks role={role} className="btn-ghost shrink-0" />
+            </div>
 
-          <button
-            type="button"
-            className="btn-ghost -mr-2 px-2 md:hidden"
-            aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
-            aria-expanded={open}
-            aria-controls="account-mobile-menu"
-            onClick={() => setOpen((value) => !value)}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6" aria-hidden="true">
-              {open ? <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /> : <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />}
-            </svg>
-          </button>
+            <button
+              type="button"
+              className="btn-ghost -mr-2 px-2 md:hidden"
+              aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
+              aria-expanded={open}
+              aria-controls="account-mobile-menu"
+              onClick={() => setOpen((value) => !value)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6" aria-hidden="true">
+                {open ? <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /> : <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />}
+              </svg>
+            </button>
+          </div>
         </div>
 
         {open && (

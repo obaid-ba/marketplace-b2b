@@ -97,7 +97,7 @@ export default function QuoteSummaryCard({ tenderId, quotes }) {
         <h2 className="text-base font-semibold text-ink">Résumé des devis</h2>
         {summary && (
           <span className="rounded-full bg-info-soft px-2.5 py-0.5 text-xs font-medium text-info">
-            {summary.simulated ? 'Mode simulé, sans IA' : 'Généré par IA'}
+            {summary.simulated ? 'Aide à la décision, mode simulé sans IA' : 'Aide à la décision générée par IA'}
           </span>
         )}
         {summary?.edited && <span className="rounded-full bg-page px-2.5 py-0.5 text-xs text-muted">Modifié par vous</span>}
