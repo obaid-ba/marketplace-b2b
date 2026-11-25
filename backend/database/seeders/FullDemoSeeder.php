@@ -60,31 +60,31 @@ class FullDemoSeeder extends Seeder
      * Nouveaux fournisseurs : [entreprise, e-mail, région, secteur, note, avis, présentation, catégories, logo, statut].
      */
     private const SUPPLIERS = [
-        ['BatiSud Matériaux', 'batisud@marketplace.test', 'Sfax', 'BTP et matériaux', 4.5, 0,
+        ['BatiSud Matériaux', 'batisud@tijaralink.test', 'Sfax', 'BTP et matériaux', 4.5, 0,
             'Négoce de matériaux de construction : ciment, acier, plomberie. Livraison sur chantier dans le Sud.',
             ['Ciment et béton', 'Acier et ferraillage', 'Plomberie et sanitaire'], 'batisud', 'validé'],
-        ['InfoStore Tunis', 'infostore@marketplace.test', 'Tunis', 'Informatique', 4.4, 0,
+        ['InfoStore Tunis', 'infostore@tijaralink.test', 'Tunis', 'Informatique', 4.4, 0,
             'Matériel informatique professionnel, installation de réseaux et garantie sur site.',
             ['Ordinateurs et serveurs', 'Périphériques', 'Réseaux et sécurité'], 'infostore', 'validé'],
-        ['BureauPlus', 'bureauplus@marketplace.test', 'Ariana', 'Fournitures de bureau', 4.6, 0,
+        ['BureauPlus', 'bureauplus@tijaralink.test', 'Ariana', 'Fournitures de bureau', 4.6, 0,
             'Tout pour le bureau : papeterie, consommables d’impression et mobilier, livré en 48 h.',
             ['Papeterie', 'Mobilier de bureau', 'Consommables impression'], 'bureauplus', 'validé'],
-        ['Oasis Dattes Tozeur', 'oasis@marketplace.test', 'Tozeur', 'Agroalimentaire', 4.8, 0,
+        ['Oasis Dattes Tozeur', 'oasis@tijaralink.test', 'Tozeur', 'Agroalimentaire', 4.8, 0,
             'Dattes Deglet Nour et produits céréaliers du Sud tunisien, conditionnés pour la distribution.',
             ['Matières premières'], 'oasis', 'validé'],
-        ['TextilPro Monastir', 'textilpro@marketplace.test', 'Monastir', 'Textile', 4.3, 0,
+        ['TextilPro Monastir', 'textilpro@tijaralink.test', 'Monastir', 'Textile', 4.3, 0,
             'Confection de vêtements de travail et d’équipements de protection, tissus techniques.',
             ['Vêtements de travail et EPI', 'Tissus industriels'], 'textilpro', 'validé'],
-        ['Fidus Conseil', 'fidus@marketplace.test', 'Tunis', 'Services', 4.7, 0,
+        ['Fidus Conseil', 'fidus@tijaralink.test', 'Tunis', 'Services', 4.7, 0,
             'Cabinet d’expertise comptable, conseil juridique et formation des équipes.',
             ['Comptabilité et audit', 'Conseil juridique', 'Formation'], 'fidus', 'validé'],
-        ['ProNet Services', 'pronet@marketplace.test', 'Sousse', 'Services', 4.1, 0,
+        ['ProNet Services', 'pronet@tijaralink.test', 'Sousse', 'Services', 4.1, 0,
             'Nettoyage professionnel et gardiennage de sites industriels et tertiaires.',
             ['Nettoyage et gardiennage'], 'pronet', 'validé'],
-        ['Nouvelle Énergie SARL', 'nouvelleenergie@marketplace.test', 'Gabès', 'Énergie', 0, 0,
+        ['Nouvelle Énergie SARL', 'nouvelleenergie@tijaralink.test', 'Gabès', 'Énergie', 0, 0,
             'Installation de panneaux solaires pour entreprises (dossier en cours de vérification).',
             ['Électricité bâtiment'], null, 'en attente'],
-        ['Import Express', 'importexpress@marketplace.test', 'Ben Arous', 'Import', 0, 0,
+        ['Import Express', 'importexpress@tijaralink.test', 'Ben Arous', 'Import', 0, 0,
             'Import de matériel divers.', ['Pièces de rechange'], null, 'refusé'],
     ];
 
@@ -185,10 +185,12 @@ class FullDemoSeeder extends Seeder
         // Pendant le seeding : tâches exécutées tout de suite, pas de temps réel ni de vrai e-mail.
         config(['queue.default' => 'sync', 'broadcasting.default' => 'log', 'mail.default' => 'log']);
 
+        $this->renameOldDemoAccounts();
+        $this->normalizeCategories();
         $this->call(CatalogueDemoSeeder::class);
         $this->password = Hash::make('password');
 
-        $this->admin = User::query()->firstOrCreate(['email' => 'admin@marketplace.test'], [
+        $this->admin = User::query()->firstOrCreate(['email' => 'admin@tijaralink.test'], [
             'name' => 'Équipe TijaraLink', 'first_name' => 'Équipe', 'last_name' => 'TijaraLink', 'password' => $this->password,
             'role' => 'admin', 'status' => UserStatus::ACTIVE->value, 'email_verified_at' => now(),
         ]);
@@ -204,6 +206,48 @@ class FullDemoSeeder extends Seeder
         }
 
         $this->seedExtraReviews();
+
+        // Notes toujours calculées à partir des avis réellement publiés (jamais de note « de vitrine »).
+        foreach (SupplierProfile::query()->pluck('id') as $supplierId) {
+            app(SupplierRatingService::class)->recompute($supplierId);
+        }
+    }
+
+    /**
+     * Comptes de démonstration créés avant le renommage (…@marketplace.test) : passés en …@tijaralink.test,
+     * pour garder leurs données au lieu de créer des doublons.
+     */
+    private function renameOldDemoAccounts(): void
+    {
+        User::withTrashed()->where('email', 'like', '%@marketplace.test')->each(function (User $user) {
+            $email = str_replace('@marketplace.test', '@tijaralink.test', $user->email);
+            if (! User::withTrashed()->where('email', $email)->exists()) {
+                $user->forceFill(['email' => $email])->saveQuietly();
+            }
+        });
+    }
+
+    /**
+     * Rattache chaque sous-catégorie connue à sa catégorie principale (une base remplie par d'anciens seeders
+     * peut les avoir créées au premier niveau).
+     */
+    private function normalizeCategories(): void
+    {
+        $position = (int) Category::query()->whereNull('parent_id')->max('position');
+
+        foreach (DatabaseSeeder::CATEGORY_TREE as $parentName => $children) {
+            $parent = Category::query()->whereNull('parent_id')->where('name', $parentName)->first()
+                ?? Category::query()->create(['name' => $parentName, 'parent_id' => null, 'position' => ++$position]);
+
+            foreach ($children as $index => $childName) {
+                $child = Category::query()->where('name', $childName)->first();
+                if (! $child) {
+                    Category::query()->create(['name' => $childName, 'parent_id' => $parent->id, 'position' => $index + 1]);
+                } elseif ($child->parent_id !== $parent->id) {
+                    $child->update(['parent_id' => $parent->id, 'position' => $index + 1]);
+                }
+            }
+        }
     }
 
     /**
@@ -212,8 +256,8 @@ class FullDemoSeeder extends Seeder
      */
     private function seedExtraReviews(): void
     {
-        $karim = $this->buyer('karim@marketplace.test', 'Karim', 'Trabelsi', 'Chantiers Trabelsi');
-        $leila = $this->buyer('leila@marketplace.test', 'Leila', 'Mansour', 'Cabinet Mansour');
+        $karim = $this->buyer('karim@tijaralink.test', 'Karim', 'Trabelsi', 'Chantiers Trabelsi');
+        $leila = $this->buyer('leila@tijaralink.test', 'Leila', 'Mansour', 'Cabinet Mansour');
 
         $reviews = [
             [$karim, 'Rond à béton HA12 (barre de 12 m)', 80, 5, 'Acier conforme, livré sur le chantier à l’heure prévue. Très bon fournisseur.'],
@@ -329,10 +373,10 @@ class FullDemoSeeder extends Seeder
      */
     private function seedScenario(): void
     {
-        $sana = $this->buyer('sana@marketplace.test', 'Sana', 'Ben Salah', 'Huilerie du Sahel');
-        $karim = $this->buyer('karim@marketplace.test', 'Karim', 'Trabelsi', 'Chantiers Trabelsi');
-        $leila = $this->buyer('leila@marketplace.test', 'Leila', 'Mansour', 'Cabinet Mansour');
-        $youssef = $this->buyer('youssef@marketplace.test', 'Youssef', 'Gharbi', 'Startup GreenBox');
+        $sana = $this->buyer('sana@tijaralink.test', 'Sana', 'Ben Salah', 'Huilerie du Sahel');
+        $karim = $this->buyer('karim@tijaralink.test', 'Karim', 'Trabelsi', 'Chantiers Trabelsi');
+        $leila = $this->buyer('leila@tijaralink.test', 'Leila', 'Mansour', 'Cabinet Mansour');
+        $youssef = $this->buyer('youssef@tijaralink.test', 'Youssef', 'Gharbi', 'Startup GreenBox');
         $s = $this->suppliers;
 
         // Historique pour le « prix habituel du marché » (SCRUM-82) : devis acceptés dans la même catégorie.
@@ -433,7 +477,7 @@ class FullDemoSeeder extends Seeder
         ]);
 
         // 9. Alerte d'anomalie : pic de commandes d'un nouveau compte (SCRUM-86).
-        $nabil = $this->buyer('nabil@marketplace.test', 'Nabil', 'Test', 'Compte récent');
+        $nabil = $this->buyer('nabil@tijaralink.test', 'Nabil', 'Test', 'Compte récent');
         foreach (range(1, 6) as $i) {
             $this->catalogueOrder($nabil, $this->product('Gilets haute visibilité'), 5, OrderStatus::VALIDATED, 0);
         }
@@ -444,7 +488,7 @@ class FullDemoSeeder extends Seeder
             AnalyzeReviewJob::dispatchSync($supplier->id);
         }
 
-        $this->command?->info('Démonstration TijaraLink prête : comptes *@marketplace.test, mot de passe « password ».');
+        $this->command?->info('Démonstration TijaraLink prête : comptes *@tijaralink.test, mot de passe « password ».');
     }
 
     private function buyer(string $email, string $first, string $last, string $organization): BuyerProfile
@@ -580,8 +624,18 @@ class FullDemoSeeder extends Seeder
      */
     private function categoryIds(array $names): array
     {
-        return array_map(fn (string $name) => Category::query()->where('name', $name)->value('id')
-            ?? Category::query()->create(['name' => $name, 'position' => 99])->id, $names);
+        return array_map(function (string $name) {
+            $existing = Category::query()->where('name', $name)->value('id');
+            if ($existing) {
+                return $existing;
+            }
+
+            // Catégorie absente : créée sous sa catégorie principale si l'arbre la connaît.
+            $parentName = collect(DatabaseSeeder::CATEGORY_TREE)->search(fn (array $children) => in_array($name, $children, true));
+            $parentId = $parentName ? Category::query()->whereNull('parent_id')->where('name', $parentName)->value('id') : null;
+
+            return Category::query()->create(['name' => $name, 'parent_id' => $parentId, 'position' => 99])->id;
+        }, $names);
     }
 
     /** Une heure de bureau il y a N jours ; aujourd'hui : quelques minutes plus tôt (jamais dans le futur). */

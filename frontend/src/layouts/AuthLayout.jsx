@@ -14,7 +14,7 @@ import { PATHS } from '@/router/paths'
 const ARGUMENTS = [
   'Fournisseurs validés par notre équipe',
   'Devis comparables en un clic',
-  'Paiement sécurisé et suivi de commande',
+  'Suivi de commande étape par étape, devis et factures PDF',
 ]
 
 function Logo() {

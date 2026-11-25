@@ -5,7 +5,7 @@ import { APP_NAME } from '@/config/brand'
 import { loginPath } from '@/router/paths'
 import { selectIsAuthenticated, useAuthStore } from '@/stores/auth'
 
-const WELCOME = `Bonjour ! Je suis l’assistant de ${APP_NAME}. Posez-moi une question sur l’utilisation de la plateforme : publier un besoin, répondre à une demande, commander, payer, laisser un avis…`
+const WELCOME = `Bonjour ! Je suis l’assistant de ${APP_NAME}. Posez-moi une question sur l’utilisation de la plateforme : publier un besoin, répondre à une demande, commander, suivre une commande, laisser un avis…`
 
 const SUGGESTIONS = ['Comment publier une demande ?', 'Comment répondre à une demande ?', 'Comment suivre ma commande ?']
 

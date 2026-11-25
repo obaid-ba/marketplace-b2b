@@ -21,6 +21,19 @@ class DatabaseSeeder extends Seeder
      */
     public const SEED_DEMO_DATA = false;
 
+    /** Arbre des catégories : catégorie principale → sous-catégories (réutilisé par FullDemoSeeder). */
+    public const CATEGORY_TREE = [
+        'BTP et matériaux' => ['Ciment et béton', 'Acier et ferraillage', 'Électricité bâtiment', 'Plomberie et sanitaire'],
+        'Informatique' => ['Ordinateurs et serveurs', 'Réseaux et sécurité', 'Développement logiciel', 'Périphériques'],
+        'Fournitures de bureau' => ['Papeterie', 'Mobilier de bureau', 'Consommables impression'],
+        'Agroalimentaire' => ['Matières premières', 'Conditionnement alimentaire', 'Produits laitiers et dérivés'],
+        'Textile' => ['Tissus industriels', 'Vêtements de travail et EPI', 'Accessoires textiles'],
+        'Services' => ['Comptabilité et audit', 'Conseil juridique', 'Nettoyage et gardiennage', 'Formation'],
+        'Équipements industriels' => ['Machines-outils', 'Pièces de rechange', 'Maintenance industrielle'],
+        'Logistique et transport' => ['Transport routier', 'Entreposage', 'Manutention et levage'],
+        'Emballage et conditionnement' => [],
+    ];
+
     public function run(): void
     {
         $now = now();
@@ -35,10 +48,10 @@ class DatabaseSeeder extends Seeder
 
         $password = Hash::make('password'); // Règle #7 : mot de passe « password »
 
-        // 3. Administrateur (admin@marketplace.test)
+        // 3. Administrateur (admin@tijaralink.test)
         $adminId = DB::table('users')->insertGetId([
-            'name' => 'Admin Marketplace',
-            'email' => 'admin@marketplace.test',
+            'name' => 'Équipe TijaraLink',
+            'email' => 'admin@tijaralink.test',
             'phone' => '+216 71 000 000',
             'password' => $password,
             'role' => 'admin',
@@ -53,7 +66,7 @@ class DatabaseSeeder extends Seeder
         for ($i = 1; $i <= 8; $i++) {
             $userId = DB::table('users')->insertGetId([
                 'name' => "Fournisseur {$i}",
-                'email' => "supplier{$i}@marketplace.test",
+                'email' => "supplier{$i}@tijaralink.test",
                 'phone' => "+216 71 100 00{$i}",
                 'password' => $password,
                 'role' => 'supplier',
@@ -91,7 +104,7 @@ class DatabaseSeeder extends Seeder
         for ($i = 1; $i <= 5; $i++) {
             $userId = DB::table('users')->insertGetId([
                 'name' => "Porteur {$i}",
-                'email' => "buyer{$i}@marketplace.test",
+                'email' => "buyer{$i}@tijaralink.test",
                 'phone' => "+216 71 200 00{$i}",
                 'password' => $password,
                 'role' => 'buyer',
@@ -224,20 +237,9 @@ class DatabaseSeeder extends Seeder
             return DB::table('categories')->whereNotNull('parent_id')->pluck('id')->all();
         }
 
-        $categoriesTree = [
-            'BTP et matériaux' => ['Ciment et béton', 'Acier et ferraillage', 'Électricité bâtiment', 'Plomberie et sanitaire'],
-            'Informatique' => ['Ordinateurs et serveurs', 'Réseaux et sécurité', 'Développement logiciel', 'Périphériques'],
-            'Fournitures de bureau' => ['Papeterie', 'Mobilier de bureau', 'Consommables impression'],
-            'Agroalimentaire' => ['Matières premières', 'Conditionnement alimentaire', 'Produits laitiers et dérivés'],
-            'Textile' => ['Tissus industriels', 'Vêtements de travail et EPI', 'Accessoires textiles'],
-            'Services' => ['Comptabilité et audit', 'Conseil juridique', 'Nettoyage et gardiennage', 'Formation'],
-            'Équipements industriels' => ['Machines-outils', 'Pièces de rechange', 'Maintenance industrielle'],
-            'Logistique et transport' => ['Transport routier', 'Entreposage', 'Manutention et levage'],
-        ];
-
         $subCategoryIds = [];
         $pos = 1;
-        foreach ($categoriesTree as $parentName => $children) {
+        foreach (self::CATEGORY_TREE as $parentName => $children) {
             $parentId = DB::table('categories')->insertGetId([
                 'parent_id' => null,
                 'name' => $parentName,

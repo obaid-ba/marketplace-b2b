@@ -38,7 +38,7 @@ class FullDemoSeederTest extends TestCase
         $this->assertSame(0, SupplierProfile::query()->visibleInCatalog()->whereNull('logo')->count(), 'Fournisseur sans logo');
         Storage::disk('public')->assertExists('products/demo/cartons-ondules.jpg');
 
-        $this->assertNotNull(User::query()->where('email', 'admin@marketplace.test')->first());
+        $this->assertNotNull(User::query()->where('email', 'admin@tijaralink.test')->first());
         $this->assertSame(1, SupplierProfile::query()->where('validation_status', 'en attente')->count());
 
         $statuses = Order::query()->pluck('status')->map(fn ($status) => $status->value)->unique();

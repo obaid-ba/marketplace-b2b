@@ -5,13 +5,13 @@
  */
 const API = 'http://api.test/api'
 
-export const BUYER = { id: 1, name: 'Sana Ben Salah', first_name: 'Sana', last_name: 'Ben Salah', email: 'sana@marketplace.test', role: 'buyer', email_verified: true, status: 'actif' }
+export const BUYER = { id: 1, name: 'Sana Ben Salah', first_name: 'Sana', last_name: 'Ben Salah', email: 'sana@tijaralink.test', role: 'buyer', email_verified: true, status: 'actif' }
 export const SUPPLIER = {
   id: 2,
   name: 'Atlas Emballages',
   first_name: 'Amel',
   last_name: 'Atlas',
-  email: 'atlas@marketplace.test',
+  email: 'atlas@tijaralink.test',
   role: 'supplier',
   email_verified: true,
   status: 'actif',

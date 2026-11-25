@@ -127,6 +127,14 @@ class SupplierProfile extends Model
         return $this->belongsToMany(Region::class, 'supplier_coverage_region', 'supplier_id', 'region_id');
     }
 
+    /**
+     * Produits et services du fournisseur (tous statuts).
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class, 'supplier_id');
+    }
+
     public function tenderRecipients(): HasMany
     {
         return $this->hasMany(TenderRecipient::class, 'supplier_id');

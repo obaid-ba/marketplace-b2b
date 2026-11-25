@@ -100,6 +100,8 @@ export const createRoutes = () => [
           { path: PATHS.catalog, lazy: page(() => import('@/views/catalog/CatalogView')) },
           { path: '/produits/:productId', lazy: page(() => import('@/views/products/ProductPage')) },
           { path: '/fournisseurs/:supplierId', lazy: page(() => import('@/views/suppliers/SupplierPublicPage')) },
+          // Annuaire public des fournisseurs (lien « Fournisseurs » de l'en-tête)
+          { path: PATHS.suppliers, lazy: page(() => import('@/views/suppliers/SuppliersPage')) },
         ],
       },
       { path: PATHS.login, loader: guard({ guest: true }), lazy: page(() => import('@/views/auth/LoginView')) },

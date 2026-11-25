@@ -220,7 +220,7 @@
                                         "type": "string",
                                         "format": "email",
                                         "description": "Règles : required|string|email|max:255|Unique",
-                                        "example": "sana@marketplace.test"
+                                        "example": "sana@tijaralink.test"
                                     }
                                 },
                                 "required": [
@@ -386,7 +386,7 @@
                                         "type": "string",
                                         "format": "email",
                                         "description": "Règles : required|string|email|max:255|Unique|Closure",
-                                        "example": "sana@marketplace.test"
+                                        "example": "sana@tijaralink.test"
                                     }
                                 },
                                 "required": [
@@ -3592,7 +3592,7 @@
                                         "type": "string",
                                         "format": "email",
                                         "description": "Règles : required|string|email|max:255",
-                                        "example": "sana@marketplace.test"
+                                        "example": "sana@tijaralink.test"
                                     }
                                 },
                                 "required": [
@@ -3655,7 +3655,7 @@
                                         "type": "string",
                                         "format": "email",
                                         "description": "Règles : required|string|email",
-                                        "example": "sana@marketplace.test"
+                                        "example": "sana@tijaralink.test"
                                     },
                                     "password": {
                                         "type": "string",
@@ -3836,7 +3836,7 @@
                                         "type": "string",
                                         "format": "email",
                                         "description": "Règles : required|string|email|max:255|Unique",
-                                        "example": "sana@marketplace.test"
+                                        "example": "sana@tijaralink.test"
                                     },
                                     "phone": {
                                         "type": "string",
@@ -3953,7 +3953,7 @@
                                         "type": "string",
                                         "format": "email",
                                         "description": "Règles : required|string|email|max:255|Unique",
-                                        "example": "sana@marketplace.test"
+                                        "example": "sana@tijaralink.test"
                                     },
                                     "phone": {
                                         "type": "string",
@@ -4191,7 +4191,7 @@
                                         "type": "string",
                                         "format": "email",
                                         "description": "Règles : required|string|email|max:255",
-                                        "example": "sana@marketplace.test"
+                                        "example": "sana@tijaralink.test"
                                     },
                                     "password": {
                                         "type": "string",
@@ -9343,7 +9343,7 @@
                                         "type": "string",
                                         "format": "email",
                                         "description": "Règles : nullable|string|email|max:255",
-                                        "example": "sana@marketplace.test"
+                                        "example": "sana@tijaralink.test"
                                     },
                                     "categories": {
                                         "type": "array",
@@ -10254,6 +10254,38 @@
                     },
                     "403": {
                         "description": "Accès refusé : mauvais rôle, e-mail non vérifié, fournisseur non validé ou ressource d’un autre utilisateur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/suppliers": {
+            "get": {
+                "tags": [
+                    "Catalogue public"
+                ],
+                "summary": "Annuaire public des fournisseurs : uniquement les fournisseurs visibles (validés, publiés, actifs).",
+                "description": "Public (sans connexion)",
+                "security": [],
+                "responses": {
+                    "200": {
+                        "description": "Succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Trop de requêtes : { message, retry_after }",
                         "content": {
                             "application/json": {
                                 "schema": {

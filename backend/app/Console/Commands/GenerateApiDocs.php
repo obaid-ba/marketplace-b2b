@@ -200,7 +200,7 @@ class GenerateApiDocs extends Command
     private function example(string $field, string $type, string $rule): mixed
     {
         return match (true) {
-            str_contains($field, 'email') => 'sana@marketplace.test',
+            str_contains($field, 'email') => 'sana@tijaralink.test',
             str_contains($field, 'password') => 'password',
             $field === 'title' => 'Cartons ondulés pour expédition',
             in_array($field, ['description', 'message', 'comment', 'reason', 'prompt', 'text'], true) => 'Texte libre en français.',

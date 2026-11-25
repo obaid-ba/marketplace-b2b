@@ -13,6 +13,7 @@ export const PATHS = Object.freeze({
   account: '/parametres', // informations personnelles, e-mail et mot de passe
   notificationPreferences: '/parametres/notifications',
   catalog: '/catalogue',
+  suppliers: '/fournisseurs', // annuaire public des fournisseurs
   supplier: '/fournisseur',
   supplierPending: '/fournisseur/en-attente',
   supplierProfile: '/fournisseur/profil', // Profil de l'entreprise (SCRUM-28)

@@ -120,7 +120,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"first_name\": \"valeur\",\n    \"last_name\": \"valeur\",\n    \"phone\": \"valeur\",\n    \"email\": \"sana@marketplace.test\"\n}",
+                            "raw": "{\n    \"first_name\": \"valeur\",\n    \"last_name\": \"valeur\",\n    \"phone\": \"valeur\",\n    \"email\": \"sana@tijaralink.test\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -208,7 +208,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"email\": \"sana@marketplace.test\"\n}",
+                            "raw": "{\n    \"email\": \"sana@tijaralink.test\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2178,7 +2178,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"email\": \"sana@marketplace.test\"\n}",
+                            "raw": "{\n    \"email\": \"sana@tijaralink.test\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2212,7 +2212,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"email\": \"sana@marketplace.test\",\n    \"password\": \"password\",\n    \"device_name\": \"valeur\",\n    \"remember\": true\n}",
+                            "raw": "{\n    \"email\": \"sana@tijaralink.test\",\n    \"password\": \"password\",\n    \"device_name\": \"valeur\",\n    \"remember\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2317,7 +2317,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"first_name\": \"valeur\",\n    \"last_name\": \"valeur\",\n    \"email\": \"sana@marketplace.test\",\n    \"phone\": \"valeur\",\n    \"password\": \"password\",\n    \"buyer_type\": \"valeur\",\n    \"organization\": \"valeur\",\n    \"sector\": \"valeur\",\n    \"region_id\": 1,\n    \"terms_accepted\": \"valeur\"\n}",
+                            "raw": "{\n    \"first_name\": \"valeur\",\n    \"last_name\": \"valeur\",\n    \"email\": \"sana@tijaralink.test\",\n    \"phone\": \"valeur\",\n    \"password\": \"password\",\n    \"buyer_type\": \"valeur\",\n    \"organization\": \"valeur\",\n    \"sector\": \"valeur\",\n    \"region_id\": 1,\n    \"terms_accepted\": \"valeur\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2352,7 +2352,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"first_name\": \"valeur\",\n    \"last_name\": \"valeur\",\n    \"email\": \"sana@marketplace.test\",\n    \"phone\": \"valeur\",\n    \"password\": \"password\",\n    \"company_name\": \"valeur\",\n    \"legal_form\": \"valeur\",\n    \"tax_id\": \"valeur\",\n    \"rne_number\": \"valeur\",\n    \"sector\": \"valeur\",\n    \"description\": \"Texte libre en français.\",\n    \"region_id\": 1,\n    \"address\": \"valeur\",\n    \"city\": \"valeur\",\n    \"contact_name\": \"valeur\",\n    \"contact_role\": \"valeur\",\n    \"contact_phone\": \"valeur\",\n    \"coverage_regions\": [],\n    \"categories\": [],\n    \"contact\": \"valeur\",\n    \"commercial_register\": \"valeur\",\n    \"tax_certificate\": \"valeur\",\n    \"manager_id\": \"valeur\",\n    \"certifications\": []\n}",
+                            "raw": "{\n    \"first_name\": \"valeur\",\n    \"last_name\": \"valeur\",\n    \"email\": \"sana@tijaralink.test\",\n    \"phone\": \"valeur\",\n    \"password\": \"password\",\n    \"company_name\": \"valeur\",\n    \"legal_form\": \"valeur\",\n    \"tax_id\": \"valeur\",\n    \"rne_number\": \"valeur\",\n    \"sector\": \"valeur\",\n    \"description\": \"Texte libre en français.\",\n    \"region_id\": 1,\n    \"address\": \"valeur\",\n    \"city\": \"valeur\",\n    \"contact_name\": \"valeur\",\n    \"contact_role\": \"valeur\",\n    \"contact_phone\": \"valeur\",\n    \"coverage_regions\": [],\n    \"categories\": [],\n    \"contact\": \"valeur\",\n    \"commercial_register\": \"valeur\",\n    \"tax_certificate\": \"valeur\",\n    \"manager_id\": \"valeur\",\n    \"certifications\": []\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2413,7 +2413,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"token\": \"valeur\",\n    \"email\": \"sana@marketplace.test\",\n    \"password\": \"password\"\n}",
+                            "raw": "{\n    \"token\": \"valeur\",\n    \"email\": \"sana@tijaralink.test\",\n    \"password\": \"password\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -3625,6 +3625,30 @@
                                     "value": "1"
                                 }
                             ]
+                        }
+                    }
+                },
+                {
+                    "name": "Annuaire public des fournisseurs : uniquement les fournisseurs visibles (validés, publiés, actifs).",
+                    "request": {
+                        "method": "GET",
+                        "description": "Public (sans connexion)",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/suppliers",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "suppliers"
+                            ],
+                            "variable": []
                         }
                     }
                 },
@@ -5562,7 +5586,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"company_name\": \"valeur\",\n    \"description\": \"Texte libre en français.\",\n    \"sector\": \"valeur\",\n    \"region_id\": 1,\n    \"professional_phone\": \"valeur\",\n    \"professional_email\": \"sana@marketplace.test\",\n    \"categories\": [],\n    \"coverage_regions\": []\n}",
+                            "raw": "{\n    \"company_name\": \"valeur\",\n    \"description\": \"Texte libre en français.\",\n    \"sector\": \"valeur\",\n    \"region_id\": 1,\n    \"professional_phone\": \"valeur\",\n    \"professional_email\": \"sana@tijaralink.test\",\n    \"categories\": [],\n    \"coverage_regions\": []\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"

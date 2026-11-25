@@ -46,14 +46,15 @@ function NavLinks({ onNavigate, vertical = false }) {
         </NavLink>
       </li>
       <li>
-        {/* Annuaire des fournisseurs : pas de story dans ce sprint. */}
-        <span
-          title="Bientôt disponible"
-          aria-disabled="true"
-          className={`cursor-not-allowed text-[15px] font-medium text-ink/50 ${vertical ? 'block px-3 py-2.5' : ''}`}
+        {/* Annuaire public des fournisseurs */}
+        <NavLink
+          to={PATHS.suppliers}
+          end
+          onClick={onNavigate}
+          className={(state) => `${linkClass(state)} ${vertical ? 'block rounded-lg px-3 py-2.5 hover:bg-page' : ''}`}
         >
           Fournisseurs
-        </span>
+        </NavLink>
       </li>
       <li>
         <Link
@@ -167,9 +168,9 @@ export function PublicFooter() {
               </Link>
             </li>
             <li>
-              <span className="cursor-not-allowed text-white/50" title="Bientôt disponible">
+              <Link to={PATHS.suppliers} className="hover:text-white">
                 Fournisseurs
-              </span>
+              </Link>
             </li>
             <li>
               <span className="cursor-not-allowed text-white/50" title="Bientôt disponible">

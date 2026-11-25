@@ -57,16 +57,6 @@ curl http://localhost:8000/api/reference/regions
 
 La réponse doit être un tableau JSON de **24 régions**. Si la base est vide, relancez `php artisan db:seed` depuis `backend/` (le seeder insère toujours les régions et les catégories).
 
-### Comptes de démonstration
-
-Mot de passe : `password`
-
-| Rôle | E-mail |
-|---|---|
-| Administrateur | admin@marketplace.test |
-| Fournisseur | fournisseur@marketplace.test |
-| Porteur de projet | porteur@marketplace.test |
-
 ### Démonstration complète
 
 Toutes les pages remplies avec des données réalistes : 14 fournisseurs avec logo (dont un en attente de validation et un refusé), 42 produits et services avec photo dans toutes les catégories, demandes avec devis à comparer, commandes à chaque étape (devis et factures PDF), avis analysés par l'IA, litiges, messagerie, avis signalé, alerte d'anomalie et notifications.
@@ -85,12 +75,12 @@ Mot de passe de tous les comptes : `password`.
 
 | Rôle | E-mail | À montrer |
 |---|---|---|
-| Administrateur | admin@marketplace.test | tableau de bord, alerte d'anomalie, fournisseur en attente, avis signalé, litiges |
-| Porteur de projet | sana@marketplace.test | demande avec 3 devis à comparer (résumé IA, prix du marché), commandes, messagerie |
-| Porteur de projet | karim@marketplace.test | litige ouvert sur une commande livrée |
-| Porteur de projet | youssef@marketplace.test | litige décidé, commande validée |
-| Fournisseur | atlas@marketplace.test | demandes reçues, devis, produits mis en avant, avis et résumé IA |
-| Fournisseur | batisud@marketplace.test | avis suspect signalé à l'administrateur |
+| Administrateur | admin@tijaralink.test | tableau de bord, alerte d'anomalie, fournisseur en attente, avis signalé, litiges |
+| Porteur de projet | sana@tijaralink.test | demande avec 3 devis à comparer (résumé IA, prix du marché), commandes, messagerie |
+| Porteur de projet | karim@tijaralink.test | litige ouvert sur une commande livrée |
+| Porteur de projet | youssef@tijaralink.test | litige décidé, commande validée |
+| Fournisseur | atlas@tijaralink.test | demandes reçues, devis, produits mis en avant, avis et résumé IA |
+| Fournisseur | batisud@tijaralink.test | avis suspect signalé à l'administrateur |
 
 Parcours de démo : accueil → catalogue → fiche produit → fiche fournisseur → connexion porteur → comparer les devis → accepter ;
 côté fournisseur : demandes reçues → envoyer un devis → faire avancer une commande ; côté admin : anomalies, modération, litiges.

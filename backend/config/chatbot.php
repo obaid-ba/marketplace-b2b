@@ -11,7 +11,7 @@
 */
 return [
 
-    'welcome' => 'Bonjour ! Je suis l’assistant de TijaraLink. Posez-moi une question sur l’utilisation de la plateforme : publier un besoin, répondre à une demande, commander, payer, laisser un avis…',
+    'welcome' => 'Bonjour ! Je suis l’assistant de TijaraLink. Posez-moi une question sur l’utilisation de la plateforme : publier un besoin, répondre à une demande, commander, suivre une commande, laisser un avis…',
 
     'fallback' => 'Je n’ai pas trouvé de réponse précise à cette question dans le guide de la plateforme. Essayez de reformuler (par exemple « comment publier une demande ? ») ou contactez l’équipe via la messagerie depuis une commande ou une fiche fournisseur.',
 
@@ -68,6 +68,13 @@ return [
             'answer' => 'Dans « Mes produits », cliquez sur « Ajouter un produit » : titre, catégorie, description, prix, unité, stock et au moins une photo pour publier. Vous pouvez dépublier, modifier ou supprimer un produit, et le « Mettre en avant » 7, 14 ou 30 jours pour qu’il apparaisse sur l’accueil et en tête du catalogue.',
             'links' => [['Mes produits', '/fournisseur/produits'], ['Ajouter un produit', '/fournisseur/produits/nouveau']],
         ],
+        'trouver_fournisseur' => [
+            'title' => 'Trouver un fournisseur',
+            'roles' => ['guest', 'buyer'],
+            'keywords' => ['trouver', 'fournisseur', 'fournisseurs', 'annuaire', 'entreprise', 'partenaire', 'chercher', 'region'],
+            'answer' => 'Ouvrez « Fournisseurs » dans le menu : l’annuaire liste les entreprises vérifiées par notre équipe. Filtrez par région (siège ou zone desservie) et par catégorie, puis ouvrez une fiche pour voir ses produits, ses avis et le contacter.',
+            'links' => [['Fournisseurs', '/fournisseurs'], ['Catalogue', '/catalogue']],
+        ],
         'commander' => [
             'title' => 'Commander depuis le catalogue',
             'roles' => ['buyer', 'guest'],
@@ -77,16 +84,16 @@ return [
         ],
         'paiement' => [
             'title' => 'Paiement',
-            'roles' => ['buyer'],
-            'keywords' => ['payer', 'paiement', 'carte', 'echec', 'refuse', 'reessayer', 'stripe', 'facture'],
-            'answer' => 'Après la création de la commande, vous êtes invité à la payer. Si le paiement échoue, la page de résultat explique pourquoi et propose de réessayer. Le devis PDF est disponible dès l’acceptation et la facture PDF à la clôture de la commande.',
+            'roles' => ['buyer', 'supplier'],
+            'keywords' => ['payer', 'paiement', 'carte', 'virement', 'regler', 'reglement', 'stripe', 'facture'],
+            'answer' => 'TijaraLink ne prend aucun paiement en ligne : le règlement se fait directement avec le fournisseur, selon les conditions de son devis (virement bancaire ou paiement à la livraison). La plateforme fournit le devis PDF dès l’acceptation et la facture PDF à la clôture de la commande.',
             'links' => [['Mes commandes', '/porteur/commandes']],
         ],
         'suivi_commande' => [
             'title' => 'Suivre une commande',
             'roles' => ['buyer', 'supplier'],
             'keywords' => ['suivre', 'suivi', 'commande', 'statut', 'livraison', 'etape', 'expedie', 'preparation', 'cloturer', 'reception'],
-            'answer' => 'Chaque commande passe par les étapes : validée, en préparation, en livraison, livrée puis clôturée. Le fournisseur fait avancer le statut depuis « Commandes reçues » ; le porteur suit chaque étape et clôture la commande en confirmant la réception. La clôture débloque l’avis et la facture.',
+            'answer' => 'Chaque commande passe par les étapes : validée, expédiée, livrée puis clôturée. Le fournisseur la passe à « expédiée » puis « livrée » depuis « Commandes reçues » ; le porteur suit chaque étape et clôture la commande en confirmant la réception. La clôture débloque l’avis et la facture.',
             'links' => [['Mes commandes (porteur)', '/porteur/commandes'], ['Commandes reçues (fournisseur)', '/fournisseur/commandes']],
         ],
         'avis' => [
@@ -100,7 +107,7 @@ return [
             'title' => 'Signaler un problème (litige)',
             'roles' => ['buyer', 'supplier'],
             'keywords' => ['litige', 'probleme', 'reclamation', 'defaut', 'abime', 'conforme', 'rembourser', 'plainte'],
-            'answer' => 'Un litige peut être ouvert par le porteur quand la commande est en livraison ou livrée, avant sa clôture : depuis la commande, choisissez « Signaler un problème », décrivez-le et joignez des photos. L’administrateur examine le dossier et prend une décision motivée, notifiée aux deux parties.',
+            'answer' => 'Un litige peut être ouvert par le porteur quand la commande est expédiée ou livrée, avant sa clôture : depuis la commande, choisissez « Signaler un problème », décrivez-le et joignez des photos. L’administrateur examine le dossier et prend une décision motivée, notifiée aux deux parties.',
             'links' => [['Mes litiges (porteur)', '/porteur/litiges'], ['Litiges reçus (fournisseur)', '/fournisseur/litiges']],
         ],
         'messagerie' => [

@@ -108,6 +108,7 @@ Route::middleware('cache.headers:public;max_age=300;etag')->group(function () {
 Route::get('/products', [ProductController::class, 'index'])->middleware(['throttle:120,1', 'cache.headers:public;max_age=60;etag']);
 Route::get('/products/{product}', [ProductController::class, 'show'])->whereNumber('product')->middleware('throttle:120,1');
 Route::get('/suppliers/{supplier}/products', [ProductController::class, 'bySupplier'])->whereNumber('supplier');
+Route::get('/suppliers', [SupplierController::class, 'index'])->middleware('throttle:120,1'); // annuaire public
 Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])->whereNumber('supplier');
 Route::get('/suppliers/{supplier}/reviews', [SupplierController::class, 'reviews'])->whereNumber('supplier');
 Route::get('/suppliers/{supplier}/public-reviews', [SupplierPublicReviewController::class, 'index'])->whereNumber('supplier');
