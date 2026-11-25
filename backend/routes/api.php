@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\Admin\SupplierValidationController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AiController;
+use App\Http\Controllers\Api\ApiDocsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Buyer\BuyerDashboardController;
 use App\Http\Controllers\Api\Buyer\BuyerOrderController;
@@ -86,6 +87,10 @@ Route::get('/auth/email/verify/{id}/{hash}', [EmailVerificationController::class
     ->whereNumber('id')
     ->middleware('throttle:6,1')
     ->name('verification.verify');
+
+// Documentation de l'API (SCRUM-91) : Swagger UI et spécification OpenAPI.
+Route::get('/docs', [ApiDocsController::class, 'ui']);
+Route::get('/docs/openapi.json', [ApiDocsController::class, 'spec']);
 
 // Données de référence des formulaires.
 // En-têtes de cache des ressources publiques (SCRUM-127) : le navigateur et le service worker réutilisent la réponse.

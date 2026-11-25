@@ -97,6 +97,12 @@ cd frontend && npm test            # tests Vitest + Testing Library
 
 Les deux suites tournent automatiquement sur chaque pull request (GitHub Actions).
 
+## Documentation de l'API
+
+- **Swagger** : http://localhost:8000/api/docs (spécification : `/api/docs/openapi.json`).
+- **Postman** : importer `docs/api/postman_collection.json`, puis renseigner les variables `base_url` et `token` (obtenu par `POST /api/auth/login`).
+- Les deux fichiers sont générés à partir des routes réelles : relancer `php artisan api:docs` après l'ajout d'un endpoint.
+
 ## Architecture en bref
 
 - **Authentification** : `POST /api/auth/login` renvoie un jeton Sanctum, envoyé ensuite dans l'en-tête `Authorization: Bearer …`. Le même mécanisme sert au web et au mobile.
