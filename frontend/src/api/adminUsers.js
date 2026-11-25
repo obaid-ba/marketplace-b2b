@@ -18,6 +18,12 @@ export async function suspendUser(id, reason) {
   return data
 }
 
+/** Suppression douce, avec motif (SCRUM-71). */
+export async function deleteUser(id, reason) {
+  const { data } = await http.delete(`/admin/users/${id}`, { data: { reason } })
+  return data
+}
+
 export async function reactivateUser(id, reason) {
   const { data } = await http.post(`/admin/users/${id}/reactivate`, { reason })
   return data

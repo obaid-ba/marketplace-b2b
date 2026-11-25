@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\User;
+use App\Notifications\AccountDeletedNotification;
 use App\Notifications\AccountReactivatedNotification;
 use App\Notifications\AccountSuspendedNotification;
 use Illuminate\Support\Facades\DB;
@@ -65,6 +66,26 @@ class UserAdministrationService
     }
 
     /**
+     * Suppression douce : connexion impossible, fournisseur retiré du catalogue ; commandes, factures et avis conservés.
+     */
+    public function delete(User $user, User $admin, string $reason): User
+    {
+        DB::transaction(function () use ($user, $admin, $reason) {
+            $locked = $this->lockManageable($user, $admin);
+
+            $locked->supplierProfile()->update(['is_published' => false]);
+            $locked->tokens()->delete();
+            $locked->delete();
+            $this->audit->record($admin, 'user.deleted', "user:{$locked->id}", $reason);
+        });
+
+        $user = User::withTrashed()->findOrFail($user->id);
+        $user->notify(new AccountDeletedNotification($reason));
+
+        return $user;
+    }
+
+    /**
      * Raison pour laquelle l'admin ne peut pas agir sur ce compte, ou null s'il le peut.
      */
     public function refusalFor(User $user, User $admin): ?string
@@ -73,7 +94,7 @@ class UserAdministrationService
             $user->is($admin) => 'Vous ne pouvez pas modifier votre propre compte ici.',
             // Un admin ne peut pas en bloquer un autre : la plateforme garde toujours un administrateur.
             $user->hasRole(UserRole::Admin) => 'Un compte administrateur ne se gère pas depuis cette page.',
-            $user->trashed() => 'Ce compte a été supprimé par son titulaire.',
+            $user->trashed() => 'Ce compte a été supprimé.',
             default => null,
         };
     }

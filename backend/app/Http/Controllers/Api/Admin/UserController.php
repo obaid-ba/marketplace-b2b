@@ -12,6 +12,7 @@ use App\Models\Dispute;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Quote;
+use App\Models\ReviewReport;
 use App\Models\Tender;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -81,6 +82,11 @@ class UserController extends Controller
         return $this->detail($this->service->reactivate($this->find($user), $request->user(), $request->validated('reason')));
     }
 
+    public function destroy(ChangeUserStatusRequest $request, int $user): JsonResponse
+    {
+        return $this->detail($this->service->delete($this->find($user), $request->user(), $request->validated('reason')));
+    }
+
     private function find(int $id): User
     {
         return User::withTrashed()->findOrFail($id);
@@ -135,8 +141,12 @@ class UserController extends Controller
                 ? [
                     'products' => Product::query()->where('supplier_id', $profileId)->count(),
                     'quotes' => Quote::query()->where('supplier_id', $profileId)->count(),
+                    'reports_made' => ReviewReport::query()->where('author_id', $user->id)->count(),
                 ]
-                : ['tenders' => Tender::query()->where('buyer_id', $profileId)->count()]),
+                : [
+                    'tenders' => Tender::query()->where('buyer_id', $profileId)->count(),
+                    'reports_received' => ReviewReport::query()->whereHas('review', fn (Builder $review) => $review->where('buyer_id', $profileId))->count(),
+                ]),
         ];
     }
 

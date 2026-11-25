@@ -16,9 +16,12 @@ use App\Models\Quote;
 use App\Models\SupplierProfile;
 use App\Models\Tender;
 use App\Models\User;
+use App\Notifications\AccountDeletedNotification;
 use App\Notifications\AccountReactivatedNotification;
 use App\Notifications\AccountSuspendedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -57,6 +60,11 @@ class UserManagementTest extends TestCase
     private function suspend(User $user)
     {
         return $this->actingAs($this->admin, 'sanctum')->postJson("/api/admin/users/{$user->id}/suspend", ['reason' => self::REASON]);
+    }
+
+    private function delete_(User $user, string $reason = self::REASON)
+    {
+        return $this->actingAs($this->admin, 'sanctum')->deleteJson("/api/admin/users/{$user->id}", ['reason' => $reason]);
     }
 
     private function reactivate(User $user)
@@ -242,11 +250,60 @@ class UserManagementTest extends TestCase
         foreach ([$this->admin, $other, $deleted] as $target) {
             $this->suspend($target)->assertStatus(422);
             $this->reactivate($target)->assertStatus(422);
-            $this->getJson("/api/admin/users/{$target->id}")->assertJsonPath('user.can_suspend', false)->assertJsonPath('user.can_reactivate', false);
+            $this->delete_($target)->assertStatus(422);
+            $this->getJson("/api/admin/users/{$target->id}")->assertJsonPath('user.can_delete', false)->assertJsonPath('user.can_suspend', false)->assertJsonPath('user.can_reactivate', false);
         }
         $this->assertSame(UserStatus::ACTIVE, $other->fresh()->status);
         $this->assertDatabaseCount('audit_logs', 0);
         Notification::assertNothingSent();
+    }
+
+    // --- Suppression ---
+
+    public function test_la_suppression_est_douce_motivee_tracee_et_definitive(): void
+    {
+        Notification::fake();
+        $supplier = $this->makeSupplier(['email' => 's@test.tn']);
+        $supplier->supplierProfile->update(['is_published' => true]);
+        $token = $supplier->createToken('web')->plainTextToken;
+
+        $this->delete_($supplier, 'court')->assertJsonValidationErrors('reason');
+        $this->delete_($supplier)->assertOk()
+            ->assertJsonPath('user.status', 'supprimé')
+            ->assertJsonPath('user.can_reactivate', false)
+            ->assertJsonPath('history.0.action', 'user.deleted')
+            ->assertJsonPath('history.0.reason', self::REASON);
+
+        $this->assertSoftDeleted($supplier);
+        $this->assertFalse($supplier->supplierProfile->fresh()->is_published);
+        $this->reactivate($supplier)->assertStatus(422);
+        Notification::assertSentTo($supplier, AccountDeletedNotification::class);
+
+        $this->app['auth']->forgetGuards();
+        $this->withToken($token)->getJson('/api/auth/me')->assertUnauthorized();
+        $this->postJson('/api/auth/login', ['email' => 's@test.tn', 'password' => 'password'])->assertUnprocessable();
+    }
+
+    public function test_la_suppression_est_reservee_aux_admins(): void
+    {
+        $buyer = $this->makeBuyer();
+        $this->actingAs($this->makeSupplier(), 'sanctum')->deleteJson("/api/admin/users/{$buyer->id}", ['reason' => self::REASON])->assertForbidden();
+        $this->assertNotSoftDeleted($buyer);
+    }
+
+    public function test_l_e_mail_de_suppression_part_meme_en_file(): void
+    {
+        config(['queue.default' => 'database']);
+        $buyer = $this->makeBuyer(['email' => 'parti@test.tn']);
+        $mails = [];
+        Event::listen(MessageSent::class, function (MessageSent $event) use (&$mails) {
+            $mails[] = $event->message->getSubject();
+        });
+
+        $this->delete_($buyer)->assertOk();
+        $this->artisan('queue:work', ['--stop-when-empty' => true, '--tries' => 1]);
+
+        $this->assertSame(['Votre compte a été supprimé'], $mails);
     }
 
     // --- Réactivation ---

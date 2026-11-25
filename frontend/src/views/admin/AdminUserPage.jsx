@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { fetchAdminUser, reactivateUser, suspendUser } from '@/api/adminUsers'
+import { deleteUser, fetchAdminUser, reactivateUser, suspendUser } from '@/api/adminUsers'
 import Modal from '@/components/Modal'
 import PageHeader from '@/components/PageHeader'
 import StatusBadge from '@/components/StatusBadge'
@@ -18,11 +18,14 @@ const ACTIVITY_LABELS = {
   products: 'Produits',
   quotes: 'Devis envoyés',
   tenders: 'Demandes publiées',
+  reports_made: 'Avis qu’il a signalés',
+  reports_received: 'Ses avis signalés',
 }
 
 const HISTORY_LABELS = {
   'user.suspended': 'Compte suspendu',
   'user.reactivated': 'Compte réactivé',
+  'user.deleted': 'Compte supprimé',
   'supplier.validated': 'Dossier fournisseur validé',
   'supplier.rejected': 'Dossier fournisseur refusé',
 }
@@ -36,10 +39,17 @@ function Row({ label, children }) {
   )
 }
 
-/** Ce que la suspension entraîne, selon le rôle et l'activité du compte. */
-function SuspensionEffects({ user, activity }) {
+const ACTIONS = {
+  suspend: { title: 'Suspendre', confirm: 'Suspendre le compte', run: suspendUser, notice: 'Compte suspendu. Le motif a été envoyé par e-mail.' },
+  reactivate: { title: 'Réactiver', confirm: 'Réactiver le compte', run: reactivateUser, notice: "Compte réactivé. L'utilisateur est prévenu par e-mail." },
+  delete: { title: 'Supprimer', confirm: 'Supprimer le compte', run: deleteUser, notice: 'Compte supprimé. Le motif a été envoyé par e-mail.' },
+}
+
+/** Ce que la suspension ou la suppression entraîne, selon le rôle et l'activité du compte. */
+function BlockingEffects({ user, activity, permanent = false }) {
   return (
     <ul className="mt-2 list-disc space-y-1 pl-5">
+      {permanent && <li className="font-medium text-danger">Le compte ne pourra pas être réactivé. Commandes, factures et avis sont conservés.</li>}
       <li>L'utilisateur est déconnecté partout et ne peut plus se connecter.</li>
       <li>Il reçoit un e-mail avec le motif.</li>
       {user.role === ROLES.SUPPLIER && <li>Son profil et ses produits disparaissent du catalogue ; plus aucune commande n'est possible.</li>}
@@ -53,12 +63,12 @@ function SuspensionEffects({ user, activity }) {
   )
 }
 
-/** Fiche d'un utilisateur : informations, activité, historique, suspension et réactivation (SCRUM-118 / F24). */
+/** Fiche d'un utilisateur : informations, activité, historique, suspension, réactivation et suppression (SCRUM-118 / F24). */
 export default function AdminUserPage() {
   const { id } = useParams()
   const [detail, setDetail] = useState(null)
   const [error, setError] = useState(null)
-  const [action, setAction] = useState(null) // 'suspend' | 'reactivate'
+  const [action, setAction] = useState(null) // clé de ACTIONS
   const [reason, setReason] = useState('')
   const [acting, setActing] = useState(false)
   const [actionError, setActionError] = useState(null)
@@ -91,8 +101,8 @@ export default function AdminUserPage() {
     setActing(true)
     setActionError(null)
     try {
-      setDetail(await (action === 'suspend' ? suspendUser : reactivateUser)(id, reason.trim()))
-      setNotice(action === 'suspend' ? 'Compte suspendu. Le motif a été envoyé par e-mail.' : "Compte réactivé. L'utilisateur est prévenu par e-mail.")
+      setDetail(await ACTIONS[action].run(id, reason.trim()))
+      setNotice(ACTIONS[action].notice)
       setAction(null)
     } catch (err) {
       setActionError(Object.values(err.fieldErrors ?? {})[0]?.[0] ?? err.userMessage ?? "L'action a échoué.")
@@ -132,6 +142,11 @@ export default function AdminUserPage() {
             {user.can_reactivate && (
               <button type="button" className="btn-primary" onClick={() => openAction('reactivate')}>
                 Réactiver
+              </button>
+            )}
+            {user.can_delete && (
+              <button type="button" className="btn border border-danger bg-surface text-danger hover:bg-danger-soft" onClick={() => openAction('delete')}>
+                Supprimer
               </button>
             )}
             <Link to={PATHS.adminUsers} className="btn-secondary">
@@ -216,21 +231,26 @@ export default function AdminUserPage() {
 
       {action && (
         <Modal
-          title={action === 'suspend' ? `Suspendre ${user.name}` : `Réactiver ${user.name}`}
+          title={`${ACTIONS[action].title} ${user.name}`}
           onClose={closeAction}
           actions={
             <>
               <button type="button" className="btn-secondary" onClick={closeAction}>
                 Annuler
               </button>
-              <button type="button" className="btn-primary" onClick={confirm} disabled={acting || reason.trim().length < MIN_REASON}>
-                {acting ? 'Enregistrement…' : action === 'suspend' ? 'Suspendre le compte' : 'Réactiver le compte'}
+              <button
+                type="button"
+                className={action === 'delete' ? 'btn bg-danger text-white' : 'btn-primary'}
+                onClick={confirm}
+                disabled={acting || reason.trim().length < MIN_REASON}
+              >
+                {acting ? 'Enregistrement…' : ACTIONS[action].confirm}
               </button>
             </>
           }
         >
-          {action === 'suspend' ? (
-            <SuspensionEffects user={user} activity={activity} />
+          {action !== 'reactivate' ? (
+            <BlockingEffects user={user} activity={activity} permanent={action === 'delete'} />
           ) : (
             <p>
               L'utilisateur pourra de nouveau se connecter

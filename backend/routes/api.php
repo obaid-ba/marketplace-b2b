@@ -322,6 +322,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/users/{user}', [AdminUserController::class, 'show'])->whereNumber('user');
         Route::post('/users/{user}/suspend', [AdminUserController::class, 'suspend'])->whereNumber('user');
         Route::post('/users/{user}/reactivate', [AdminUserController::class, 'reactivate'])->whereNumber('user');
+        Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->whereNumber('user');
 
         // Gestion des litiges (SCRUM-117 / F23).
         Route::get('/disputes', [AdminDisputeController::class, 'index']);

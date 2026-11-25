@@ -46,6 +46,7 @@ class AdminUserResource extends JsonResource
             'deleted_at' => $this->deleted_at?->toIso8601String(),
             'can_suspend' => $refusal === null && ! $this->isBlocked(),
             'can_reactivate' => $refusal === null && $this->isBlocked(),
+            'can_delete' => $refusal === null,
             'locked_reason' => $refusal,
         ];
     }

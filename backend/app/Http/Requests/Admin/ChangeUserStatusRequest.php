@@ -4,7 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-/** Suspendre ou réactiver un compte : motif obligatoire, conservé dans le journal (SCRUM-118). */
+/** Suspendre, réactiver ou supprimer un compte : motif obligatoire, conservé dans le journal (SCRUM-118). */
 class ChangeUserStatusRequest extends FormRequest
 {
     public function authorize(): bool

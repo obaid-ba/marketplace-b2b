@@ -5,7 +5,7 @@ import { http } from '@/api/http'
 import { createRoutes } from '@/router/routes'
 import { useAuthStore } from '@/stores/auth'
 
-vi.mock('@/api/http', () => ({ http: { get: vi.fn(), post: vi.fn() }, onAuthError: vi.fn() }))
+vi.mock('@/api/http', () => ({ http: { get: vi.fn(), post: vi.fn(), delete: vi.fn() }, onAuthError: vi.fn() }))
 
 const account = (overrides = {}) => ({
   id: 7,
@@ -106,6 +106,24 @@ describe('Utilisateurs (SCRUM-118)', () => {
 })
 
 describe('Fiche utilisateur (SCRUM-118)', () => {
+  it('supprime avec un motif, après avoir annoncé que c’est définitif (SCRUM-71)', async () => {
+    replies['/admin/users/7'] = detail({ can_delete: true }, { activity: { orders: 5, reports_made: 3 } })
+    vi.mocked(http.delete).mockResolvedValue({ data: detail({ status: 'supprimé', can_suspend: false, can_delete: false, deleted_at: '2026-11-25T10:00:00+01:00' }) })
+    visit('/admin/utilisateurs/7')
+    expect(await screen.findByText('Avis qu’il a signalés')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }))
+    expect(screen.getByText(/ne pourra pas être réactivé/)).toBeTruthy()
+    const confirm = screen.getByRole('button', { name: 'Supprimer le compte' })
+    expect(confirm.disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText(/Motif/), { target: { value: 'Fraudes répétées.' } })
+    fireEvent.click(confirm)
+
+    expect(await screen.findByText(/Compte supprimé. Le motif a été envoyé/)).toBeTruthy()
+    expect(http.delete).toHaveBeenCalledWith('/admin/users/7', { data: { reason: 'Fraudes répétées.' } })
+    expect(screen.queryByRole('button', { name: 'Supprimer' })).toBeNull()
+  })
+
   it('suspend avec un motif obligatoire, après avoir annoncé les conséquences', async () => {
     replies['/admin/users/7'] = detail()
     vi.mocked(http.post).mockResolvedValue({ data: suspended })
