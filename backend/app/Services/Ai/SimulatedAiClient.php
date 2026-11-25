@@ -24,6 +24,10 @@ class SimulatedAiClient implements AiClient
             AiFeature::REWRITING => ['text' => $this->rephrase($request->data['text'])],
             AiFeature::MATCHING => $this->tenderAnalysis($request->data),
             AiFeature::PRICE_ESTIMATE => $this->priceEstimate($request->data),
+            AiFeature::SENTIMENT => $request->data['type'] === 'review'
+                ? $this->reviewAnalysis($request->data)
+                : $this->supplierReviewSummary($request->data),
+            AiFeature::MODERATION => $this->productModeration($request->data),
             default => throw new AiUnavailableException("Le mode simulé ne couvre pas « {$request->feature->value} »."),
         };
 
@@ -197,6 +201,157 @@ class SimulatedAiClient implements AiClient
         ];
     }
 
+    /** Thèmes reconnus dans les avis : [point fort, point faible, mots positifs, mots négatifs]. */
+    private const REVIEW_THEMES = [
+        'delay' => ['Livraison rapide', 'Retards de livraison', ['rapide', 'délai', 'temps', 'ponctuel'], ['retard', 'lent', 'lente', 'attente', 'tard']],
+        'quality' => ['Qualité des produits', 'Problèmes de qualité', ['qualité', 'conforme', 'solide', 'parfait', 'impeccable'], ['défaut', 'abîmé', 'cassé', 'défectueux', 'conforme']],
+        'price' => ['Bon rapport qualité-prix', 'Prix jugés élevés', ['prix', 'rapport'], ['cher', 'chère', 'coûteux', 'prix']],
+        'service' => ['Équipe réactive', 'Communication difficile', ['réactif', 'réactive', 'équipe', 'accueil', 'disponible', 'réponse', 'professionnel'], ['injoignable', 'réponse', 'impoli', 'ignoré']],
+        'packaging' => ['Emballage soigné', 'Emballage insuffisant', ['emballage', 'soigné', 'protégé'], ['emballage', 'mal']],
+    ];
+
+    private const POSITIVE_WORDS = ['bien', 'bon', 'bonne', 'excellent', 'excellente', 'parfait', 'parfaite', 'rapide', 'recommande', 'satisfait',
+        'satisfaite', 'merci', 'impeccable', 'réactif', 'réactive', 'conforme', 'qualité', 'top', 'super', 'professionnel'];
+
+    private const NEGATIVE_WORDS = ['mauvais', 'mauvaise', 'retard', 'déçu', 'déçue', 'cassé', 'abîmé', 'défaut', 'défectueux', 'lent', 'lente',
+        'arnaque', 'jamais', 'injoignable', 'problème', 'cher', 'éviter', 'nul', 'nulle', 'pire'];
+
+    /**
+     * Sentiment et indice de suspicion d'un avis (SCRUM-83, SCRUM-84).
+     *
+     * @param  array{rating: int, comment: ?string, signals: array<string, int>}  $data
+     * @return array{sentiment: string, suspicion_score: int, suspicion_reasons: list<string>}
+     */
+    private function reviewAnalysis(array $data): array
+    {
+        $comment = (string) ($data['comment'] ?? '');
+        [$positive, $negative] = $this->polarity($comment);
+        $tone = ($data['rating'] - 3) + $positive - $negative;
+        $sentiment = $tone > 0 ? 'positif' : ($tone < 0 ? 'négatif' : 'neutre');
+
+        $signals = $data['signals'];
+        $score = 0;
+        $reasons = [];
+        $add = function (int $points, string $reason) use (&$score, &$reasons) {
+            $score += $points;
+            $reasons[] = $reason;
+        };
+
+        if ($signals['author_reviews_24h'] >= 3) {
+            $add(35, "{$signals['author_reviews_24h']} avis du même auteur en 24 h");
+        }
+        if ($signals['duplicates'] > 0) {
+            $add(40, 'Texte identique à un autre avis');
+        }
+        if ($signals['account_age_days'] < 2) {
+            $add(15, 'Compte créé il y a moins de 2 jours');
+        }
+        if (in_array($data['rating'], [1, 5], true) && mb_strlen(trim($comment)) < 15) {
+            $add(15, 'Note extrême sans commentaire détaillé');
+        }
+        if (($data['rating'] >= 4 && $negative > $positive + 1) || ($data['rating'] <= 2 && $positive > $negative + 1)) {
+            $add(25, 'Note en contradiction avec le commentaire');
+        }
+        if (preg_match('/(https?:\/\/|www\.|@[a-z0-9-]+\.|\b\d{8}\b)/i', $comment)) {
+            $add(20, 'Contient un lien ou des coordonnées');
+        }
+
+        return ['sentiment' => $sentiment, 'suspicion_score' => min(100, $score), 'suspicion_reasons' => $reasons];
+    }
+
+    /**
+     * Points forts et points faibles d'un fournisseur à partir de ses avis (SCRUM-83).
+     *
+     * @param  array{reviews: list<array{rating: int, comment: ?string}>}  $data
+     * @return array{summary: string, strengths: list<string>, weaknesses: list<string>}
+     */
+    private function supplierReviewSummary(array $data): array
+    {
+        $strengths = $weaknesses = [];
+        $positive = $negative = 0;
+
+        foreach ($data['reviews'] as $review) {
+            $words = $this->stems((string) $review['comment'], false);
+            $good = $review['rating'] >= 4;
+            $bad = $review['rating'] <= 2;
+            $positive += (int) $good;
+            $negative += (int) $bad;
+
+            foreach (self::REVIEW_THEMES as $key => [$strength, $weakness, $positiveWords, $negativeWords]) {
+                if ($good && array_intersect($words, $this->stems(implode(' ', $positiveWords), false))) {
+                    $strengths[$strength] = ($strengths[$strength] ?? 0) + 1;
+                }
+                if ($bad && array_intersect($words, $this->stems(implode(' ', $negativeWords), false))) {
+                    $weaknesses[$weakness] = ($weaknesses[$weakness] ?? 0) + 1;
+                }
+            }
+        }
+
+        arsort($strengths);
+        arsort($weaknesses);
+        $count = count($data['reviews']);
+        $neutral = $count - $positive - $negative;
+
+        return [
+            'summary' => "{$count} avis analysés : {$positive} positif".($positive > 1 ? 's' : '').", {$neutral} mitigé".($neutral > 1 ? 's' : '')
+                .", {$negative} négatif".($negative > 1 ? 's' : '').'.',
+            'strengths' => array_slice(array_keys($strengths), 0, 3),
+            'weaknesses' => array_slice(array_keys($weaknesses), 0, 3),
+        ];
+    }
+
+    /**
+     * Annonce douteuse (SCRUM-84) : prix anormal pour la catégorie, coordonnées dans le texte, termes suspects.
+     *
+     * @param  array{title: string, description: ?string, price: float, category_median: ?float}  $data
+     * @return array{suspicion_score: int, reasons: list<string>}
+     */
+    private function productModeration(array $data): array
+    {
+        $text = $data['title'].' '.$data['description'];
+        $score = 0;
+        $reasons = [];
+
+        if ($data['category_median'] !== null && $data['category_median'] > 0) {
+            $ratio = $data['price'] / $data['category_median'];
+            if ($ratio < 0.2) {
+                $score += 40;
+                $reasons[] = 'Prix très inférieur aux produits de la catégorie';
+            } elseif ($ratio > 10) {
+                $score += 30;
+                $reasons[] = 'Prix très supérieur aux produits de la catégorie';
+            }
+        }
+        if (preg_match('/(https?:\/\/|www\.|[a-z0-9._-]+@[a-z0-9-]+\.[a-z]{2,}|(\+216\s?)?\b\d{2}\s?\d{3}\s?\d{3}\b)/i', $text)) {
+            $score += 35;
+            $reasons[] = 'Coordonnées ou lien dans l’annonce (contact hors plateforme)';
+        }
+        if (preg_match('/\b(contrefa[cç]on|r[ée]plique|copie conforme|imitation|sans facture|100\s?% garanti)\b/iu', $text)) {
+            $score += 50;
+            $reasons[] = 'Termes évoquant une contrefaçon ou une vente douteuse';
+        }
+        if (mb_strlen($data['title']) >= 10 && mb_strtoupper($data['title']) === $data['title'] && preg_match('/\p{L}/u', $data['title'])) {
+            $score += 10;
+            $reasons[] = 'Titre entièrement en majuscules';
+        }
+
+        return ['suspicion_score' => min(100, $score), 'reasons' => $reasons];
+    }
+
+    /**
+     * @return array{0: int, 1: int} nombre de mots positifs et négatifs
+     */
+    private function polarity(string $text): array
+    {
+        $stems = $this->stems($text, false);
+        $negated = (bool) preg_match('/\b(pas|jamais|aucun|aucune)\b/iu', $text);
+        $positive = count(array_intersect($stems, $this->stems(implode(' ', self::POSITIVE_WORDS), false)));
+        $negative = count(array_intersect($stems, $this->stems(implode(' ', self::NEGATIVE_WORDS), false)));
+
+        // « pas conforme », « jamais livré » : la négation retourne une partie du positif.
+        return $negated && $positive > 0 ? [$positive - 1, $negative + 1] : [$positive, $negative];
+    }
+
     /**
      * @param  list<float>  $sorted
      */
@@ -212,7 +367,7 @@ class SimulatedAiClient implements AiClient
     /**
      * @return list<string>
      */
-    private function words(string $text): array
+    private function words(string $text, bool $tenderWords = true): array
     {
         $text = (string) preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', mb_strtolower($text));
         $stop = ['avec', 'pour', 'dans', 'nous', 'vous', 'sont', 'une', 'des', 'les', 'sur', 'par', 'plus', 'besoin',
@@ -221,16 +376,16 @@ class SimulatedAiClient implements AiClient
 
         return array_values(array_filter(
             preg_split('/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [],
-            fn (string $word) => mb_strlen($word) >= 4 && ! in_array($word, $stop, true) && ! is_numeric($word),
+            fn (string $word) => mb_strlen($word) >= 4 && ! ($tenderWords && in_array($word, $stop, true)) && ! is_numeric($word),
         ));
     }
 
     /**
      * @return list<string>
      */
-    private function stems(string $text): array
+    private function stems(string $text, bool $tenderWords = true): array
     {
-        return array_values(array_unique(array_map(fn (string $word) => $this->stem($word), $this->words($text))));
+        return array_values(array_unique(array_map(fn (string $word) => $this->stem($word), $this->words($text, $tenderWords))));
     }
 
     /** Racine grossière : sans accents ni marque du pluriel (« cartons » = « carton »). */

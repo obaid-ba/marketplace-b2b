@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ProductStatus;
+use App\Jobs\ModerateProductJob;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\SupplierProfile;
@@ -68,6 +69,11 @@ class ProductService
         }
 
         $product->save();
+
+        // Contrôle IA des annonces publiées (SCRUM-84) : prix anormal, contrefaçon, coordonnées…
+        if ($status === ProductStatus::PUBLISHED) {
+            ModerateProductJob::dispatch($product->id);
+        }
 
         return $product;
     }

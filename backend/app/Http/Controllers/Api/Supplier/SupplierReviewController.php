@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api\Supplier;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
 use App\Notifications\ReviewReplyNotification;
+use App\Services\ReviewInsightService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Gestion des avis reçus côté fournisseur (SCRUM-65 / F20).
@@ -64,8 +64,8 @@ class SupplierReviewController extends Controller
             'rating_avg' => $stats->avg_rating ? round((float) $stats->avg_rating, 2) : 0,
             'reviews_count' => (int) ($stats->total_count ?? 0),
             'star_distribution' => $starDistribution,
-            // Emplacement du résumé IA des avis (SCRUM-65), pas encore généré.
-            'ai_summary' => null,
+            // « Ce que les clients en disent » (SCRUM-83) : null sous le nombre minimal d'avis.
+            'ai_summary' => app(ReviewInsightService::class)->summaryFor($supplierProfile),
             'reviews' => $reviews,
         ]);
     }

@@ -5,6 +5,9 @@ import PageHeader from '@/components/PageHeader'
 import Pagination from '@/components/Pagination'
 import { formatDate } from '@/utils/period'
 
+/** Seuil à partir duquel l'IA soumet un avis à l'admin (ReviewInsightService::SUSPICION_THRESHOLD). */
+const SUSPICION_THRESHOLD = 60
+
 function authorName(review) {
   const user = review.buyer?.user
   if (!user) return 'Acheteur'
@@ -151,6 +154,11 @@ export default function AdminReviewsPage() {
                         {review.ai_suspicion_score === null || review.ai_suspicion_score === undefined
                           ? 'non calculé'
                           : `${Math.round(Number(review.ai_suspicion_score))} %`}
+                        {Number(review.ai_suspicion_score) >= SUSPICION_THRESHOLD && (
+                          // Signalé par l'IA (SCRUM-84) : à examiner en premier, l'IA n'a rien masqué.
+                          <span className="ml-2 rounded-full bg-accent-soft px-2 py-0.5 font-medium text-accent">⚑ Suspect selon l’IA</span>
+                        )}
+                        {review.ai_sentiment && <span className="ml-2">· Sentiment : {review.ai_sentiment}</span>}
                       </p>
                       {review.reports?.length > 0 && (
                         <ul className="mt-2 space-y-1 text-xs text-muted">

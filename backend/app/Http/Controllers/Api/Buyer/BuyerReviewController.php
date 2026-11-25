@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Enums\ReviewStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Jobs\AnalyzeReviewJob;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\User;
@@ -70,6 +71,9 @@ class BuyerReviewController extends Controller
 
             return $review;
         });
+
+        // Sentiment, suspicion et résumé du fournisseur en file de tâches (SCRUM-83, SCRUM-84).
+        AnalyzeReviewJob::dispatch($review->supplier_id, $review->id);
 
         $review->load(['buyer.user:id,name', 'buyer:id,user_id,organization', 'order:id,created_at,total']);
 

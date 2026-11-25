@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ReviewStatus;
+use App\Services\ReviewInsightService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -76,7 +77,8 @@ class Review extends Model
     }
 
     /**
-     * File de modération (SCRUM-74) : les plus signalés d'abord, puis les plus anciens.
+     * File de modération (SCRUM-74) : avis jugés suspects par l'IA d'abord (SCRUM-84), du plus suspect au moins
+     * suspect, puis les plus signalés, puis les plus anciens.
      */
     public function scopePendingModeration(Builder $query): void
     {
@@ -84,6 +86,7 @@ class Review extends Model
             ->where('reviews.status', ReviewStatus::REPORTED->value)
             ->orWhereHas('reports', fn (Builder $report) => $report->where('status', ReviewReport::STATUS_PENDING)))
             ->withCount(['reports as pending_reports_count' => fn (Builder $report) => $report->where('status', ReviewReport::STATUS_PENDING)])
+            ->orderByRaw('CASE WHEN reviews.ai_suspicion_score >= ? THEN reviews.ai_suspicion_score ELSE 0 END DESC', [ReviewInsightService::SUSPICION_THRESHOLD])
             ->orderByDesc('pending_reports_count')
             ->orderBy('reviews.created_at')
             ->orderBy('reviews.id');

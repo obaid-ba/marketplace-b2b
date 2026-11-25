@@ -24,11 +24,13 @@ class AiService
     /**
      * @param  string  $inputHash  empreinte des données qui rendent le résultat périmé quand elles changent
      * @param  Closure(array<string, mixed>): array<string, mixed>  $validate  renvoie la sortie nettoyée, ou lève une exception
+     * @param  bool  $rateLimited  faux pour une analyse en tâche de fond (S7 : avis, annonces), que l'utilisateur
+     *                             n'a pas demandée : elle ne consomme pas son quota
      *
      * @throws AiUnavailableException
      * @throws ThrottleRequestsException
      */
-    public function run(User $user, AiRequest $request, string $context, string $inputHash, Closure $validate): AiInteraction
+    public function run(User $user, AiRequest $request, string $context, string $inputHash, Closure $validate, bool $rateLimited = true): AiInteraction
     {
         if (! $this->isEnabled()) {
             throw new AiUnavailableException('IA désactivée.');
@@ -36,12 +38,14 @@ class AiService
 
         $key = "ai:{$user->id}";
 
-        if (RateLimiter::tooManyAttempts($key, (int) config('ai.rate_limit'))) {
+        if ($rateLimited && RateLimiter::tooManyAttempts($key, (int) config('ai.rate_limit'))) {
             $minutes = max(1, (int) ceil(RateLimiter::availableIn($key) / 60));
             throw new ThrottleRequestsException("Limite d'utilisation de l'IA atteinte. Réessayez dans {$minutes} min.");
         }
 
-        RateLimiter::hit($key, 3600);
+        if ($rateLimited) {
+            RateLimiter::hit($key, 3600);
+        }
 
         try {
             $response = app(AiClient::class)->generate($request);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
+use App\Jobs\AnalyzeReviewJob;
 use App\Models\Review;
 use App\Models\ReviewReport;
 use App\Notifications\ReviewModeratedNotification;
@@ -92,6 +93,9 @@ class AdminReviewController extends Controller
                 $reason,
             );
         });
+
+        // Le résumé « points forts / faibles » ne doit plus tenir compte d'un avis masqué (SCRUM-83).
+        AnalyzeReviewJob::dispatch($review->supplier_id);
 
         $review->load(['buyer.user', 'supplier:id,company_name,user_id', 'supplier.user']);
 

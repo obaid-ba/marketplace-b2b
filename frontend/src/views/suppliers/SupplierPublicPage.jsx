@@ -8,6 +8,7 @@ import FavoriteButton from '@/components/FavoriteButton'
 import Pagination from '@/components/Pagination'
 import ProductCard, { ProductCardSkeleton } from '@/components/ProductCard'
 import PublicNotFound from '@/components/PublicNotFound'
+import ReviewInsights from '@/components/ReviewInsights'
 import ReviewItem from '@/components/ReviewItem'
 import { formatNumber, formatRating } from '@/utils/format'
 import { initialsOf } from '@/utils/initials'
@@ -138,13 +139,8 @@ function ReviewsTab({ supplier, page, onPage }) {
     <section className="rounded-xl border border-line bg-surface p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-ink">Avis des clients</h2>
-        {supplier.ai_summary && (
-          <span className="rounded-full bg-info-soft px-3 py-1 text-xs font-medium text-info">Résumé généré par IA</span>
-        )}
       </div>
-      {supplier.ai_summary && (
-        <p className="mt-4 rounded-lg bg-info-soft px-4 py-3 text-sm text-ink">{supplier.ai_summary}</p>
-      )}
+      <ReviewInsights summary={supplier.ai_summary} className="mt-4" />
 
       <div className="mt-2">
         {error ? (

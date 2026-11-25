@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\SupplierProfile;
+use App\Services\ReviewInsightService;
 use App\Services\SupplierProfileService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -38,8 +39,8 @@ class SupplierPublicResource extends JsonResource
             'reviews_count' => (int) $this->reviews_count,
             'products_count' => (int) ($this->visible_products_count ?? 0),
             'is_favorite' => (bool) ($this->is_favorite ?? false),
-            // Résumé IA points forts / faibles (S6) : null tant qu'il n'est pas généré, l'encadré est alors masqué.
-            'ai_summary' => null,
+            // « Ce que les clients en disent » (SCRUM-83) : null sous le nombre minimal d'avis, l'encadré est alors masqué.
+            'ai_summary' => app(ReviewInsightService::class)->summaryFor($this->resource),
         ];
     }
 }
