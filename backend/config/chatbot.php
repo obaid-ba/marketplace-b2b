@@ -11,7 +11,7 @@
 */
 return [
 
-    'welcome' => 'Bonjour ! Je suis l’assistant de Marketplace B2B. Posez-moi une question sur l’utilisation de la plateforme : publier un besoin, répondre à une demande, commander, payer, laisser un avis…',
+    'welcome' => 'Bonjour ! Je suis l’assistant de TijaraLink. Posez-moi une question sur l’utilisation de la plateforme : publier un besoin, répondre à une demande, commander, payer, laisser un avis…',
 
     'fallback' => 'Je n’ai pas trouvé de réponse précise à cette question dans le guide de la plateforme. Essayez de reformuler (par exemple « comment publier une demande ? ») ou contactez l’équipe via la messagerie depuis une commande ou une fiche fournisseur.',
 

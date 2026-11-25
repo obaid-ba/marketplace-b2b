@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useMatches, useNavigate } from 'react-router'
+import Logo from '@/components/Logo'
 import NotificationBell from '@/components/NotificationBell'
 import { isRealtimeConnected, useRealtime } from '@/realtime/realtime'
 import { useAuthStore } from '@/stores/auth'
@@ -66,8 +67,7 @@ function Sidebar({ title, homePath, navItems, onNavigate }) {
   return (
     <nav aria-label={title} className="px-4 py-6">
       <Link to={homePath} className="mb-8 flex items-center gap-3 px-2" onClick={onNavigate}>
-        <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-600 text-base font-bold text-white">M</span>
-        <span className="text-[17px] font-semibold text-ink">Marketplace B2B</span>
+        <Logo size={36} />
       </Link>
 
       <p className="mb-3 px-3 text-[11px] font-medium tracking-wide text-muted uppercase">{title}</p>

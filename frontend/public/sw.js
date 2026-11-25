@@ -1,12 +1,12 @@
 /*
- * Service worker de Marketplace B2B (SCRUM-88 / PWA).
+ * Service worker de TijaraLink (SCRUM-88 / PWA).
  *
  * - Pages (navigation) : réseau d'abord ; hors ligne, la coquille de l'application déjà en cache, sinon offline.html.
  * - Fichiers de l'application (/assets/…, icônes, polices) : cache d'abord, ils portent une empreinte dans leur nom.
  * - API : jamais mise en cache par le service worker (données personnelles, toujours à jour).
  * Changer VERSION à chaque modification de ce fichier pour remplacer l'ancien cache.
  */
-const VERSION = 'v1'
+const VERSION = 'v2' // v2 : nouveau nom et nouveau logo (TijaraLink)
 const SHELL_CACHE = `shell-${VERSION}`
 const ASSET_CACHE = `assets-${VERSION}`
 const SHELL = ['/', '/offline.html', '/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png']

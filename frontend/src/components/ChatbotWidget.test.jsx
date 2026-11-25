@@ -30,7 +30,7 @@ describe('ChatbotWidget (SCRUM-85)', () => {
     renderWidget()
 
     fireEvent.click(screen.getByRole('button', { name: 'Ouvrir l’assistant' }))
-    expect(screen.getByRole('dialog', { name: 'Assistant Marketplace B2B' })).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Assistant TijaraLink' })).toBeTruthy()
 
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()

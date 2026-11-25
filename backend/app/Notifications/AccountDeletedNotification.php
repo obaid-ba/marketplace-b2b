@@ -32,7 +32,7 @@ class AccountDeletedNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Votre compte a été supprimé')
             ->greeting("Bonjour {$notifiable->name},")
-            ->line('Un administrateur de Marketplace B2B a supprimé votre compte. Vous ne pouvez plus vous connecter ; vos commandes et factures sont conservées.')
+            ->line('Un administrateur de TijaraLink a supprimé votre compte. Vous ne pouvez plus vous connecter ; vos commandes et factures sont conservées.')
             ->line("Motif : {$this->reason}")
             ->line("Pour toute question, contactez l'administrateur de la plateforme.");
     }

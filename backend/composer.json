@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "iset-djerba/marketplace-b2b-api",
     "type": "project",
-    "description": "API de la plateforme Marketplace B2B (projet d'intégration ISET Djerba).",
+    "description": "API de la plateforme TijaraLink (projet d'intégration ISET Djerba).",
     "keywords": [
         "laravel",
         "framework"

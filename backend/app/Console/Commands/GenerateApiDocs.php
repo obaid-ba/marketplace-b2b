@@ -250,7 +250,7 @@ class GenerateApiDocs extends Command
         return [
             'openapi' => '3.0.3',
             'info' => [
-                'title' => 'API Marketplace B2B',
+                'title' => 'API TijaraLink',
                 'version' => '1.0.0',
                 'description' => "API REST de la plateforme (Laravel 12). Authentification : POST /api/auth/login renvoie un jeton Sanctum, à envoyer dans l'en-tête Authorization: Bearer <jeton>. Toutes les réponses sont en JSON ; les erreurs ont la forme { message, errors? }. Documentation générée par « php artisan api:docs ».",
             ],
@@ -269,7 +269,7 @@ class GenerateApiDocs extends Command
     {
         return [
             'info' => [
-                'name' => 'Marketplace B2B',
+                'name' => 'TijaraLink',
                 'description' => 'Collection générée par « php artisan api:docs ». Renseignez les variables base_url et token (POST /api/auth/login).',
                 'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
             ],

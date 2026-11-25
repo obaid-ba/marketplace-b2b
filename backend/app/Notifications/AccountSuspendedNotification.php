@@ -32,7 +32,7 @@ class AccountSuspendedNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Votre compte a été suspendu')
             ->greeting("Bonjour {$notifiable->name},")
-            ->line('Un administrateur de Marketplace B2B a suspendu votre compte. Vous ne pouvez plus vous connecter.')
+            ->line('Un administrateur de TijaraLink a suspendu votre compte. Vous ne pouvez plus vous connecter.')
             ->line("Motif : {$this->reason}")
             ->line("Pour toute question, contactez l'administrateur de la plateforme.");
     }

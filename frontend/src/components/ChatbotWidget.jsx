@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { sendChatbotMessage } from '@/api/chatbot'
+import { APP_NAME } from '@/config/brand'
 import { loginPath } from '@/router/paths'
 import { selectIsAuthenticated, useAuthStore } from '@/stores/auth'
 
-const WELCOME =
-  'Bonjour ! Je suis l’assistant de Marketplace B2B. Posez-moi une question sur l’utilisation de la plateforme : publier un besoin, répondre à une demande, commander, payer, laisser un avis…'
+const WELCOME = `Bonjour ! Je suis l’assistant de ${APP_NAME}. Posez-moi une question sur l’utilisation de la plateforme : publier un besoin, répondre à une demande, commander, payer, laisser un avis…`
 
 const SUGGESTIONS = ['Comment publier une demande ?', 'Comment répondre à une demande ?', 'Comment suivre ma commande ?']
 
@@ -87,7 +87,7 @@ export default function ChatbotWidget() {
       {open && (
         <section
           role="dialog"
-          aria-label="Assistant Marketplace B2B"
+          aria-label={`Assistant ${APP_NAME}`}
           className="fixed inset-0 z-50 flex flex-col bg-surface sm:inset-auto sm:right-4 sm:bottom-4 sm:h-[32rem] sm:w-96 sm:rounded-2xl sm:border sm:border-line sm:shadow-2xl"
         >
           <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
