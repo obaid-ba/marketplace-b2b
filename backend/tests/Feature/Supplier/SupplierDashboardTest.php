@@ -9,6 +9,7 @@ use App\Enums\ReviewStatus;
 use App\Enums\TenderStatus;
 use App\Enums\ValidationStatus;
 use App\Models\BuyerProfile;
+use App\Models\Conversation;
 use App\Models\SupplierProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -265,5 +266,23 @@ class SupplierDashboardTest extends TestCase
             ->assertJsonPath('open_requests.0.score', 90)
             ->assertJsonCount(2, 'latest_reviews')
             ->assertJsonCount(31, 'series');
+    }
+
+    public function test_les_notifications_et_messages_non_lus_sont_affiches(): void
+    {
+        $supplier = $this->supplier();
+        $buyer = $this->buyer();
+        $conversation = Conversation::create(['context_type' => 'direct', 'buyer_id' => $buyer->id, 'supplier_id' => $supplier->id]);
+        $conversation->participants()->create(['user_id' => $supplier->user_id]);
+        $conversation->messages()->create(['sender_id' => $buyer->user_id, 'body' => 'Bonjour', 'sent_at' => now()]);
+        foreach (['Ancienne', 'Récente'] as $index => $title) {
+            $supplier->user->notifications()->create(['id' => (string) Str::uuid(), 'type' => 'x', 'data' => ['title' => $title, 'url' => '/fournisseur/avis'], 'created_at' => now()->addMinutes($index)]);
+        }
+
+        $this->actingAs($supplier->user, 'sanctum')->getJson('/api/supplier/dashboard')
+            ->assertOk()
+            ->assertJsonPath('kpis.unread_messages', 1)
+            ->assertJsonPath('latest_notifications.0.title', 'Récente')
+            ->assertJsonPath('latest_notifications.0.url', '/fournisseur/avis');
     }
 }

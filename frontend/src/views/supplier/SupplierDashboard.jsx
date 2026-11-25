@@ -83,6 +83,7 @@ export default function SupplierDashboard() {
   const sold = data?.most_sold_products ?? []
   const requests = data?.open_requests ?? []
   const reviews = data?.latest_reviews ?? []
+  const notifications = data?.latest_notifications ?? []
   const alert = data?.negative_review_alert
 
   return (
@@ -169,7 +170,7 @@ export default function SupplierDashboard() {
               <KpiCard
                 label="Notifications"
                 value={formatCount(data.kpis.unread_items)}
-                hint="Non lues"
+                hint={`Non lues · ${plural(data.kpis.unread_messages ?? 0, 'message non lu', 'messages non lus')}`}
               />
             </div>
           </section>
@@ -305,6 +306,38 @@ export default function SupplierDashboard() {
               )}
             </section>
           </div>
+
+          <section className="card" aria-labelledby="latest-notifications-title">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h2 id="latest-notifications-title" className="text-base font-semibold text-ink">
+                Dernières notifications
+              </h2>
+              <div className="flex gap-4 text-sm font-medium text-brand-600">
+                <Link to={PATHS.supplierMessages} className="hover:underline">
+                  Messagerie
+                </Link>
+                <Link to={PATHS.supplierNotifications} className="hover:underline">
+                  Tout voir
+                </Link>
+              </div>
+            </div>
+            {notifications.length ? (
+              <ul className="mt-4 divide-y divide-line">
+                {notifications.map((notification) => (
+                  <li key={notification.id} className="py-3 text-sm">
+                    <Link to={notification.url ?? PATHS.supplierNotifications} className="block hover:text-brand-600">
+                      <span className={notification.read_at ? 'text-ink' : 'font-medium text-ink'}>{notification.title}</span>
+                      {notification.message && <span className="block truncate text-xs text-muted">{notification.message}</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="mt-4">
+                <EmptyState title="Aucune notification" description="Vos alertes apparaîtront ici." />
+              </div>
+            )}
+          </section>
         </>
       )}
     </div>

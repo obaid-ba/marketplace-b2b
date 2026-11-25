@@ -6,12 +6,14 @@ use App\Enums\OrderStatus;
 use App\Enums\QuoteStatus;
 use App\Enums\TenderStatus;
 use App\Http\Requests\Dashboard\PeriodRangeRequest;
+use App\Http\Resources\NotificationResource;
 use App\Models\Order;
 use App\Models\ProductView;
 use App\Models\Quote;
 use App\Models\Review;
 use App\Models\SupplierProfile;
 use App\Models\TenderRecipient;
+use App\Services\ConversationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -27,6 +29,8 @@ use Illuminate\Support\Facades\DB;
  */
 class SupplierDashboardService
 {
+    public function __construct(private readonly ConversationService $conversations) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -89,6 +93,7 @@ class SupplierDashboardService
                 'unread_items' => $supplier->user
                     ? $supplier->user->unreadNotifications()->count()
                     : 0,
+                'unread_messages' => $supplier->user ? $this->conversations->unreadTotal($supplier->user) : 0,
             ],
             'negative_review_alert' => [
                 'count' => $negativeReviews,
@@ -100,6 +105,9 @@ class SupplierDashboardService
             'most_sold_products' => $this->mostSoldProducts($supplier, $fromDb, $toDb),
             'open_requests' => $this->openRequests($supplier),
             'latest_reviews' => $this->latestReviews($supplier),
+            'latest_notifications' => $supplier->user
+                ? NotificationResource::collection($supplier->user->notifications()->limit(5)->get())->resolve(request())
+                : [],
             'generated_at' => CarbonImmutable::now(PeriodRangeRequest::TIMEZONE)->toIso8601String(),
         ];
     }

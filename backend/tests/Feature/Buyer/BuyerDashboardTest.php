@@ -200,4 +200,20 @@ class BuyerDashboardTest extends TestCase
         $this->assertSame(2, collect($response->json('series'))->firstWhere('date', '2027-01-10')['orders']);
         $this->assertSame(1500.0, (float) collect($response->json('series'))->firstWhere('date', '2027-01-10')['spending']);
     }
+
+    public function test_les_commandes_en_cours_sont_affichees_avant_les_cloturees(): void
+    {
+        [$user, $buyer] = $this->buyer();
+        $supplier = $this->supplier();
+        $ids = [];
+        foreach (['expédiée' => 5, 'clôturée' => 1] as $status => $daysAgo) {
+            $ids[] = DB::table('orders')->insertGetId(['buyer_id' => $buyer->id, 'supplier_id' => $supplier->id, 'origin' => 'catalogue', 'total' => 10, 'status' => $status, 'created_at' => now()->subDays($daysAgo), 'updated_at' => now()]);
+        }
+
+        $this->actingAs($user, 'sanctum')->getJson('/api/buyer/dashboard')
+            ->assertOk()
+            ->assertJsonPath('latest_orders.0.id', $ids[0])
+            ->assertJsonPath('latest_orders.0.status', 'expédiée')
+            ->assertJsonPath('kpis.orders_closed', 1);
+    }
 }

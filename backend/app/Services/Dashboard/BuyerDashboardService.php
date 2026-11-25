@@ -146,6 +146,7 @@ class BuyerDashboardService
                 'id' => $tender->id,
                 'title' => $tender->title,
                 'status' => $tender->status?->value,
+                'status_label' => $tender->statusLabel(),
                 'quotes_received' => $tender->quotes_count,
                 'desired_deadline' => $tender->desired_deadline?->toDateString(),
                 'budget' => $tender->budget !== null ? (float) $tender->budget : null,
@@ -169,6 +170,7 @@ class BuyerDashboardService
             ->get()
             ->map(fn (Quote $quote) => [
                 'id' => $quote->id,
+                'tender_id' => $quote->tender_id,
                 'tender' => $quote->tender?->title,
                 'supplier' => $quote->supplier?->company_name,
                 'supplier_rating' => $quote->supplier?->rating_avg !== null
@@ -213,6 +215,8 @@ class BuyerDashboardService
         return Order::query()
             ->where('buyer_id', $buyer->id)
             ->with('supplier:id,company_name')
+            // Commandes en cours d'abord, avec leur étape (SCRUM-69).
+            ->orderByRaw('case when status = ? then 1 else 0 end', [OrderStatus::CLOSED->value])
             ->orderByDesc('created_at')
             ->limit(5)
             ->get()

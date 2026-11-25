@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import PageHeader from '@/components/PageHeader'
 import EmptyState from '@/components/dashboard/EmptyState'
 import ErrorState from '@/components/dashboard/ErrorState'
@@ -66,7 +66,10 @@ export default function AdminDashboardView() {
   const reset = useAdminDashboardStore((state) => state.reset)
 
   const [period, setPeriod] = useState(() => defaultPeriod())
-  const [exportOpen, setExportOpen] = useState(false)
+  // /admin?exports=1 : lien de la notification « Export prêt ».
+  const [params, setParams] = useSearchParams()
+  const exportOpen = params.get('exports') === '1'
+  const setExportOpen = (open) => setParams(open ? { exports: '1' } : {}, { replace: true })
 
   useEffect(() => {
     load(period)
@@ -76,6 +79,7 @@ export default function AdminDashboardView() {
 
   const validationQueue = data?.validation_queue
   const disputes = data?.urgent_disputes
+  const reported = data?.reported_reviews
   const categories = data?.top_categories ?? []
   const maxProducts = Math.max(1, ...categories.map((category) => category.products_count))
 
@@ -247,7 +251,37 @@ export default function AdminDashboardView() {
             </section>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <section className="card" aria-labelledby="reported-reviews-title">
+              <SectionHeader
+                id="reported-reviews-title"
+                title="Avis signalés"
+                subtitle={`${reported?.count ?? 0} avis à examiner`}
+                action={
+                  <Link to={PATHS.adminReviews} className="btn btn-secondary shrink-0">
+                    Examiner
+                  </Link>
+                }
+              />
+              {reported?.items?.length ? (
+                <ul className="mt-4 divide-y divide-line">
+                  {reported.items.map((review) => (
+                    <li key={review.id} className="py-3 text-sm">
+                      <p className="font-medium text-ink">
+                        {review.supplier ?? 'Fournisseur'} · {review.rating}/5
+                      </p>
+                      {review.comment && <p className="text-muted">« {review.comment} »</p>}
+                      <p className="mt-1 text-xs text-muted">{plural(review.reports_count, 'signalement')}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="mt-4">
+                  <EmptyState title="Aucun avis signalé" description="Les signalements des fournisseurs apparaîtront ici." />
+                </div>
+              )}
+            </section>
+
             <section className="card" aria-labelledby="top-categories-title">
               <SectionHeader
                 id="top-categories-title"

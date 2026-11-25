@@ -8,7 +8,9 @@ import KpiCard from '@/components/dashboard/KpiCard'
 import PeriodPicker from '@/components/dashboard/PeriodPicker'
 import Skeleton from '@/components/dashboard/Skeleton'
 import TimeSeriesChart from '@/components/dashboard/TimeSeriesChart'
-import { PATHS, buyerTenderPath } from '@/router/paths'
+import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge'
+import { TenderStatusBadge } from '@/components/TenderBadges'
+import { PATHS, buyerTenderPath, buyerTenderQuotesPath, orderTrackingPath, supplierPublicPath } from '@/router/paths'
 import { selectUser, useAuthStore } from '@/stores/auth'
 import { formatAmount, formatCount } from '@/utils/money'
 import { defaultPeriod, formatDate } from '@/utils/period'
@@ -116,7 +118,7 @@ export default function BuyerDashboard() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <KpiCard label="Dépenses" value={formatAmount(data.kpis.spending)} hint="Commandes passées sur la période" />
               <KpiCard label="Commandes" value={formatCount(data.kpis.orders_count)} hint="Toutes commandes confondues" />
-              <KpiCard label="En cours" value={formatCount(data.kpis.orders_in_progress)} hint="Commandes non clôturées" />
+              <KpiCard label="En cours" value={formatCount(data.kpis.orders_in_progress)} hint={`Commandes non clôturées · ${formatCount(data.kpis.orders_closed)} terminées`} />
               <KpiCard label="Demandes publiées" value={formatCount(data.kpis.published_requests)} hint="Ouvertes ou en négociation" />
               <KpiCard label="Devis en attente" value={formatCount(data.kpis.pending_quotes)} hint="Envoyés ou en négociation" />
               <KpiCard label="Fournisseurs favoris" value={formatCount(data.kpis.favorite_suppliers)} />
@@ -163,7 +165,10 @@ export default function BuyerDashboard() {
                   {requests.map((tender) => (
                     <li key={tender.id} className="py-3">
                       <Link to={buyerTenderPath(tender.id)} className="flex flex-col gap-1 hover:text-brand-600">
-                        <span className="font-medium text-ink">{tender.title}</span>
+                        <span className="flex flex-wrap items-center gap-2 font-medium text-ink">
+                          {tender.title}
+                          <TenderStatusBadge status={tender.status} label={tender.status_label} />
+                        </span>
                         <span className="text-xs text-muted">
                           {plural(tender.quotes_received, 'devis reçu')} · échéance {formatDate(tender.desired_deadline)} ·
                           budget {tender.budget !== null ? formatAmount(tender.budget) : 'libre'}
@@ -188,7 +193,9 @@ export default function BuyerDashboard() {
                   {pendingQuotes.map((quote) => (
                     <li key={quote.id} className="flex items-start justify-between gap-3 py-3">
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-ink">{quote.supplier ?? 'Fournisseur'}</p>
+                        <Link to={buyerTenderQuotesPath(quote.tender_id)} className="block truncate font-medium text-ink hover:text-brand-600">
+                          {quote.supplier ?? 'Fournisseur'}
+                        </Link>
                         <p className="truncate text-xs text-muted">{quote.tender}</p>
                         <p className="mt-1 text-xs text-muted">
                           Délai {quote.delivery_days} jours
@@ -221,7 +228,9 @@ export default function BuyerDashboard() {
                 <ul className="mt-4 space-y-2">
                   {favorites.map((supplier) => (
                     <li key={supplier.id} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="font-medium text-ink">{supplier.company_name}</span>
+                      <Link to={supplierPublicPath(supplier.id)} className="font-medium text-ink hover:text-brand-600">
+                        {supplier.company_name}
+                      </Link>
                       <span className="text-muted">{supplier.rating_avg !== null ? `${supplier.rating_avg}/5` : '—'}</span>
                     </li>
                   ))}
@@ -236,7 +245,7 @@ export default function BuyerDashboard() {
             <section className="card" aria-labelledby="latest-orders-title">
               <div className="flex items-start justify-between gap-3">
                 <h2 id="latest-orders-title" className="text-base font-semibold text-ink">
-                  Dernières commandes
+                  Commandes en cours et récentes
                 </h2>
                 <Link to={PATHS.buyerOrders} className="text-sm font-medium text-brand-600 hover:underline">
                   Tout voir
@@ -247,9 +256,11 @@ export default function BuyerDashboard() {
                   {orders.map((order) => (
                     <li key={order.id} className="flex items-center justify-between gap-3 py-3 text-sm">
                       <div>
-                        <p className="font-medium text-ink">Commande #{order.id}</p>
-                        <p className="text-xs text-muted">
-                          {order.supplier ?? 'Fournisseur'} · {order.status}
+                        <Link to={orderTrackingPath(order.id)} className="font-medium text-ink hover:text-brand-600">
+                          Commande #{order.id}
+                        </Link>
+                        <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+                          {order.supplier ?? 'Fournisseur'} <OrderStatusBadge status={order.status} />
                         </p>
                       </div>
                       <span className="shrink-0 font-semibold text-ink">{formatAmount(order.total)}</span>
@@ -263,6 +274,16 @@ export default function BuyerDashboard() {
               )}
             </section>
           </div>
+
+          {/* Emplacement des recommandations de fournisseurs (S7) */}
+          <section className="card" aria-labelledby="recommendations-title">
+            <h2 id="recommendations-title" className="text-base font-semibold text-ink">
+              Recommandations
+            </h2>
+            <div className="mt-4">
+              <EmptyState title="Bientôt disponible" description="Des fournisseurs adaptés à vos demandes seront proposés ici." />
+            </div>
+          </section>
         </>
       )}
     </div>
