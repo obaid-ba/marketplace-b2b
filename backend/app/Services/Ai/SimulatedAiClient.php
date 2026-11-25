@@ -22,6 +22,8 @@ class SimulatedAiClient implements AiClient
                 ? $this->tenderDraft($request->data)
                 : $this->productText($request->data)],
             AiFeature::REWRITING => ['text' => $this->rephrase($request->data['text'])],
+            AiFeature::MATCHING => $this->tenderAnalysis($request->data),
+            AiFeature::PRICE_ESTIMATE => $this->priceEstimate($request->data),
             default => throw new AiUnavailableException("Le mode simulé ne couvre pas « {$request->feature->value} »."),
         };
 
@@ -133,6 +135,110 @@ class SimulatedAiClient implements AiClient
         $text = $this->rephrase($data['text']);
 
         return $data['category'] ? "{$text}\n\nCatégorie : {$data['category']}." : $text;
+    }
+
+    /**
+     * Catégorie et mots-clés d'une demande (SCRUM-81) : mots communs entre le texte et le vocabulaire de chaque
+     * catégorie (son nom compte triple, puis les titres des produits qui y sont publiés).
+     *
+     * @param  array{text: string, categories: list<array{id: int, name: string, parent: ?string, terms: list<string>}>}  $data
+     * @return array{category_id: ?int, keywords: list<string>, confidence: int}
+     */
+    private function tenderAnalysis(array $data): array
+    {
+        $words = $this->words($data['text']);
+        $stems = array_unique(array_map(fn (string $word) => $this->stem($word), $words));
+        $best = null;
+
+        foreach ($data['categories'] as $category) {
+            $score = 3 * count(array_intersect($stems, $this->stems($category['name'])))
+                + count(array_intersect($stems, $this->stems(implode(' ', $category['terms']))));
+
+            // À score égal, la sous-catégorie (plus précise) l'emporte sur la catégorie principale.
+            $rank = [$score, $category['parent'] !== null ? 1 : 0, -$category['id']];
+
+            if ($score > 0 && ($best === null || $rank > $best['rank'])) {
+                $best = ['id' => $category['id'], 'score' => $score, 'rank' => $rank];
+            }
+        }
+
+        // Mots les plus fréquents de la demande, dans leur ordre d'apparition.
+        $counts = array_count_values($words);
+        $keywords = array_keys($counts);
+        usort($keywords, fn (string $a, string $b) => $counts[$b] <=> $counts[$a]);
+
+        return [
+            'category_id' => $best['id'] ?? null,
+            'keywords' => array_slice($keywords, 0, 8),
+            'confidence' => $best === null ? 0 : min(95, 40 + 10 * $best['score']),
+        ];
+    }
+
+    /**
+     * Fourchette de prix (SCRUM-82) : quartiles des montants des transactions comparables.
+     *
+     * @param  array{amounts: list<float>}  $data
+     * @return array{low: float, median: float, high: float, comment: string}
+     */
+    private function priceEstimate(array $data): array
+    {
+        $amounts = $data['amounts'];
+        sort($amounts);
+
+        $low = $this->quantile($amounts, 0.25);
+        $high = $this->quantile($amounts, 0.75);
+        $count = count($amounts);
+
+        return [
+            'low' => round($low, 2),
+            'median' => round($this->quantile($amounts, 0.5), 2),
+            'high' => round($high, 2),
+            'comment' => "La moitié des {$count} transactions comparables se situe entre {$this->money($low)} et {$this->money($high)}.",
+        ];
+    }
+
+    /**
+     * @param  list<float>  $sorted
+     */
+    private function quantile(array $sorted, float $q): float
+    {
+        $position = (count($sorted) - 1) * $q;
+        $lower = (int) floor($position);
+        $upper = (int) ceil($position);
+
+        return $sorted[$lower] + ($sorted[$upper] - $sorted[$lower]) * ($position - $lower);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function words(string $text): array
+    {
+        $text = (string) preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', mb_strtolower($text));
+        $stop = ['avec', 'pour', 'dans', 'nous', 'vous', 'sont', 'une', 'des', 'les', 'sur', 'par', 'plus', 'besoin',
+            'recherchons', 'cherche', 'cherchons', 'demande', 'devis', 'fournisseur', 'fournisseurs', 'environ', 'merci',
+            'livraison', 'quantité', 'qualité', 'unités', 'pièces', 'mois', 'jours', 'semaine', 'avant', 'après'];
+
+        return array_values(array_filter(
+            preg_split('/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [],
+            fn (string $word) => mb_strlen($word) >= 4 && ! in_array($word, $stop, true) && ! is_numeric($word),
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function stems(string $text): array
+    {
+        return array_values(array_unique(array_map(fn (string $word) => $this->stem($word), $this->words($text))));
+    }
+
+    /** Racine grossière : sans accents ni marque du pluriel (« cartons » = « carton »). */
+    private function stem(string $word): string
+    {
+        $word = Str::lower(Str::ascii($word));
+
+        return mb_strlen($word) > 4 ? (string) preg_replace('/(s|x)$/', '', $word) : $word;
     }
 
     private function rephrase(string $text): string

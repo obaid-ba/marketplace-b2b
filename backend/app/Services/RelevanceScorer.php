@@ -6,12 +6,12 @@ use App\Models\SupplierProfile;
 use App\Models\Tender;
 
 /**
- * Score de pertinence v1, sans IA générative (SCRUM-50 / F12).
+ * Score de pertinence (SCRUM-50 / F12), enrichi par l'analyse IA de la demande (SCRUM-81 / F31).
  *
  * Trois signaux suffisent pour classer les demandes chez les bons fournisseurs :
- * - la catégorie du besoin (50 points) ;
+ * - la catégorie du besoin (50 points ; 30 si seule la catégorie détectée par l'IA correspond) ;
  * - la région souhaitée, siège ou zone de couverture (30 points) ;
- * - les mots-clés communs entre la demande et le fournisseur (20 points maximum).
+ * - les mots-clés communs entre la demande (y compris les mots-clés détectés par l'IA) et le fournisseur (20 points maximum).
  */
 class RelevanceScorer
 {
@@ -35,6 +35,9 @@ class RelevanceScorer
 
         if (in_array($tender->category_id, $categoryIds, true)) {
             $score += 50;
+        } elseif ($tender->ai_category_id !== null && in_array($tender->ai_category_id, $categoryIds, true)) {
+            // Catégorie détectée par l'IA (SCRUM-81) mais remplacée par le porteur : le lien reste réel, en plus faible.
+            $score += 30;
         }
 
         if ($tender->region_id === null) {

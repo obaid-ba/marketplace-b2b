@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Buyer\FavoriteSupplierController;
 use App\Http\Controllers\Api\Buyer\OrderController as BuyerOrderLifecycleController;
 use App\Http\Controllers\Api\Buyer\QuoteController as BuyerQuoteController;
 use App\Http\Controllers\Api\Buyer\QuoteSummaryController;
+use App\Http\Controllers\Api\Buyer\TenderAiController;
 use App\Http\Controllers\Api\Buyer\TenderController as BuyerTenderController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\CategoryController;
@@ -204,6 +205,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
         Route::get('/tenders', [BuyerTenderController::class, 'index']);
         Route::post('/tenders', [BuyerTenderController::class, 'store']);
+        // IA sur les demandes (SCRUM-81, SCRUM-82 / F31) ; limite par utilisateur : AiService.
+        Route::post('/tenders/analyze', [TenderAiController::class, 'analyze'])->middleware('throttle:30,1');
+        Route::get('/tenders/{tender}/market-price', [TenderAiController::class, 'marketPrice'])->whereNumber('tender');
         Route::get('/tenders/{tender}', [BuyerTenderController::class, 'show'])->whereNumber('tender');
         Route::get('/tenders/{tender}/attachments/{attachment}', [BuyerTenderController::class, 'downloadAttachment'])
             ->whereNumber('tender')

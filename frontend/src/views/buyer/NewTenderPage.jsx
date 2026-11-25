@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import { createTender, fetchTenderReferences } from '@/api/tenders'
 import PageHeader from '@/components/PageHeader'
 import { buyerTenderPath, PATHS } from '@/router/paths'
+import TenderAiAnalysis from './TenderAiAnalysis'
 import TenderAiDraft from './TenderAiDraft'
 
 const MAX_FILES = 5
@@ -50,6 +51,8 @@ export default function NewTenderPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [fieldErrors, setFieldErrors] = useState({})
+  // Analyse IA retenue et fournisseurs suggérés cochés (SCRUM-81).
+  const [ai, setAi] = useState({ interactionId: null, supplierIds: [] })
 
   useEffect(() => {
     let active = true
@@ -112,6 +115,8 @@ export default function NewTenderPage() {
           region_id: form.region_id || null,
           budget: form.budget === '' ? null : form.budget,
           desired_deadline: form.desired_deadline || null,
+          ai_interaction_id: ai.interactionId,
+          suggested_supplier_ids: ai.supplierIds,
         },
         files,
       )
@@ -265,6 +270,16 @@ export default function NewTenderPage() {
             )}
           </div>
         </div>
+
+        <TenderAiAnalysis
+          title={form.title}
+          description={form.description}
+          categoryId={form.category_id}
+          regionId={form.region_id}
+          categoryLabel={(id) => categories.find((option) => String(option.id) === String(id))?.label.replace(/^— /, '')}
+          onCategory={(id) => update('category_id', id)}
+          onChange={setAi}
+        />
 
         <div>
           <label htmlFor="attachments" className="mb-1 block text-sm font-medium text-ink">

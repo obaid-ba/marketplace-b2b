@@ -37,6 +37,10 @@ class StoreTenderRequest extends FormRequest
             'desired_deadline' => ['nullable', 'date', 'after:today'],
             'attachments' => ['nullable', 'array', 'max:5'],
             'attachments.*' => ['file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:5120'],
+            // Analyse IA utilisée et fournisseurs suggérés cochés par le porteur (SCRUM-81).
+            'ai_interaction_id' => ['nullable', 'integer'],
+            'suggested_supplier_ids' => ['nullable', 'array', 'max:10'],
+            'suggested_supplier_ids.*' => ['integer', 'distinct'],
         ];
     }
 

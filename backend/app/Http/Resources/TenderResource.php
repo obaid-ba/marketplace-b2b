@@ -39,6 +39,8 @@ class TenderResource extends JsonResource
                 'id' => $attachment->id,
                 'name' => $attachment->original_name ?? basename($attachment->file_path),
             ])->values()),
+            // Analyse IA de la demande (SCRUM-81) : mots-clés détectés, utiles pour relire la diffusion.
+            'ai_keywords' => $this->ai_keywords ?? [],
             'quotes_count' => $this->whenCounted('quotes'),
             'recipients_count' => $this->whenCounted('recipients'),
             'notified_count' => $this->whenCounted('notified_count'),

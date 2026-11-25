@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { acceptQuote, fetchTenderQuotes } from '@/api/buyerQuotes'
 import { fetchBuyerTender } from '@/api/tenders'
 import ContactButton from '@/components/ContactButton'
+import MarketPriceCard from '@/components/MarketPriceCard'
 import PageHeader from '@/components/PageHeader'
 import QuoteSummaryCard from '@/components/QuoteSummaryCard'
 import EmptyState from '@/components/dashboard/EmptyState'
@@ -148,6 +149,9 @@ export default function CompareQuotesPage() {
       )}
 
       {quotes.length > 0 && <QuoteSummaryCard tenderId={tender.id} quotes={quotes} />}
+
+      {/* Prix habituel du marché (SCRUM-82 / F31) */}
+      <MarketPriceCard tenderId={tender.id} quotes={quotes} />
 
       {quotes.length === 0 ? (
         <EmptyState

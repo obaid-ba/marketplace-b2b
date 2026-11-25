@@ -33,12 +33,35 @@ export async function createTender(payload, attachments = []) {
   const form = new FormData()
 
   Object.entries(payload).forEach(([key, value]) => {
-    if (value !== null && value !== undefined && value !== '') form.append(key, value)
+    if (Array.isArray(value)) value.forEach((item) => form.append(`${key}[]`, item))
+    else if (value !== null && value !== undefined && value !== '') form.append(key, value)
   })
 
   attachments.forEach((file) => form.append('attachments[]', file))
 
   const { data } = await http.post('/buyer/tenders', form)
+  return data
+}
+
+/**
+ * Analyse IA du texte saisi (SCRUM-81) : { interaction_id, category, keywords, confidence,
+ * suggested_suppliers: [{ id, company_name, region, rating_avg, score, reasons }], simulated, label }.
+ */
+export async function analyzeTender({ title, description, category_id = null, region_id = null }) {
+  const { data } = await http.post(
+    '/buyer/tenders/analyze',
+    { title, description, category_id: category_id || null, region_id: region_id || null },
+    { timeout: 60000 },
+  )
+  return data
+}
+
+/**
+ * Prix habituel du marché (SCRUM-82) : { status: 'ok' | 'insufficient', transactions, min_transactions,
+ * category, months, low?, median?, high?, comment?, simulated? }.
+ */
+export async function fetchMarketPrice(tenderId) {
+  const { data } = await http.get(`/buyer/tenders/${tenderId}/market-price`, { timeout: 60000 })
   return data
 }
 

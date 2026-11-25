@@ -21,7 +21,10 @@ use Illuminate\Validation\ValidationException;
  */
 class TenderService
 {
-    public function __construct(private readonly RelevanceScorer $scorer) {}
+    public function __construct(
+        private readonly RelevanceScorer $scorer,
+        private readonly TenderAnalysisService $analysis,
+    ) {}
 
     /**
      * Publie une demande et dÃ©clenche sa diffusion en file de tÃ¢ches.
@@ -54,6 +57,15 @@ class TenderService
 
             return $tender;
         });
+
+        // Catégorie et mots-clés détectés, fournisseurs suggérés retenus (SCRUM-81) : avant la diffusion,
+        // pour que le score de pertinence tienne compte de l'analyse.
+        $this->analysis->apply(
+            $tender,
+            $user,
+            isset($data['ai_interaction_id']) ? (int) $data['ai_interaction_id'] : null,
+            array_map('intval', $data['suggested_supplier_ids'] ?? []),
+        );
 
         DiffuseTenderJob::dispatch($tender->id);
 
