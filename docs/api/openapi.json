@@ -1,7 +1,7 @@
 {
     "openapi": "3.0.3",
     "info": {
-        "title": "API Marketplace B2B",
+        "title": "API TijaraLink",
         "version": "1.0.0",
         "description": "API REST de la plateforme (Laravel 12). Authentification : POST /api/auth/login renvoie un jeton Sanctum, à envoyer dans l'en-tête Authorization: Bearer <jeton>. Toutes les réponses sont en JSON ; les erreurs ont la forme { message, errors? }. Documentation générée par « php artisan api:docs »."
     },
