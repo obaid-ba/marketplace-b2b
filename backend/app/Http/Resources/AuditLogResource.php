@@ -24,11 +24,7 @@ class AuditLogResource extends JsonResource
             'target' => $this->target,
             'reason' => $this->reason,
             'created_at' => $this->created_at?->toIso8601String(),
-            'admin' => $this->whenLoaded('admin', fn () => [
-                'id' => $this->admin->id,
-                'name' => $this->admin->name,
-                'email' => $this->admin->email,
-            ]),
+            'admin' => $this->whenLoaded('admin', fn () => $this->admin?->only(['id', 'name', 'email'])),
         ];
     }
 }

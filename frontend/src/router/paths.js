@@ -44,7 +44,7 @@ export const PATHS = Object.freeze({
   adminCategories: '/admin/categories',
   adminProducts: '/admin/catalogue', // SCRUM-72
   adminReviews: '/admin/avis', // SCRUM-74
-  adminExports: '/admin/exports', // SCRUM-75
+  adminAudit: '/admin/journal', // SCRUM-76
   forbidden: '/acces-refuse',
 })
 

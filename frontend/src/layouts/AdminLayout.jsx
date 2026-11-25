@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { label: 'Contrôle du catalogue', to: PATHS.adminProducts }, // F29 / SCRUM-123
   { label: 'Avis signalés', to: PATHS.adminReviews }, // F29 / SCRUM-123
   { label: 'Litiges', to: PATHS.adminDisputes }, // F23 / SCRUM-117
+  { label: "Journal d'audit", to: PATHS.adminAudit }, // SCRUM-76
   { label: 'Notifications', to: PATHS.adminNotifications }, // SCRUM-62
   { label: 'Paramètres du compte', to: PATHS.account },
 ]

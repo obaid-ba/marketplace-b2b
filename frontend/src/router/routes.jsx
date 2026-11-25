@@ -370,6 +370,11 @@ export const createRoutes = () => [
             lazy: page(() => import('@/views/admin/AdminDisputePage')),
           },
           {
+            path: PATHS.adminAudit,
+            handle: { crumb: "Journal d'audit" },
+            lazy: page(() => import('@/views/admin/AdminAuditPage')),
+          },
+          {
             path: PATHS.adminNotifications,
             handle: { crumb: 'Notifications' },
             lazy: page(() => import('@/views/notifications/NotificationsPage')),
