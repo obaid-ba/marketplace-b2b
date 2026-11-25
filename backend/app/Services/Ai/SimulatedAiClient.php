@@ -28,6 +28,7 @@ class SimulatedAiClient implements AiClient
                 ? $this->reviewAnalysis($request->data)
                 : $this->supplierReviewSummary($request->data),
             AiFeature::MODERATION => $this->productModeration($request->data),
+            AiFeature::CHATBOT => $this->chatbot($request->data),
             default => throw new AiUnavailableException("Le mode simulé ne couvre pas « {$request->feature->value} »."),
         };
 
@@ -336,6 +337,55 @@ class SimulatedAiClient implements AiClient
         }
 
         return ['suspicion_score' => min(100, $score), 'reasons' => $reasons];
+    }
+
+    /**
+     * Chatbot (SCRUM-85) : la fiche du guide qui partage le plus de mots avec la question.
+     *
+     * @param  array{message: string, guide: list<array{title: string, keywords: list<string>, answer: string, links: list<array{0: string, 1: string}>}>, fallback: string}  $data
+     * @return array{answer: string, links: list<array{label: string, path: string}>}
+     */
+    private function chatbot(array $data): array
+    {
+        $message = $data['message'];
+
+        // Données d'un autre utilisateur : le guide n'en contient pas, et l'assistant le dit clairement.
+        if (preg_match('/\b(e-?mail|t[ée]l[ée]phone|num[ée]ro|adresse|coordonn[ée]es|commandes?|devis|chiffre)\s+(de|du|d’|d\')\s*(?!la plateforme|mon|ma|mes)/iu', $message)) {
+            return [
+                'answer' => 'Je n’ai accès à aucune information sur les autres utilisateurs et ne peux donc pas la communiquer. Pour échanger avec un fournisseur ou un porteur de projet, utilisez la messagerie de la plateforme.',
+                'links' => [],
+            ];
+        }
+
+        $stems = $this->stems($message, false);
+        if ($stems === [] || preg_match('/^\s*(bonjour|bonsoir|salut|merci|hello|aide)\b[\s!.?]*$/iu', $message)) {
+            return [
+                'answer' => 'Bonjour ! Dites-moi ce que vous souhaitez faire : publier une demande, répondre à une demande, commander, payer, suivre une commande, laisser un avis…',
+                'links' => [],
+            ];
+        }
+
+        $best = null;
+        foreach ($data['guide'] as $section) {
+            $vocabulary = $this->stems(implode(' ', $section['keywords']).' '.$section['title'], false);
+            $score = count(array_intersect($stems, $vocabulary));
+
+            if ($score > 0 && ($best === null || $score > $best['score'])) {
+                $best = ['score' => $score, 'section' => $section];
+            }
+        }
+
+        if ($best === null) {
+            return ['answer' => $data['fallback'], 'links' => []];
+        }
+
+        return [
+            'answer' => $best['section']['answer'],
+            'links' => array_map(
+                fn (array $link) => ['label' => $link[0], 'path' => $link[1]],
+                array_slice($best['section']['links'], 0, 3),
+            ),
+        ];
     }
 
     /**

@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\Buyer\TenderAiController;
 use App\Http\Controllers\Api\Buyer\TenderController as BuyerTenderController;
 use App\Http\Controllers\Api\BuyerRegistrationController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DisputeController;
 use App\Http\Controllers\Api\DocumentController;
@@ -129,6 +130,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])
         ->whereUuid('notification');
+
+    // Chatbot d'assistance (SCRUM-85) : tout utilisateur connecté ; limite par utilisateur dans AiService.
+    Route::post('/chatbot/messages', [ChatbotController::class, 'send'])->middleware('throttle:30,1');
 });
 
 // Espaces métier : connecté ET adresse e-mail vérifiée.

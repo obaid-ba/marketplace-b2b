@@ -1,10 +1,21 @@
-import { redirect } from 'react-router'
+import { Outlet, redirect } from 'react-router'
+import ChatbotWidget from '@/components/ChatbotWidget'
 import ErrorBoundary from '@/views/errors/ErrorBoundary'
 import { verifyEmail } from '@/api/emailVerification'
 import { ensureAuthLoaded, selectIsAuthenticated, useAuthStore } from '@/stores/auth'
 import { ROLES } from '@/utils/roles'
 import { resolveAccess } from './guard'
 import { PATHS } from './paths'
+
+/** Racine : la page demandée, plus le chatbot d'assistance disponible partout (SCRUM-85). */
+function RootLayout() {
+  return (
+    <>
+      <Outlet />
+      <ChatbotWidget />
+    </>
+  )
+}
 
 /** Chargement à la demande d'une page (un fichier JS par page). */
 const page = (load) => ({ Component: async () => (await load()).default })
@@ -75,6 +86,8 @@ export const createRoutes = () => [
       return null
     },
     HydrateFallback: () => null,
+    // Chatbot d'assistance sur toutes les pages (SCRUM-85).
+    Component: RootLayout,
     ErrorBoundary,
     children: [
       // Vitrine publique (sprint 2) : en-tête et pied de page communs, accessible sans connexion.
