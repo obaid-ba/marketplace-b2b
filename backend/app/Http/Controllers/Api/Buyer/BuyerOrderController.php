@@ -12,6 +12,7 @@ use App\Models\OrderStatusHistory;
 use App\Models\Product;
 use App\Notifications\NewOrderNotification;
 use App\Notifications\OrderClosedNotification;
+use App\Notifications\OrderValidatedNotification;
 use App\Services\OrderDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -175,6 +176,7 @@ class BuyerOrderController extends Controller
         if ($supplier->user) {
             $supplier->user->notify(new NewOrderNotification($order));
         }
+        $request->user()->notify(new OrderValidatedNotification($order));
 
         $order->load([
             'items.product',

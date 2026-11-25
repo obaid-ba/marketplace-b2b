@@ -162,9 +162,9 @@ class WhatsAppTest extends TestCase
         $this->optIn();
         $rows = collect($this->actingAs($this->user, 'sanctum')->getJson('/api/notifications/preferences')->json('preferences'))->keyBy('event_type');
 
-        $this->assertTrue($rows['order_validated']['channels']['whatsapp']['enabled']);
-        $this->assertTrue($rows['dispute_decision']['channels']['whatsapp']['enabled']);
-        $this->assertFalse($rows['message_received']['channels']['whatsapp']['enabled']);
+        // Liste de la story SCRUM-133, les autres événements restent au choix.
+        $enabled = $rows->filter(fn ($row) => $row['channels']['whatsapp']['enabled'])->keys()->all();
+        $this->assertEqualsCanonicalizing(['quote_received', 'order_validated', 'order_status_changed', 'dispute_decision'], $enabled);
         $this->assertFalse($rows['order_validated']['channels']['whatsapp']['locked']);
     }
 

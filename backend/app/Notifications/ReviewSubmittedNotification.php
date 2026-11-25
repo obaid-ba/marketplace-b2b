@@ -2,8 +2,13 @@
 
 namespace App\Notifications;
 
+use App\Enums\UserRole;
+use App\Models\NotificationPreference;
 use App\Models\Review;
+use App\Models\User;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -11,20 +16,22 @@ use Illuminate\Notifications\Notification;
  * Notification envoyée au fournisseur lorsqu'un acheteur dépose un avis sur sa commande (SCRUM-64).
  * Inclut une alerte prioritaire si la note est ≤ 2 étoiles.
  */
-class ReviewSubmittedNotification extends Notification
+class ReviewSubmittedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsNotificationPreferences;
 
     public function __construct(
         public Review $review
-    ) {}
+    ) {
+        $this->afterCommit();
+    }
 
     /**
      * @return list<string>
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return $notifiable instanceof User ? $this->channelsFor($notifiable) : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -60,6 +67,9 @@ class ReviewSubmittedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
+            'event' => $this->eventType(),
+            'title' => $this->review->rating <= 2 ? 'Avis critique' : 'Nouvel avis',
+            'url' => $notifiable instanceof User && $notifiable->hasRole(UserRole::Admin) ? '/admin/avis' : '/fournisseur/avis',
             'event_type' => $this->review->rating <= 2 ? 'review.critical' : 'review.submitted',
             'review_id' => $this->review->id,
             'order_id' => $this->review->order_id,
@@ -71,5 +81,10 @@ class ReviewSubmittedNotification extends Notification
                 ? "⚠️ Avis critique ({$this->review->rating}/5) reçu pour la commande #{$this->review->order_id}."
                 : "Nouvel avis ({$this->review->rating}/5) reçu pour la commande #{$this->review->order_id}.",
         ];
+    }
+
+    protected function eventType(): string
+    {
+        return NotificationPreference::EVENT_REVIEW;
     }
 }

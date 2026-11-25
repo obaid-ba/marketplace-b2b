@@ -12,7 +12,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Commande validée après acceptation d'un devis (e-mail critique, SCRUM-48 / SCRUM-63).
+ * Commande validée, après acceptation d'un devis ou commande directe (e-mail critique, SCRUM-48 / SCRUM-63).
  */
 class OrderValidatedNotification extends Notification implements ShouldQueue
 {
@@ -46,7 +46,7 @@ class OrderValidatedNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Commande validée n° '.$this->order->id)
-            ->line('Votre commande a bien été créée à partir du devis accepté.')
+            ->line('Votre commande est validée : le fournisseur en est informé.')
             ->line('Montant : '.number_format((float) $this->order->total, 2, ',', ' ').' TND')
             ->action('Suivre la commande', $this->frontendUrl('/porteur/commandes/'.$this->order->id))
             ->line('Aucun paiement en ligne n’est demandé à cette étape.');

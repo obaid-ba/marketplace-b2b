@@ -14,6 +14,7 @@ use App\Models\Product;
 use App\Models\SupplierProfile;
 use App\Models\User;
 use App\Notifications\NewOrderNotification;
+use App\Notifications\OrderValidatedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -270,6 +271,7 @@ class DirectOrderTest extends TestCase
 
         // Vérification notification
         Notification::assertSentTo($supplierUser, NewOrderNotification::class);
+        Notification::assertSentTo($buyerUser, OrderValidatedNotification::class);
     }
 
     public function test_le_prix_et_la_designation_restent_figes_apres_modification_du_produit(): void

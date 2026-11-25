@@ -45,6 +45,8 @@ class NotificationPreference extends Model
 
     public const EVENT_MESSAGE_RECEIVED = 'message_received';
 
+    public const EVENT_REVIEW = 'review_update';
+
     /**
      * Événements proposés dans la grille des préférences.
      *
@@ -61,6 +63,7 @@ class NotificationPreference extends Model
         self::EVENT_MESSAGE_RECEIVED => 'Nouveau message',
         self::EVENT_ACCOUNT_VALIDATED => 'Compte validé',
         self::EVENT_ACCOUNT_REJECTED => 'Compte refusé',
+        self::EVENT_REVIEW => 'Avis : nouvel avis, réponse ou modération',
         self::EVENT_ANNOUNCEMENT_REMOVED => 'Annonce retirée',
         self::EVENT_DISPUTE_UPDATE => 'Litige ouvert ou pris en charge',
         self::EVENT_DISPUTE_DECISION => 'Décision de litige',
@@ -75,6 +78,18 @@ class NotificationPreference extends Model
         self::EVENT_ORDER_VALIDATED,
         self::EVENT_ACCOUNT_VALIDATED,
         self::EVENT_ACCOUNT_REJECTED,
+        self::EVENT_DISPUTE_DECISION,
+    ];
+
+    /**
+     * Envoyés par WhatsApp par défaut, une fois le consentement donné (SCRUM-133).
+     *
+     * @var list<string>
+     */
+    public const WHATSAPP_DEFAULT_EVENTS = [
+        self::EVENT_QUOTE_RECEIVED,
+        self::EVENT_ORDER_VALIDATED,
+        self::EVENT_ORDER_STATUS,
         self::EVENT_DISPUTE_DECISION,
     ];
 
@@ -133,11 +148,11 @@ class NotificationPreference extends Model
     }
 
     /**
-     * Site et e-mail : actifs par défaut. WhatsApp : seulement les événements importants, une fois le consentement donné.
+     * Site et e-mail : actifs par défaut. WhatsApp : seulement WHATSAPP_DEFAULT_EVENTS.
      */
     private static function enabledByDefault(string $event, string $channel): bool
     {
-        return $channel !== self::CHANNEL_WHATSAPP || self::isCriticalEmail($event);
+        return $channel !== self::CHANNEL_WHATSAPP || in_array($event, self::WHATSAPP_DEFAULT_EVENTS, true);
     }
 
     /**

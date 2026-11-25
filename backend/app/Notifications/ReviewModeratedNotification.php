@@ -2,30 +2,36 @@
 
 namespace App\Notifications;
 
+use App\Models\NotificationPreference;
 use App\Models\Review;
+use App\Models\User;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * Notification à l'auteur d'un avis après modération (SCRUM-74).
  */
-class ReviewModeratedNotification extends Notification
+class ReviewModeratedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsNotificationPreferences;
 
     public function __construct(
         public Review $review,
         public string $decision,
         public ?string $reason = null,
-    ) {}
+    ) {
+        $this->afterCommit();
+    }
 
     /**
      * @return list<string>
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return $notifiable instanceof User ? $this->channelsFor($notifiable) : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -52,11 +58,19 @@ class ReviewModeratedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
+            'event' => $this->eventType(),
+            'title' => "Avis {$this->decision}",
+            'url' => "/orders/{$this->review->order_id}",
             'event_type' => 'review.moderated',
             'review_id' => $this->review->id,
             'decision' => $this->decision,
             'reason' => $this->reason,
             'message' => "Votre avis a été {$this->decision} par la modération.",
         ];
+    }
+
+    protected function eventType(): string
+    {
+        return NotificationPreference::EVENT_REVIEW;
     }
 }

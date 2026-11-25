@@ -2,28 +2,34 @@
 
 namespace App\Notifications;
 
+use App\Models\NotificationPreference;
 use App\Models\Order;
+use App\Models\User;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * Notification envoyée au fournisseur lorsque l'acheteur confirme la réception de sa commande (SCRUM-56).
  */
-class OrderClosedNotification extends Notification
+class OrderClosedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsNotificationPreferences;
 
     public function __construct(
         public Order $order
-    ) {}
+    ) {
+        $this->afterCommit();
+    }
 
     /**
      * @return list<string>
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return $notifiable instanceof User ? $this->channelsFor($notifiable) : ['database'];
     }
 
     /**
@@ -51,6 +57,9 @@ class OrderClosedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
+            'event' => $this->eventType(),
+            'title' => "Commande n° {$this->order->id} clôturée",
+            'url' => "/orders/{$this->order->id}",
             'event_type' => 'order.closed',
             'order_id' => $this->order->id,
             'status' => $this->order->status->value,
@@ -58,5 +67,10 @@ class OrderClosedNotification extends Notification
             'supplier_id' => $this->order->supplier_id,
             'message' => "La commande #{$this->order->id} a été confirmée et clôturée par l'acheteur.",
         ];
+    }
+
+    protected function eventType(): string
+    {
+        return NotificationPreference::EVENT_ORDER_STATUS;
     }
 }
