@@ -8,6 +8,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -39,6 +41,55 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json(['message' => 'Non authentifié.'], 401);
+            }
+        });
+
+        // Réponses d'erreur JSON uniformes, en français (SCRUM-127 / SCRUM-92) : { message, errors? }.
+        // Un message français déjà fourni par le code (abort(403, '…'), ValidationException…) est conservé.
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                $errors = $e->errors();
+
+                return response()->json([
+                    'message' => collect($errors)->flatten()->first() ?? 'Certains champs sont invalides.',
+                    'errors' => $errors,
+                ], $e->status);
+            }
+        });
+
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            $status = $e->getStatusCode();
+            $message = $e->getMessage();
+            $isDefault = $message === '' || preg_match('/^(No query results|The route|This action is unauthorized|Too Many Attempts|The .* method is not supported)/i', $message);
+
+            $defaults = [
+                403 => 'Vous n’avez pas accès à cette ressource.',
+                404 => 'Ressource introuvable.',
+                405 => 'Cette action n’est pas disponible à cette adresse.',
+                429 => 'Trop de requêtes. Réessayez dans quelques instants.',
+            ];
+
+            if (! $isDefault || ! isset($defaults[$status])) {
+                return null; // message métier déjà rédigé : rendu standard de Laravel
+            }
+
+            $body = ['message' => $defaults[$status]];
+            if ($status === 429 && isset($e->getHeaders()['Retry-After'])) {
+                $body['retry_after'] = (int) $e->getHeaders()['Retry-After'];
+                $body['message'] = 'Trop de requêtes. Réessayez dans '.$body['retry_after'].' s.';
+            }
+
+            return response()->json($body, $status, $e->getHeaders());
+        });
+
+        // Erreur imprévue en production : jamais de trace technique, un message clair.
+        $exceptions->render(function (Throwable $e, Request $request) {
+            if ($request->is('api/*') && ! config('app.debug') && ! $e instanceof HttpExceptionInterface) {
+                return response()->json(['message' => 'Une erreur interne est survenue. Réessayez dans quelques instants.'], 500);
             }
         });
     })->create();

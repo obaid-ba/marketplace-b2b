@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import { createTender, fetchTenderReferences } from '@/api/tenders'
 import PageHeader from '@/components/PageHeader'
 import { buyerTenderPath, PATHS } from '@/router/paths'
+import { useFormDraft } from '@/utils/useFormDraft'
 import TenderAiAnalysis from './TenderAiAnalysis'
 import TenderAiDraft from './TenderAiDraft'
 
@@ -53,6 +54,8 @@ export default function NewTenderPage() {
   const [fieldErrors, setFieldErrors] = useState({})
   // Analyse IA retenue et fournisseurs suggérés cochés (SCRUM-81).
   const [ai, setAi] = useState({ interactionId: null, supplierIds: [] })
+  // Saisie conservée en cas de coupure réseau ou de rechargement (SCRUM-92).
+  const draft = useFormDraft('tender:new', form, setForm)
 
   useEffect(() => {
     let active = true
@@ -121,6 +124,7 @@ export default function NewTenderPage() {
         files,
       )
 
+      draft.clear()
       navigate(buyerTenderPath(tender.id), {
         state: { notice: 'Votre demande est publiée. Les fournisseurs correspondants sont notifiés.' },
       })
@@ -148,6 +152,22 @@ export default function NewTenderPage() {
         <div className="mb-4 rounded-lg border border-danger-soft bg-danger-soft/50 px-4 py-3 text-sm text-danger">
           {error}
         </div>
+      )}
+
+      {draft.restored && (
+        <p role="status" className="mb-4 rounded-lg bg-info-soft px-4 py-3 text-sm text-ink">
+          Votre saisie précédente a été restaurée.{' '}
+          <button
+            type="button"
+            className="font-medium text-brand-600 hover:underline"
+            onClick={() => {
+              draft.clear()
+              setForm(EMPTY_FORM)
+            }}
+          >
+            Recommencer à zéro
+          </button>
+        </p>
       )}
 
       <form onSubmit={handleSubmit} className="card max-w-3xl space-y-5">

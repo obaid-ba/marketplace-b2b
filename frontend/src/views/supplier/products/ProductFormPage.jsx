@@ -12,6 +12,7 @@ import {
 import { fetchSupplierProfile } from '@/api/supplierProfile'
 import ProductCard from '@/components/ProductCard'
 import { PATHS, supplierProductEditPath } from '@/router/paths'
+import { useFormDraft } from '@/utils/useFormDraft'
 import ProductAiText from './ProductAiText'
 import ProductImagesField from './ProductImagesField'
 
@@ -126,6 +127,8 @@ export default function ProductFormPage() {
   const [errors, setErrors] = useState({})
   // Message transmis après la création (la page est rechargée sur l'adresse de modification).
   const [notice, setNotice] = useState(location.state?.notice ?? null)
+  // Nouveau produit : saisie conservée en cas de coupure réseau ou de rechargement (SCRUM-92).
+  const draft = useFormDraft(isEdit ? null : 'product:new', form, setForm)
 
   useEffect(() => {
     fetchCategories().then(setCategories).catch(() => setCategories([]))
@@ -214,6 +217,7 @@ export default function ProductFormPage() {
     } finally {
       setNotice(resultNotice)
       if (current) {
+        draft.clear() // le produit existe côté serveur : le brouillon local n'est plus utile
         setProduct(current)
         setImages(imagesFromProduct(current))
         if (!isEdit) navigate(supplierProductEditPath(current.id), { replace: true, state: { notice: resultNotice } })

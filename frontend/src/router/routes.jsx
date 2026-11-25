@@ -1,5 +1,6 @@
 import { Outlet, redirect } from 'react-router'
 import ChatbotWidget from '@/components/ChatbotWidget'
+import OfflineBanner from '@/components/OfflineBanner'
 import ErrorBoundary from '@/views/errors/ErrorBoundary'
 import { verifyEmail } from '@/api/emailVerification'
 import { ensureAuthLoaded, selectIsAuthenticated, useAuthStore } from '@/stores/auth'
@@ -7,10 +8,11 @@ import { ROLES } from '@/utils/roles'
 import { resolveAccess } from './guard'
 import { PATHS } from './paths'
 
-/** Racine : la page demandée, plus le chatbot d'assistance disponible partout (SCRUM-85). */
+/** Racine : la page demandée, le bandeau hors ligne (SCRUM-88) et le chatbot d'assistance (SCRUM-85). */
 function RootLayout() {
   return (
     <>
+      <OfflineBanner />
       <Outlet />
       <ChatbotWidget />
     </>

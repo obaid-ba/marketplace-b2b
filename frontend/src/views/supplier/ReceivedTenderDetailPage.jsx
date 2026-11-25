@@ -9,6 +9,7 @@ import { QuoteStatusBadge, TenderStatusBadge } from '@/components/TenderBadges'
 import { PATHS } from '@/router/paths'
 import { formatAmount } from '@/utils/money'
 import { formatDate } from '@/utils/period'
+import { useFormDraft } from '@/utils/useFormDraft'
 
 const EMPTY_QUOTE = { amount: '', delivery_days: '', conditions: '', comment: '' }
 
@@ -35,6 +36,8 @@ export default function ReceivedTenderDetailPage() {
   const [form, setForm] = useState(EMPTY_QUOTE)
   const [fieldErrors, setFieldErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
+  // Devis en cours de saisie conservé en cas de coupure réseau (SCRUM-92), restauré une fois la demande chargée.
+  const draft = useFormDraft(`quote:${id}`, form, setForm, { ready: detail !== null })
 
   useEffect(() => {
     let active = true
@@ -81,6 +84,7 @@ export default function ReceivedTenderDetailPage() {
         Boolean(detail.my_quote),
       )
 
+      draft.clear()
       setDetail((current) => ({ ...current, my_quote: quote, already_responded: true }))
       setForm(formFromQuote(quote))
       setNotice(

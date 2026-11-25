@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#5b4bdb" />
+    <title>Hors ligne — Marketplace B2B</title>
+    <style>
+      body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+        background: #f6f6fb; color: #14142b; font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; text-align: center; }
+      main { max-width: 26rem; }
+      .logo { display: inline-grid; place-items: center; width: 56px; height: 56px; border-radius: 14px; background: #5b4bdb;
+        color: #fff; font-size: 28px; font-weight: 700; }
+      h1 { margin: 20px 0 8px; font-size: 24px; }
+      p { margin: 0; color: #5f6078; line-height: 1.5; }
+      button { margin-top: 24px; border: 0; border-radius: 10px; background: #5b4bdb; color: #fff; padding: 12px 20px;
+        font: inherit; font-weight: 600; cursor: pointer; }
+      button:focus-visible { outline: 4px solid #dedbfa; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="logo" aria-hidden="true">M</span>
+      <h1>Vous êtes hors ligne</h1>
+      <p>Marketplace B2B a besoin d’une connexion Internet pour afficher cette page. Vérifiez votre Wi-Fi ou vos données mobiles, puis réessayez.</p>
+      <button type="button" onclick="location.reload()">Réessayer</button>
+    </main>
+  </body>
+</html>

@@ -88,14 +88,19 @@ Route::get('/auth/email/verify/{id}/{hash}', [EmailVerificationController::class
     ->name('verification.verify');
 
 // Données de référence des formulaires.
-Route::get('/reference/regions', [ReferenceController::class, 'regions']);
-Route::get('/reference/categories', [ReferenceController::class, 'categories']);
-Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
+// En-têtes de cache des ressources publiques (SCRUM-127) : le navigateur et le service worker réutilisent la réponse.
+Route::middleware('cache.headers:public;max_age=3600;etag')->group(function () {
+    Route::get('/reference/regions', [ReferenceController::class, 'regions']);
+    Route::get('/reference/categories', [ReferenceController::class, 'categories']);
+    Route::get('/reference/sectors', [ReferenceController::class, 'sectors']);
+});
 
 // Vitrine publique (S2) : catégories, accueil et catalogue.
-Route::get('/categories', [CategoryController::class, 'index']);
-Route::get('/home', HomeController::class);
-Route::get('/products', [ProductController::class, 'index'])->middleware('throttle:120,1');
+Route::middleware('cache.headers:public;max_age=300;etag')->group(function () {
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/home', HomeController::class);
+});
+Route::get('/products', [ProductController::class, 'index'])->middleware(['throttle:120,1', 'cache.headers:public;max_age=60;etag']);
 Route::get('/products/{product}', [ProductController::class, 'show'])->whereNumber('product')->middleware('throttle:120,1');
 Route::get('/suppliers/{supplier}/products', [ProductController::class, 'bySupplier'])->whereNumber('supplier');
 Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])->whereNumber('supplier');
