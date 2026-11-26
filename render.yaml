@@ -7,7 +7,7 @@ envVarGroups:
   - name: marketplace-api-env
     envVars:
       - key: APP_NAME
-        value: TijaraLink
+        value: Marketplace B2B
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
@@ -71,7 +71,7 @@ envVarGroups:
       - key: MAIL_FROM_ADDRESS
         sync: false
       - key: MAIL_FROM_NAME
-        value: TijaraLink
+        value: Marketplace B2B
       # Le pre-deploy command est réservé aux instances payantes : sur le plan gratuit,
       # les migrations tournent au démarrage du conteneur (entrypoint.sh, idempotentes).
       - key: RUN_MIGRATIONS

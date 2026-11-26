@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
-# Lance tout le projet (PostgreSQL, API, worker, application web, Mailpit) et attend qu'il soit prêt.
-# Usage : ./deploy/start.sh        (relancez-le après un git pull pour reconstruire)
+# Lance tout le projet (PostgreSQL, API, worker, application web, Mailpit) et attend qu'il soit prÃªt.
+# Usage : ./deploy/start.sh        (relancez-le aprÃ¨s un git pull pour reconstruire)
 set -e
 cd "$(dirname "$0")"
 
 COMPOSE="docker compose"
 [ -f .env ] && set -a && . ./.env && set +a
 
-echo "Construction et démarrage des conteneurs (la première fois : quelques minutes)…"
+echo "Construction et dÃ©marrage des conteneurs (la premiÃ¨re fois : quelques minutes)â€¦"
 $COMPOSE up -d --build
 
 WEB_URL=${WEB_URL:-http://localhost:5173}
@@ -20,7 +20,7 @@ until curl -sf "$API_URL/up" >/dev/null 2>&1; do
   i=$((i + 1))
   if [ "$i" -gt 120 ]; then
     echo
-    echo "L'API ne répond pas. Derniers messages :"
+    echo "L'API ne rÃ©pond pas. Derniers messages :"
     $COMPOSE logs --tail=40 api
     exit 1
   fi
@@ -31,16 +31,16 @@ echo " OK"
 
 cat <<EOF
 
-TijaraLink est prêt
+Marketplace B2B est prêt
   Application web : $WEB_URL
   API             : $API_URL
   E-mails (test)  : http://localhost:$MAILPIT_PORT
 
-  Comptes de démonstration (mot de passe : password)
-    admin@tijaralink.test
-    buyer1@tijaralink.test … buyer5@tijaralink.test
-    supplier1@tijaralink.test … supplier8@tijaralink.test
+  Comptes de dÃ©monstration (mot de passe : password)
+    admin@marketplace.test
+    buyer1@marketplace.test â€¦ buyer5@marketplace.test
+    supplier1@marketplace.test â€¦ supplier8@marketplace.test
 
   Journaux : docker compose -f deploy/docker-compose.yml logs -f api worker
-  Arrêter  : ./deploy/stop.sh
+  ArrÃªter  : ./deploy/stop.sh
 EOF

@@ -46,7 +46,7 @@ services:
         condition: service_started
     environment:
       PORT: 8000
-      APP_NAME: "TijaraLink"
+      APP_NAME: "Marketplace B2B"
       APP_ENV: ${APP_ENV:-local}
       APP_DEBUG: ${APP_DEBUG:-true}
       APP_URL: ${API_URL:-http://localhost:8000}
@@ -69,7 +69,7 @@ services:
       MAIL_PORT: ${MAIL_PORT:-1025}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@tijaralink.test}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@marketplace.test}
       # local = fichiers dans le volume api-storage ; cloudinary = envoi sur le CDN
       MEDIA_DRIVER: ${MEDIA_DRIVER:-local}
       CLOUDINARY_URL: ${CLOUDINARY_URL:-}
@@ -92,7 +92,7 @@ services:
       api:
         condition: service_started
     environment:
-      APP_NAME: "TijaraLink"
+      APP_NAME: "Marketplace B2B"
       APP_ENV: ${APP_ENV:-local}
       APP_DEBUG: ${APP_DEBUG:-true}
       APP_URL: ${API_URL:-http://localhost:8000}
@@ -114,7 +114,7 @@ services:
       MAIL_PORT: ${MAIL_PORT:-1025}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@tijaralink.test}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@marketplace.test}
       MEDIA_DRIVER: ${MEDIA_DRIVER:-local}
       CLOUDINARY_URL: ${CLOUDINARY_URL:-}
       LOG_CHANNEL: stderr
