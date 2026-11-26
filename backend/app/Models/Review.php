@@ -3,16 +3,20 @@
 namespace App\Models;
 
 use App\Enums\ReviewStatus;
+use App\Services\ReviewInsightService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Avis d'un porteur de projet sur un fournisseur, après une commande (entité EP07).
- * Le dépôt d'avis arrive en S6 (SCRUM-64) ; le sprint 2 les affiche sur les fiches publiques.
+ * Avis client lié à une commande (SCRUM-65).
  */
 class Review extends Model
 {
+    use HasFactory;
+
     /**
      * @var list<string>
      */
@@ -24,6 +28,8 @@ class Review extends Model
         'comment',
         'supplier_reply',
         'status',
+        'ai_suspicion_score',
+        'ai_sentiment',
     ];
 
     /**
@@ -32,34 +38,68 @@ class Review extends Model
     protected function casts(): array
     {
         return [
-            'rating' => 'integer',
             'status' => ReviewStatus::class,
+            'rating' => 'integer',
+            'ai_suspicion_score' => 'decimal:2',
         ];
     }
 
+    /**
+     * Commande ayant fait l'objet de l'avis.
+     */
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class, 'order_id');
+    }
+
+    /**
+     * Acheteur ayant déposé l'avis.
+     */
     public function buyer(): BelongsTo
     {
         return $this->belongsTo(BuyerProfile::class, 'buyer_id');
     }
 
+    /**
+     * Fournisseur évalué.
+     */
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(SupplierProfile::class, 'supplier_id');
     }
 
     /**
-     * Avis affichés publiquement : ni signalés en attente de modération, ni masqués.
-     *
-     * @param  Builder<Review>  $query
+     * Signalements de cet avis (SCRUM-66).
      */
-    public function scopePublished(Builder $query): void
+    public function reports(): HasMany
     {
-        $query->where('reviews.status', ReviewStatus::PUBLISHED->value);
+        return $this->hasMany(ReviewReport::class);
     }
 
     /**
-     * Auteur affiché : prénom + initiale du nom (« Sana B. »), jamais le nom complet ni l'e-mail.
+     * File de modération (SCRUM-74) : avis jugés suspects par l'IA d'abord (SCRUM-84), du plus suspect au moins
+     * suspect, puis les plus signalés, puis les plus anciens.
      */
+    public function scopePendingModeration(Builder $query): void
+    {
+        $query->where(fn (Builder $review) => $review
+            ->where('reviews.status', ReviewStatus::REPORTED->value)
+            ->orWhereHas('reports', fn (Builder $report) => $report->where('status', ReviewReport::STATUS_PENDING)))
+            ->withCount(['reports as pending_reports_count' => fn (Builder $report) => $report->where('status', ReviewReport::STATUS_PENDING)])
+            ->orderByRaw('CASE WHEN reviews.ai_suspicion_score >= ? THEN reviews.ai_suspicion_score ELSE 0 END DESC', [ReviewInsightService::SUSPICION_THRESHOLD])
+            ->orderByDesc('pending_reports_count')
+            ->orderBy('reviews.created_at')
+            ->orderBy('reviews.id');
+    }
+
+    /**
+     * Avis visibles et comptés dans la note : publiés, et signalés tant que l'admin n'a pas décidé (SCRUM-66).
+     */
+    public function scopePublished(Builder $query): void
+    {
+        $query->whereIn('reviews.status', [ReviewStatus::PUBLISHED->value, ReviewStatus::REPORTED->value]);
+    }
+
     public function authorDisplayName(): string
     {
         $user = $this->buyer?->user;

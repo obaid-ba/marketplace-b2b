@@ -18,5 +18,7 @@ export default defineConfig({
     // Les pages complètes (formulaires, routeur) dépassent parfois 5 s quand toute la suite tourne en parallèle.
     testTimeout: 15000,
     setupFiles: ['./src/test/setup.js'],
+    // Les tests de bout en bout (Playwright) se lancent avec « npm run test:e2e ».
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
   },
 })

@@ -25,6 +25,19 @@ class DatabaseSeeder extends Seeder
         return filter_var(config('app.seed_demo_data', false), FILTER_VALIDATE_BOOLEAN);
     }
 
+    /** Arbre des catégories : catégorie principale → sous-catégories (réutilisé par FullDemoSeeder). */
+    public const CATEGORY_TREE = [
+        'BTP et matériaux' => ['Ciment et béton', 'Acier et ferraillage', 'Électricité bâtiment', 'Plomberie et sanitaire'],
+        'Informatique' => ['Ordinateurs et serveurs', 'Réseaux et sécurité', 'Développement logiciel', 'Périphériques'],
+        'Fournitures de bureau' => ['Papeterie', 'Mobilier de bureau', 'Consommables impression'],
+        'Agroalimentaire' => ['Matières premières', 'Conditionnement alimentaire', 'Produits laitiers et dérivés'],
+        'Textile' => ['Tissus industriels', 'Vêtements de travail et EPI', 'Accessoires textiles'],
+        'Services' => ['Comptabilité et audit', 'Conseil juridique', 'Nettoyage et gardiennage', 'Formation'],
+        'Équipements industriels' => ['Machines-outils', 'Pièces de rechange', 'Maintenance industrielle'],
+        'Logistique et transport' => ['Transport routier', 'Entreposage', 'Manutention et levage'],
+        'Emballage et conditionnement' => [],
+    ];
+
     public function run(): void
     {
         $now = now();
@@ -39,10 +52,10 @@ class DatabaseSeeder extends Seeder
 
         $password = Hash::make('password'); // Règle #7 : mot de passe « password »
 
-        // 3. Administrateur (admin@marketplace.test)
+        // 3. Administrateur (admin@tijaralink.test)
         $adminId = DB::table('users')->insertGetId([
-            'name' => 'Admin Marketplace',
-            'email' => 'admin@marketplace.test',
+            'name' => 'Équipe TijaraLink',
+            'email' => 'admin@tijaralink.test',
             'phone' => '+216 71 000 000',
             'password' => $password,
             'role' => 'admin',
@@ -57,7 +70,7 @@ class DatabaseSeeder extends Seeder
         for ($i = 1; $i <= 8; $i++) {
             $userId = DB::table('users')->insertGetId([
                 'name' => "Fournisseur {$i}",
-                'email' => "supplier{$i}@marketplace.test",
+                'email' => "supplier{$i}@tijaralink.test",
                 'phone' => "+216 71 100 00{$i}",
                 'password' => $password,
                 'role' => 'supplier',
@@ -95,7 +108,7 @@ class DatabaseSeeder extends Seeder
         for ($i = 1; $i <= 5; $i++) {
             $userId = DB::table('users')->insertGetId([
                 'name' => "Porteur {$i}",
-                'email' => "buyer{$i}@marketplace.test",
+                'email' => "buyer{$i}@tijaralink.test",
                 'phone' => "+216 71 200 00{$i}",
                 'password' => $password,
                 'role' => 'buyer',
@@ -114,7 +127,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // 6. 40 Produits (publiés, brouillons et retirés, avec photos)
+        // 6. 40 Produits (publiés, brouillons et retirés, sans photo : l'interface affiche un dégradé)
         for ($i = 1; $i <= 40; $i++) {
             $status = match (true) {
                 $i <= 30 => ProductStatus::PUBLISHED->value,
@@ -122,7 +135,7 @@ class DatabaseSeeder extends Seeder
                 default => ProductStatus::WITHDRAWN->value,
             };
 
-            $productId = DB::table('products')->insertGetId([
+            DB::table('products')->insert([
                 'supplier_id' => $supplierIds[$i % 6],
                 'category_id' => $subCategoryIds[$i % count($subCategoryIds)],
                 'type' => $i % 5 === 0 ? 'service' : 'produit',
@@ -134,14 +147,6 @@ class DatabaseSeeder extends Seeder
                 'availability_days' => rand(1, 15),
                 'status' => $status,
                 'withdrawal_reason' => $status === ProductStatus::WITHDRAWN->value ? 'Rupture de stock temporaire' : null,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-
-            DB::table('product_images')->insert([
-                'product_id' => $productId,
-                'path' => "products/demo-{$i}.jpg",
-                'position' => 1,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -190,8 +195,8 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 8. Catalogue du sprint 2 : fournisseurs et produits des maquettes (SCRUM-35).
-        $this->call(CatalogueDemoSeeder::class);
+        // 8. Démonstration complète (catalogue avec photos, demandes, commandes, avis, litiges…).
+        $this->call(FullDemoSeeder::class);
     }
 
     /**
@@ -236,20 +241,9 @@ class DatabaseSeeder extends Seeder
             return DB::table('categories')->whereNotNull('parent_id')->pluck('id')->all();
         }
 
-        $categoriesTree = [
-            'BTP et matériaux' => ['Ciment et béton', 'Acier et ferraillage', 'Électricité bâtiment', 'Plomberie et sanitaire'],
-            'Informatique' => ['Ordinateurs et serveurs', 'Réseaux et sécurité', 'Développement logiciel', 'Périphériques'],
-            'Fournitures de bureau' => ['Papeterie', 'Mobilier de bureau', 'Consommables impression'],
-            'Agroalimentaire' => ['Matières premières', 'Conditionnement alimentaire', 'Produits laitiers et dérivés'],
-            'Textile' => ['Tissus industriels', 'Vêtements de travail et EPI', 'Accessoires textiles'],
-            'Services' => ['Comptabilité et audit', 'Conseil juridique', 'Nettoyage et gardiennage', 'Formation'],
-            'Équipements industriels' => ['Machines-outils', 'Pièces de rechange', 'Maintenance industrielle'],
-            'Logistique et transport' => ['Transport routier', 'Entreposage', 'Manutention et levage'],
-        ];
-
         $subCategoryIds = [];
         $pos = 1;
-        foreach ($categoriesTree as $parentName => $children) {
+        foreach (self::CATEGORY_TREE as $parentName => $children) {
             $parentId = DB::table('categories')->insertGetId([
                 'parent_id' => null,
                 'name' => $parentName,

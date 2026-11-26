@@ -7,6 +7,7 @@ enum OrderStatus: string
     case VALIDATED = 'validée';
     case IN_PREPARATION = 'en préparation';
     case IN_DELIVERY = 'en livraison';
+    case SHIPPED = 'expédiée';
     case DELIVERED = 'livrée';
     case CLOSED = 'clôturée';
 

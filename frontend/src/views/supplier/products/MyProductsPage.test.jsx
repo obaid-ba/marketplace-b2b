@@ -9,9 +9,12 @@ vi.mock('@/api/categories', () => ({
   fetchCategories: vi.fn().mockResolvedValue([{ id: 1, name: 'Emballage', children: [] }]),
 }))
 vi.mock('@/api/supplierProducts', () => ({
+  FEATURE_DURATIONS: [7, 14, 30],
   fetchSupplierProducts: vi.fn(),
   unpublishSupplierProduct: vi.fn(),
   deleteSupplierProduct: vi.fn(),
+  featureSupplierProduct: vi.fn(),
+  unfeatureSupplierProduct: vi.fn(),
 }))
 
 const row = (overrides) => ({
@@ -131,6 +134,37 @@ describe('MyProductsPage', () => {
 
     await waitFor(() => expect(api.deleteSupplierProduct).toHaveBeenCalledWith(1))
     expect(await screen.findByText('« Cartons » a été supprimé.')).toBeTruthy()
+  })
+
+  it('met un produit en avant pour la durée choisie (SCRUM-40)', async () => {
+    api.featureSupplierProduct.mockResolvedValue({ message: 'Produit mis en avant jusqu’au 09/12/2026.' })
+    renderAt()
+    const table = await screen.findByRole('table')
+
+    fireEvent.click(within(table).getByRole('button', { name: 'Autres actions pour « Cartons ondulés sur mesure »' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Mettre en avant' }))
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByLabelText('14 jours'))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Mettre en avant' }))
+
+    await waitFor(() => expect(api.featureSupplierProduct).toHaveBeenCalledWith(1, 14))
+    expect(await screen.findByText('Produit mis en avant jusqu’au 09/12/2026.')).toBeTruthy()
+  })
+
+  it('affiche la fin de la mise en avant et permet de l’arrêter (SCRUM-40)', async () => {
+    api.fetchSupplierProducts.mockResolvedValue({
+      ...response,
+      data: [row({ is_featured: true, featured_until: '2026-12-09T10:00:00+00:00' })],
+    })
+    api.unfeatureSupplierProduct.mockResolvedValue({ message: 'La mise en avant est arrêtée.' })
+    renderAt()
+    const table = await screen.findByRole('table')
+
+    expect(within(table).getByText('★ En avant jusqu’au 09/12/2026')).toBeTruthy()
+    fireEvent.click(within(table).getByRole('button', { name: 'Autres actions pour « Cartons ondulés sur mesure »' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Arrêter la mise en avant' }))
+
+    await waitFor(() => expect(api.unfeatureSupplierProduct).toHaveBeenCalledWith(1))
   })
 
   it('le bouton Importer est désactivé', async () => {

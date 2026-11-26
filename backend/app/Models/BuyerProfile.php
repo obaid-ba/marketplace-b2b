@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Profil d'un porteur de projet (table buyer_profiles).
@@ -58,11 +59,26 @@ class BuyerProfile extends Model
         return $this->belongsTo(Region::class);
     }
 
-    /**
-     * Fournisseurs favoris (SCRUM-39). Unicité (buyer, supplier) garantie par la base.
-     */
+    public function tenders(): HasMany
+    {
+        return $this->hasMany(Tender::class, 'buyer_id');
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class, 'buyer_id');
+    }
+
     public function favoriteSuppliers(): BelongsToMany
     {
         return $this->belongsToMany(SupplierProfile::class, 'favorites', 'buyer_id', 'supplier_id')->withTimestamps();
+    }
+
+    /**
+     * Commandes passées par le porteur de projet.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'buyer_id');
     }
 }

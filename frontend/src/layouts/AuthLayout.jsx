@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import BrandLogo from '@/components/Logo'
 import { PATHS } from '@/router/paths'
 
 /**
@@ -13,14 +14,13 @@ import { PATHS } from '@/router/paths'
 const ARGUMENTS = [
   'Fournisseurs validés par notre équipe',
   'Devis comparables en un clic',
-  'Paiement sécurisé et suivi de commande',
+  'Suivi de commande étape par étape, devis et factures PDF',
 ]
 
 function Logo() {
   return (
-    <Link to={PATHS.home} className="inline-flex items-center gap-3">
-      <span className="grid h-8 w-8 place-items-center rounded-lg bg-white text-base font-bold text-brand-600">M</span>
-      <span className="text-[17px] font-semibold text-white">Marketplace B2B</span>
+    <Link to={PATHS.home} className="inline-flex items-center">
+      <BrandLogo size={34} variant="light" />
     </Link>
   )
 }

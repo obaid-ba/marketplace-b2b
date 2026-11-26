@@ -31,6 +31,7 @@ class SupplierProductResource extends JsonResource
             'status' => $this->apiStatus(),
             'withdrawal_reason' => $this->isWithdrawn() ? $this->withdrawal_reason : null,
             'featured_until' => $this->featured_until?->toIso8601String(),
+            'is_featured' => $this->isFeatured(), // faux dès l'échéance passée (SCRUM-40)
             'category_id' => $this->category_id,
             'category' => $this->whenLoaded('category', fn () => $this->category ? [
                 'id' => $this->category->id,

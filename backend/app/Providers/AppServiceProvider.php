@@ -3,19 +3,28 @@
 namespace App\Providers;
 
 use App\Contracts\MediaStorage;
+use App\Events\NotificationCreated;
+use App\Exceptions\AiUnavailableException;
 use App\Models\User;
+use App\Services\Ai\AiClient;
 use App\Services\Media\CloudinaryMediaStorage;
 use App\Services\Media\LocalMediaStorage;
+use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +34,20 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(MediaStorage::class, fn () => config('media.driver') === 'cloudinary'
             ? new CloudinaryMediaStorage()
             : new LocalMediaStorage());
+
+        // Fournisseur d'IA choisi par AI_PROVIDER (SCRUM-119) : voir config/ai.php.
+        $this->app->bind(AiClient::class, function ($app) {
+            $driver = config('ai.drivers')[config('ai.provider')] ?? throw new AiUnavailableException('Fournisseur IA inconnu ou désactivé.');
+
+            return $app->make($driver);
+        });
+
+        // Fournisseur WhatsApp choisi par WHATSAPP_PROVIDER (SCRUM-133) : voir config/whatsapp.php.
+        $this->app->bind(WhatsAppClient::class, function ($app) {
+            $driver = config('whatsapp.drivers')[config('whatsapp.provider')] ?? throw new RuntimeException('Fournisseur WhatsApp inconnu ou désactivé.');
+
+            return $app->make($driver);
+        });
     }
 
     public function boot(): void
@@ -46,6 +69,25 @@ class AppServiceProvider extends ServiceProvider
         // Inscriptions : protège la création de comptes et l'envoi d'e-mails.
         RateLimiter::for('register', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
+        });
+
+        // Les jetons sont supprimés à la suspension (SCRUM-118). Filet de sécurité : un jeton créé
+        // au même instant ne donne pas accès à un compte suspendu, désactivé ou supprimé.
+        Sanctum::authenticateAccessTokensUsing(
+            fn (PersonalAccessToken $token, bool $isValid) => $isValid && $token->tokenable instanceof User && ! $token->tokenable->isBlocked()
+        );
+
+        // Messagerie : 30 messages par minute et par utilisateur (SCRUM-60).
+        RateLimiter::for('messages', function (Request $request) {
+            return Limit::perMinute(30)->by((string) $request->user()?->id);
+        });
+
+        // Toute notification ajoutée au centre est aussi signalée en temps réel (SCRUM-62).
+        // rescue : si Reverb est arrêté, la notification reste enregistrée.
+        Event::listen(function (NotificationSent $event) {
+            if ($event->channel === 'database' && $event->notifiable instanceof User) {
+                rescue(fn () => event(new NotificationCreated($event->notifiable->id, $event->notification->id)));
+            }
         });
 
         // « Renvoyer le lien » : une fois par minute et par utilisateur.
@@ -99,11 +141,11 @@ class AppServiceProvider extends ServiceProvider
             return (new MailMessage)
                 ->subject('Confirmez votre adresse e-mail')
                 ->greeting("Bonjour {$user->name},")
-                ->line('Merci pour votre inscription sur Marketplace B2B. Cliquez sur le bouton ci-dessous pour confirmer votre adresse e-mail.')
+                ->line('Merci pour votre inscription sur TijaraLink. Cliquez sur le bouton ci-dessous pour confirmer votre adresse e-mail.')
                 ->action('Confirmer mon adresse e-mail', $url)
                 ->line("Ce lien est valable {$minutes} minutes et ne peut être utilisé qu'une seule fois.")
                 ->line("Si vous n'avez pas créé de compte, ignorez simplement cet e-mail.")
-                ->salutation("L'équipe Marketplace B2B");
+                ->salutation("L'équipe TijaraLink");
         });
     }
 
@@ -126,11 +168,11 @@ class AppServiceProvider extends ServiceProvider
             return (new MailMessage)
                 ->subject('Réinitialisation de votre mot de passe')
                 ->greeting("Bonjour {$user->name},")
-                ->line('Vous avez demandé à changer le mot de passe de votre compte Marketplace B2B.')
+                ->line('Vous avez demandé à changer le mot de passe de votre compte TijaraLink.')
                 ->action('Choisir un nouveau mot de passe', $url)
                 ->line("Ce lien est valable {$minutes} minutes et ne peut être utilisé qu'une seule fois.")
                 ->line("Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé.")
-                ->salutation("L'équipe Marketplace B2B");
+                ->salutation("L'équipe TijaraLink");
         });
     }
 }

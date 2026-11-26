@@ -20,7 +20,8 @@ Ces entités sont déduites du document **« Les pages de la plateforme — Mark
 | SupplierProfile | user_id, nom de l'entreprise, logo, description, secteur, region_id, coordonnées, **is_published**, validation_status (en attente / validé / refusé), motif de refus, validé par / le, note moyenne, nombre d'avis | N-1 Region ; N-N Category et Region (couverture) ; 1-N Product, Quote | Inscription fournisseur, Profil de l'entreprise, Fiche fournisseur, Validation des fournisseurs |
 | BuyerProfile | user_id, organisation ou projet représenté, secteur | 1-N Tender, Order ; N-N Favorite | Inscription porteur de projet, Tableau de bord |
 | SupplierDocument | supplier_id, type (registre de commerce, certification), fichier, statut, envoyé le | N-1 SupplierProfile | Inscription fournisseur (étape 3), Compte en attente, Validation des fournisseurs |
-| NotificationPreference | user_id, type d'événement, canal (e-mail / sur le site), activé | N-1 User | Paramètres du compte |
+| NotificationPreference | user_id, type d'événement, canal (e-mail / sur le site / WhatsApp), activé | N-1 User | Paramètres du compte |
+| WhatsAppDelivery | user_id, type d'événement, statut (envoyé / simulé / échoué), e-mail envoyé à la place (oui/non), fournisseur, identifiant du message, erreur | N-1 User | Paramètres du compte |
 
 ### Comptes et accès : champs détaillés à l'inscription
 
@@ -220,7 +221,7 @@ Chiffre d'affaires, dépenses, nombre de commandes, taux de conversion des devis
 |---|---|---|
 | Shop | Supprimée | La fiche fournisseur et le profil de l'entreprise tiennent lieu de vitrine. |
 | Project | Supprimée | Aucune page ne l'utilise. |
-| ExternalChannel | Supprimée | WhatsApp/Messenger (énoncé) n'apparaît pas dans les pages. À rajouter, avec un 3e canal dans NotificationPreference, si cette fonction est conservée. |
+| ExternalChannel | Supprimée | WhatsApp est un 3e canal de NotificationPreference (D20) : accord dans `users.whatsapp_opted_in_at`, envois dans WhatsAppDelivery. Messenger : hors périmètre (R6). |
 | Region, SupplierCoverageRegion, SupplierCategory | Ajoutées | Filtre par région, zone couverte et catégories proposées. |
 | TenderMatch | Devient TenderRecipient | Ajout du champ source (le porteur peut inviter un favori). |
 | Quote | Modifiée | Nouveau statut « en négociation ». |

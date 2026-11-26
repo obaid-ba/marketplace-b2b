@@ -10,7 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * Fiche produit publique (SCRUM-36) : photos ordonnées, catégorie et parent (fil d'Ariane),
  * fournisseur et sa note, 3 derniers avis du fournisseur.
- * Attend images, category.parent, supplier.region chargés ; latest_reviews et is_favorite fournis par le contrôleur.
+ * Attend images, category.parent, supplier.region chargés ; latest_reviews, is_favorite et same_supplier_products fournis par le contrôleur.
  *
  * @mixin Product
  */
@@ -48,8 +48,11 @@ class ProductDetailResource extends JsonResource
                 'rating_avg' => round((float) $supplier->rating_avg, 1),
                 'reviews_count' => (int) $supplier->reviews_count,
                 'is_favorite' => (bool) ($this->is_favorite ?? false),
+                'delivery_days' => $supplier->delivery_days,
+                'payment_terms' => $supplier->payment_terms,
             ],
             'latest_reviews' => ReviewResource::collection($this->latest_reviews ?? collect()),
+            'same_supplier_products' => $this->same_supplier_products ?? [],
         ];
     }
 }

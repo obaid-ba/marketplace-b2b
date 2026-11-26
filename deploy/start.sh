@@ -31,15 +31,15 @@ echo " OK"
 
 cat <<EOF
 
-Marketplace B2B est prêt
+TijaraLink est prêt
   Application web : $WEB_URL
   API             : $API_URL
   E-mails (test)  : http://localhost:$MAILPIT_PORT
 
   Comptes de démonstration (mot de passe : password)
-    admin@marketplace.test
-    buyer1@marketplace.test … buyer5@marketplace.test
-    supplier1@marketplace.test … supplier8@marketplace.test
+    admin@tijaralink.test
+    buyer1@tijaralink.test … buyer5@tijaralink.test
+    supplier1@tijaralink.test … supplier8@tijaralink.test
 
   Journaux : docker compose -f deploy/docker-compose.yml logs -f api worker
   Arrêter  : ./deploy/stop.sh

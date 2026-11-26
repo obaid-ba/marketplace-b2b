@@ -14,6 +14,7 @@ use App\Models\Region;
 use App\Models\Review;
 use App\Models\SupplierProfile;
 use App\Models\User;
+use App\Services\SupplierRatingService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -31,22 +32,23 @@ class CatalogueDemoSeeder extends Seeder
 {
     /**
      * Fournisseurs : [entreprise, e-mail, région, secteur, note, nombre d'avis, présentation, catégories proposées].
+     * La note et le nombre d'avis ne sont plus imposés : ils sont recalculés à partir des avis créés plus bas.
      */
     private const SUPPLIERS = [
-        ['Atlas Emballages', 'atlas@marketplace.test', 'Sfax', 'Emballage et conditionnement', 4.6, 38,
+        ['Atlas Emballages', 'atlas@tijaralink.test', 'Sfax', 'Emballage et conditionnement', 4.6, 38,
             'Spécialiste des emballages en carton ondulé depuis 2009. 60 employés, capacité de 2 millions de pièces par mois, livraison dans toute la Tunisie.',
             ['Emballage et conditionnement', 'Logistique et transport']],
-        ['Djerba Pack', 'djerbapack@marketplace.test', 'Médenine', 'Emballage et conditionnement', 4.3, 21,
+        ['Djerba Pack', 'djerbapack@tijaralink.test', 'Médenine', 'Emballage et conditionnement', 4.3, 21,
             'Palettes et emballages bois pour l\'export, fabriqués à Djerba.', ['Emballage et conditionnement']],
-        ['PalettesPlus', 'palettesplus@marketplace.test', 'Tunis', 'Logistique et transport', 4.8, 54,
+        ['PalettesPlus', 'palettesplus@tijaralink.test', 'Tunis', 'Logistique et transport', 4.8, 54,
             'Location et vente de palettes, services de palettisation sur site.', ['Logistique et transport']],
-        ['Oliveraie du Sahel', 'oliveraie@marketplace.test', 'Sousse', 'Agroalimentaire', 4.7, 17,
+        ['Oliveraie du Sahel', 'oliveraie@tijaralink.test', 'Sousse', 'Agroalimentaire', 4.7, 17,
             'Huile d\'olive extra vierge en vrac et conditionnée, certifiée bio.', ['Agroalimentaire']],
-        ['TechNova Services', 'technova@marketplace.test', 'Tunis', 'Informatique et télécommunications', 4.5, 26,
+        ['TechNova Services', 'technova@tijaralink.test', 'Tunis', 'Informatique et télécommunications', 4.5, 26,
             'Infogérance, maintenance de parcs informatiques et réseaux pour PME.', ['Informatique', 'Services']],
-        ['ElectroSud', 'electrosud@marketplace.test', 'Gabès', 'Électricité et électronique', 4.2, 12,
+        ['ElectroSud', 'electrosud@tijaralink.test', 'Gabès', 'Électricité et électronique', 4.2, 12,
             'Câbles et matériel électrique pour le bâtiment et l\'industrie.', ['BTP et matériaux']],
-        ['MécaPro Industries', 'mecapro@marketplace.test', 'Sfax', 'Équipements industriels', 4.4, 9,
+        ['MécaPro Industries', 'mecapro@tijaralink.test', 'Sfax', 'Équipements industriels', 4.4, 9,
             'Machines d\'étiquetage et de conditionnement, installation et SAV.', ['Équipements industriels']],
     ];
 
@@ -114,8 +116,6 @@ class CatalogueDemoSeeder extends Seeder
                 'validation_status' => ValidationStatus::VALIDATED,
                 'validated_at' => now(),
             ]);
-            // Réputation de démonstration (en production : recalculée à partir des avis, SCRUM-65).
-            $profile->forceFill(['rating_avg' => $rating, 'reviews_count' => $reviews])->save();
 
             $profile->categories()->syncWithoutDetaching(
                 collect($categoryNames)->map(fn (string $name) => $this->category($name)->id)->all(),
@@ -147,6 +147,11 @@ class CatalogueDemoSeeder extends Seeder
 
         $this->seedBuyersAndReviews($suppliers, $password);
 
+        // Note et nombre d'avis calculés à partir des avis réellement publiés (SCRUM-65).
+        foreach ($suppliers as $profile) {
+            app(SupplierRatingService::class)->recompute($profile->id);
+        }
+
         // Un brouillon et un produit retiré par l'administrateur, jamais visibles dans le catalogue.
         Product::query()->updateOrCreate(
             ['supplier_id' => $suppliers['Atlas Emballages']->id, 'title' => 'Sacs kraft 25 kg (brouillon)'],
@@ -175,7 +180,7 @@ class CatalogueDemoSeeder extends Seeder
 
     /**
      * Porteurs de projet de démonstration, commandes livrées et avis publiés.
-     * Sana Ben Salah (porteur@… existant ou sana@marketplace.test) a aussi des fournisseurs favoris (maquette B8).
+     * Sana Ben Salah (porteur@… existant ou sana@tijaralink.test) a aussi des fournisseurs favoris (maquette B8).
      *
      * @param  array<string, SupplierProfile>  $suppliers
      */
@@ -224,7 +229,7 @@ class CatalogueDemoSeeder extends Seeder
 
     private function buyer(string $first, string $last, string $password): BuyerProfile
     {
-        $email = mb_strtolower(Str::ascii($first)).'@marketplace.test';
+        $email = mb_strtolower(Str::ascii($first)).'@tijaralink.test';
         $user = User::query()->firstOrCreate(['email' => $email], [
             'name' => "{$first} {$last}",
             'first_name' => $first,

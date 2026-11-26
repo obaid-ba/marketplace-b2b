@@ -51,7 +51,7 @@ Sous Windows sans terminal bash : `docker compose -f deploy/docker-compose.yml u
 > Sans `--build` vous exécutez l'ancienne version de l'image, pas votre dernier commit.
 
 **Comptes de démonstration** (créés au premier démarrage, mot de passe `password`) :
-`admin@marketplace.test`, `buyer1@marketplace.test` … `buyer5@marketplace.test`, `supplier1@marketplace.test` … `supplier8@marketplace.test`
+`admin@tijaralink.test`, `buyer1@tijaralink.test` … `buyer5@tijaralink.test`, `supplier1@tijaralink.test` … `supplier8@tijaralink.test`
 (`supplier7` est en attente de validation, `supplier8` refusé).
 
 ## Commandes utiles

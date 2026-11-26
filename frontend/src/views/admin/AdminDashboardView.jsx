@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import PageHeader from '@/components/PageHeader'
 import EmptyState from '@/components/dashboard/EmptyState'
 import ErrorState from '@/components/dashboard/ErrorState'
@@ -7,7 +7,9 @@ import KpiCard from '@/components/dashboard/KpiCard'
 import PeriodPicker from '@/components/dashboard/PeriodPicker'
 import Skeleton from '@/components/dashboard/Skeleton'
 import TimeSeriesChart from '@/components/dashboard/TimeSeriesChart'
-import { PATHS } from '@/router/paths'
+import { PATHS, adminDisputePath } from '@/router/paths'
+import AdminExportDialog from './AdminExportDialog'
+import AnomalyAlertsCard from './AnomalyAlertsCard'
 import {
   selectAdminDashboard,
   selectAdminDashboardError,
@@ -65,6 +67,10 @@ export default function AdminDashboardView() {
   const reset = useAdminDashboardStore((state) => state.reset)
 
   const [period, setPeriod] = useState(() => defaultPeriod())
+  // /admin?exports=1 : lien de la notification « Export prêt ».
+  const [params, setParams] = useSearchParams()
+  const exportOpen = params.get('exports') === '1'
+  const setExportOpen = (open) => setParams(open ? { exports: '1' } : {}, { replace: true })
 
   useEffect(() => {
     load(period)
@@ -74,6 +80,7 @@ export default function AdminDashboardView() {
 
   const validationQueue = data?.validation_queue
   const disputes = data?.urgent_disputes
+  const reported = data?.reported_reviews
   const categories = data?.top_categories ?? []
   const maxProducts = Math.max(1, ...categories.map((category) => category.products_count))
 
@@ -82,7 +89,14 @@ export default function AdminDashboardView() {
       <PageHeader
         title="Tableau de bord administrateur"
         subtitle="Vue consolidée de l'activité de la plateforme : comptes, commandes, demandes et files à traiter."
+        actions={
+          <button type="button" className="btn btn-secondary" onClick={() => setExportOpen(true)}>
+            Exporter les statistiques
+          </button>
+        }
       />
+
+      <AdminExportDialog open={exportOpen} defaultRange={period} onClose={() => setExportOpen(false)} />
 
       <section className="card" aria-labelledby="period-title">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -217,7 +231,9 @@ export default function AdminDashboardView() {
                 <ul className="mt-4 divide-y divide-line">
                   {disputes.items.map((dispute) => (
                     <li key={dispute.id} className="py-3">
-                      <p className="font-medium text-ink">Commande #{dispute.order_id}</p>
+                      <Link to={adminDisputePath(dispute.id)} className="font-medium text-brand-600 hover:underline">
+                        Commande #{dispute.order_id}
+                      </Link>
                       <p className="text-sm text-muted">{dispute.reason}</p>
                       <p className="mt-1 text-xs text-muted">
                         Ouvert depuis {plural(dispute.age_days, 'jour')}
@@ -236,7 +252,37 @@ export default function AdminDashboardView() {
             </section>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <section className="card" aria-labelledby="reported-reviews-title">
+              <SectionHeader
+                id="reported-reviews-title"
+                title="Avis signalés"
+                subtitle={`${reported?.count ?? 0} avis à examiner`}
+                action={
+                  <Link to={PATHS.adminReviews} className="btn btn-secondary shrink-0">
+                    Examiner
+                  </Link>
+                }
+              />
+              {reported?.items?.length ? (
+                <ul className="mt-4 divide-y divide-line">
+                  {reported.items.map((review) => (
+                    <li key={review.id} className="py-3 text-sm">
+                      <p className="font-medium text-ink">
+                        {review.supplier ?? 'Fournisseur'} · {review.rating}/5
+                      </p>
+                      {review.comment && <p className="text-muted">« {review.comment} »</p>}
+                      <p className="mt-1 text-xs text-muted">{plural(review.reports_count, 'signalement')}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="mt-4">
+                  <EmptyState title="Aucun avis signalé" description="Les signalements des fournisseurs apparaîtront ici." />
+                </div>
+              )}
+            </section>
+
             <section className="card" aria-labelledby="top-categories-title">
               <SectionHeader
                 id="top-categories-title"
@@ -275,19 +321,8 @@ export default function AdminDashboardView() {
               )}
             </section>
 
-            <section className="card" aria-labelledby="anomaly-alerts-title">
-              <SectionHeader
-                id="anomaly-alerts-title"
-                title="Alertes d'anomalie"
-                subtitle="Emplacement réservé à la détection automatique"
-              />
-              <div className="mt-4">
-                <EmptyState
-                  title="Aucune alerte d'anomalie"
-                  description="La détection automatique sera livrée en V2 (SCRUM-86)."
-                />
-              </div>
-            </section>
+            {/* Comptes et commandes au comportement inhabituel (SCRUM-86) */}
+            <AnomalyAlertsCard initialAlerts={data.anomaly_alerts ?? []} />
           </div>
         </>
       )}

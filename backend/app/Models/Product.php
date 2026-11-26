@@ -14,8 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Produit ou service proposé par un fournisseur (entité 8).
- * Le modèle est complété au fil du sprint 2 (catalogue SCRUM-35, ajout SCRUM-33, liste SCRUM-34).
+ * Produit ou service du catalogue (SCRUM-34, SCRUM-51).
  */
 class Product extends Model
 {
@@ -41,6 +40,7 @@ class Product extends Model
         'availability_days',
         'status',
         'featured_until',
+        'ai_flag_reason',
         'withdrawal_reason',
     ];
 
@@ -50,16 +50,16 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'status' => ProductStatus::class,
             'price' => 'decimal:2',
             'stock' => 'integer',
+            'status' => ProductStatus::class,
             'availability_days' => 'integer',
             'featured_until' => 'datetime',
         ];
     }
 
     /**
-     * Fournisseur qui propose le produit.
+     * Fournisseur propriétaire du produit.
      */
     public function supplier(): BelongsTo
     {
@@ -67,48 +67,41 @@ class Product extends Model
     }
 
     /**
-     * Catégorie (ou sous-catégorie) du produit.
+     * Catégorie du produit.
      */
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     /**
-     * Photos dans l'ordre d'affichage (la première est l'image principale).
+     * Lignes de commande faisant référence à ce produit.
      */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class, 'product_id');
+    }
+
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
     }
 
-    /**
-     * Consultations de la fiche produit (SCRUM-34 : nombre de vues, SCRUM-36 : enregistrement).
-     */
     public function views(): HasMany
     {
         return $this->hasMany(ProductView::class);
     }
 
-    /**
-     * Un produit déjà commandé n'est jamais supprimé physiquement (SCRUM-34).
-     */
     public function hasBeenOrdered(): bool
     {
         return DB::table('order_items')->where('product_id', $this->id)->exists();
     }
 
-    /**
-     * Image principale seule (cartes du catalogue) : chargée en une requête pour toute une page.
-     */
     public function mainImage(): HasOne
     {
         return $this->hasOne(ProductImage::class)->ofMany(['position' => 'min', 'id' => 'min']);
     }
 
-    /**
-     * Type exposé par l'API (« product » / « service ») ; la base stocke « produit » / « service ».
-     */
     public function apiType(): string
     {
         return $this->type === self::TYPE_SERVICE ? 'service' : 'product';
@@ -119,7 +112,6 @@ class Product extends Model
         return $type === 'service' ? self::TYPE_SERVICE : self::TYPE_PRODUCT;
     }
 
-    /** Statuts exposés par l'API (anglais) ↔ statuts stockés (ProductStatus, français). */
     public const API_STATUSES = [
         'draft' => ProductStatus::DRAFT,
         'published' => ProductStatus::PUBLISHED,
@@ -131,14 +123,30 @@ class Product extends Model
         return array_search($this->status, self::API_STATUSES, true) ?: 'draft';
     }
 
-    public static function statusFromApi(string $status): ProductStatus
-    {
-        return self::API_STATUSES[$status] ?? ProductStatus::DRAFT;
-    }
-
     public function isWithdrawn(): bool
     {
         return $this->status === ProductStatus::WITHDRAWN;
+    }
+
+    /**
+     * Mis en avant (SCRUM-40) : la période se termine d'elle-même, sans tâche planifiée.
+     */
+    public function isFeatured(): bool
+    {
+        return $this->status === ProductStatus::PUBLISHED && $this->featured_until?->isFuture() === true;
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     */
+    public function scopeFeatured(Builder $query): void
+    {
+        $query->where('products.featured_until', '>', now());
+    }
+
+    public static function statusFromApi(string $status): ProductStatus
+    {
+        return self::API_STATUSES[$status] ?? ProductStatus::DRAFT;
     }
 
     public function isService(): bool
@@ -146,12 +154,6 @@ class Product extends Model
         return $this->type === self::TYPE_SERVICE;
     }
 
-    /**
-     * Seuls ces produits apparaissent côté public (catalogue, fiches, accueil, compteurs) :
-     * produit publié d'un fournisseur validé, actif et dont le profil est publié.
-     *
-     * @param  Builder<Product>  $query
-     */
     public function scopeVisible(Builder $query): void
     {
         $query->where('products.status', ProductStatus::PUBLISHED->value)

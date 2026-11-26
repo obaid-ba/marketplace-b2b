@@ -92,13 +92,18 @@ base `postgres`, schéma `public`, **SSL = require**.
 
 ### Portabilité des migrations
 
-Deux écarts TiDB ont déjà été corrigés, à garder en tête pour toute nouvelle migration :
+Trois écarts TiDB ont déjà été corrigés, à garder en tête pour toute nouvelle migration :
 
 - `->change()` sur une colonne `id` génère `DROP IDENTITY` : **non supporté** par TiDB.
   La migration `2026_11_12_000000_add_registration_fields_to_account_tables` a été rendue
   idempotente (`hasColumn` + SQL direct) ;
 - les contraintes `CHECK` générées par les enums doivent être supprimées explicitement
-  (`2026_11_18_000000_fix_supplier_documents_type_check_for_pgsql`).
+  (`2026_11_18_000000_fix_supplier_documents_type_check_for_pgsql`) ;
+- `PostgresGrammar::compileChange()` ne met **pas à jour** ces `CHECK` lors d'un `->change()`.
+  La migration `2026_11_26_000000_drop_legacy_enum_checks_for_pgsql` retire les contraintes
+  obsolètes de `notification_preferences.channel` (`whatsapp`) et de
+  `orders.status` / `order_status_history.status` (`expédiée`) ; sans elle, ces valeurs
+  seraient refusées par la base de production.
 
 Les tests CI tournent sur SQLite **et** sur PostgreSQL 17 pour détecter les écarts avant la production.
 
@@ -113,7 +118,7 @@ Aucun envoi n'est possible tant que l'expéditeur (ou le domaine) n'est pas vali
 Dans **Account Settings → Senders & Domains** :
 
 - **Option rapide — adresse unique** : *Add a sender address* → saisir l'adresse
-  (ex. `no-reply@marketplace.test` si vous possédez le domaine, sinon votre adresse réelle).
+  (ex. `no-reply@tijaralink.test` si vous possédez le domaine, sinon votre adresse réelle).
   Mailjet envoie un e-mail d'activation : cliquez sur le lien, connectez-vous, c'est validé.
   Suffisant pour une démo, mais **DKIM n'est pas actif** → risque de spam.
 - **Option recommandée — domaine entier** : *Add a domain* (ex. `marketplace.tn`), puis ajouter
@@ -140,7 +145,7 @@ Mailjet est un hôte global unique : `in-v3.mailjet.com`.
 | `MAIL_USERNAME` | API Key Mailjet |
 | `MAIL_PASSWORD` | Secret Key Mailjet |
 | `MAIL_FROM_ADDRESS` | adresse **validée** chez Mailjet |
-| `MAIL_FROM_NAME` | `Marketplace B2B` |
+| `MAIL_FROM_NAME` | `TijaraLink` |
 
 Ces valeurs vont dans **Render → Environment** (secrets) et, pour des tests locaux réels,
 dans `deploy/.env` (jamais commité).
@@ -153,7 +158,7 @@ dans `deploy/.env` (jamais commité).
    curl -X POST https://marketplace-api-v2-8gr1.onrender.com/api/auth/forgot-password \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
-        -d '{"email":"sana@marketplace.test"}'
+        -d '{"email":"sana@tijaralink.test"}'
    ```
    Réponse attendue : `200`. (L'endpoint répond toujours 200 : il ne révèle pas si l'adresse existe.)
 3. **Parcours complet de vérification de compte** (c'est ce lien que l'équipe utilisera) :
@@ -197,6 +202,12 @@ Comportement :
 - **Documents privés** (justificatifs fournisseurs…) : ressource `raw`, type `authenticated`,
   servis par l'API via une **URL signée** (aucun accès public direct) ;
 - les clés stockées en base sont préfixées (`image:...`, `raw:...`).
+
+Le seeder de démonstration respecte le pilote : avec `MEDIA_DRIVER=cloudinary`, les 42 photos
+et les logos sont envoyés sur Cloudinary au premier démarrage (le disque local de Render est
+éphémère) ; en local ils restent sur le disque `public`. Les PDF de commande et les exports
+sont encore générés sur le disque local : ils sont recréés à la demande pour les PDF
+(`OrderDocumentService`) et doivent être téléchargés rapidement pour les exports.
 
 ## 4. Render
 
@@ -270,7 +281,7 @@ La stack locale reproduit la production (PostgreSQL 17, worker, Mailpit) mais re
 Détails, réglages et override TiDB : [`deploy/README.md`](../deploy/README.md).
 
 Comptes de démonstration (mot de passe `password`) créés au premier démarrage sur base vide :
-`admin@marketplace.test`, `buyer1@marketplace.test` …, `supplier1@marketplace.test` …
+`admin@tijaralink.test`, `buyer1@tijaralink.test` …, `supplier1@tijaralink.test` …
 
 ## 7. Opérations
 
@@ -299,4 +310,4 @@ Comptes de démonstration (mot de passe `password`) créés au premier démarrag
 ## 9. Décisions liées
 
 Les choix Neon → TiDB, Brevo/Resend → Mailjet et « Postgres local pour développer » sont
-consignés dans [`docs/decisions.md`](decisions.md) (D11 à D13).
+consignés dans [`docs/decisions.md`](decisions.md) (D25 à D28).

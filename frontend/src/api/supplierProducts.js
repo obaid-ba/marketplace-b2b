@@ -58,6 +58,21 @@ export async function unpublishSupplierProduct(id) {
   return data
 }
 
+/** Durées proposées pour une mise en avant, en jours (SCRUM-40, ProductService::FEATURE_DURATIONS). */
+export const FEATURE_DURATIONS = [7, 14, 30]
+
+/** Mettre en avant un produit publié (SCRUM-40). Renvoie { message, product }. */
+export async function featureSupplierProduct(id, days) {
+  const { data } = await http.post(`/supplier/products/${id}/feature`, { days })
+  return data
+}
+
+/** Arrêter la mise en avant (SCRUM-40). Renvoie { message, product }. */
+export async function unfeatureSupplierProduct(id) {
+  const { data } = await http.delete(`/supplier/products/${id}/feature`)
+  return data
+}
+
 /** Supprimer : définitif, ou retiré seulement s'il a déjà été commandé. Renvoie { message, permanent }. */
 export async function deleteSupplierProduct(id) {
   const { data } = await http.delete(`/supplier/products/${id}`)

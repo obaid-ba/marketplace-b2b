@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import Logo from '@/components/Logo'
+import NotificationBell from '@/components/NotificationBell'
+import { APP_NAME } from '@/config/brand'
 import { selectIsAuthenticated, selectUser, useAuthStore } from '@/stores/auth'
-import { PATHS } from '@/router/paths'
+import { notificationsPathFor, PATHS } from '@/router/paths'
 import { initialsOf } from '@/utils/initials'
 import { landingPathFor } from '@/utils/roles'
 
@@ -10,19 +13,8 @@ import { landingPathFor } from '@/utils/roles'
  * Accessible sans connexion ; un utilisateur connecté voit son avatar et un lien vers son espace.
  */
 
-function Logo({ inverted = false }) {
-  return (
-    <span className="flex items-center gap-2.5">
-      <span
-        className={`grid h-8 w-8 place-items-center rounded-lg text-base font-bold ${
-          inverted ? 'bg-surface text-brand-600' : 'bg-brand-600 text-white'
-        }`}
-      >
-        M
-      </span>
-      <span className={`text-[17px] font-bold ${inverted ? 'text-white' : 'text-ink'}`}>Marketplace B2B</span>
-    </span>
-  )
+function BrandLogo({ inverted = false }) {
+  return <Logo size={34} variant={inverted ? 'light' : 'default'} />
 }
 
 const linkClass = ({ isActive }) =>
@@ -54,14 +46,15 @@ function NavLinks({ onNavigate, vertical = false }) {
         </NavLink>
       </li>
       <li>
-        {/* Annuaire des fournisseurs : pas de story dans ce sprint. */}
-        <span
-          title="Bientôt disponible"
-          aria-disabled="true"
-          className={`cursor-not-allowed text-[15px] font-medium text-ink/50 ${vertical ? 'block px-3 py-2.5' : ''}`}
+        {/* Annuaire public des fournisseurs */}
+        <NavLink
+          to={PATHS.suppliers}
+          end
+          onClick={onNavigate}
+          className={(state) => `${linkClass(state)} ${vertical ? 'block rounded-lg px-3 py-2.5 hover:bg-page' : ''}`}
         >
           Fournisseurs
-        </span>
+        </NavLink>
       </li>
       <li>
         <Link
@@ -110,36 +103,40 @@ function AccountActions({ onNavigate, stacked = false }) {
 }
 
 export function PublicHeader() {
+  const user = useAuthStore(selectUser)
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface">
       <div className="mx-auto flex h-[72px] max-w-[1276px] items-center justify-between gap-6 px-4 sm:px-6">
-        <Link to={PATHS.home} aria-label="Marketplace B2B — accueil">
-          <Logo />
+        <Link to={PATHS.home} aria-label={`${APP_NAME} — accueil`}>
+          <BrandLogo />
         </Link>
 
         <nav aria-label="Navigation principale" className="hidden lg:block">
           <NavLinks />
         </nav>
 
-        <div className="hidden lg:block">
-          <AccountActions />
-        </div>
+        <div className="flex items-center gap-3">
+          {user?.email_verified && <NotificationBell notificationsPath={notificationsPathFor(user.role)} />}
+          <div className="hidden lg:block">
+            <AccountActions />
+          </div>
 
-        <button
-          type="button"
-          className="btn-ghost -mr-2 px-2 lg:hidden"
-          aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
-          aria-expanded={open}
-          aria-controls="public-mobile-menu"
-          onClick={() => setOpen((value) => !value)}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6" aria-hidden="true">
-            {open ? <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /> : <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />}
-          </svg>
-        </button>
+          <button
+            type="button"
+            className="btn-ghost -mr-2 px-2 lg:hidden"
+            aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={open}
+            aria-controls="public-mobile-menu"
+            onClick={() => setOpen((value) => !value)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6" aria-hidden="true">
+              {open ? <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /> : <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />}
+            </svg>
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -160,8 +157,8 @@ export function PublicFooter() {
   return (
     <footer className="bg-ink text-white">
       <div className="mx-auto flex max-w-[1276px] flex-col gap-6 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-        <Link to={PATHS.home} aria-label="Marketplace B2B — accueil">
-          <Logo inverted />
+        <Link to={PATHS.home} aria-label={`${APP_NAME} — accueil`}>
+          <BrandLogo inverted />
         </Link>
         <nav aria-label="Liens du pied de page">
           <ul className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-white/85">
@@ -171,9 +168,9 @@ export function PublicFooter() {
               </Link>
             </li>
             <li>
-              <span className="cursor-not-allowed text-white/50" title="Bientôt disponible">
+              <Link to={PATHS.suppliers} className="hover:text-white">
                 Fournisseurs
-              </span>
+              </Link>
             </li>
             <li>
               <span className="cursor-not-allowed text-white/50" title="Bientôt disponible">
@@ -187,7 +184,7 @@ export function PublicFooter() {
             </li>
           </ul>
         </nav>
-        <p className="text-xs text-white/70">© 2026 Marketplace B2B - ISET Djerba</p>
+        <p className="text-xs text-white/70">© 2026 {APP_NAME} - ISET Djerba</p>
       </div>
     </footer>
   )

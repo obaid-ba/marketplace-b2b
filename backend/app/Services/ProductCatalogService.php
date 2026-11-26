@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 class ProductCatalogService
 {
     /** Colonnes utiles à une carte produit. */
-    public const CARD_COLUMNS = ['products.id', 'products.supplier_id', 'products.category_id', 'products.type', 'products.title', 'products.price', 'products.unit', 'products.created_at'];
+    public const CARD_COLUMNS = ['products.id', 'products.supplier_id', 'products.category_id', 'products.type', 'products.title', 'products.price', 'products.unit', 'products.created_at', 'products.featured_until'];
 
     /**
      * Relations d'une carte produit (ProductCardResource).
@@ -111,12 +111,18 @@ class ProductCatalogService
 
     /**
      * Pertinence par défaut si des mots-clés sont saisis (titre avant description), sinon nouveautés.
+     * Pour ces deux tris, les produits mis en avant passent en tête pendant leur période (SCRUM-40) ;
+     * un tri choisi explicitement (prix, note) est respecté tel quel.
      *
      * @param  Builder<Product>  $query
      */
     private function applySort(Builder $query, ?string $sort, ?string $keywords): void
     {
         $sort ??= $keywords !== null ? 'relevance' : 'newest';
+
+        if (! in_array($sort, ['price_asc', 'price_desc', 'rating'], true)) {
+            $query->orderByRaw('CASE WHEN products.featured_until > ? THEN 0 ELSE 1 END', [now()]);
+        }
 
         match ($sort) {
             'price_asc' => $query->orderBy('products.price')->orderByDesc('products.id'),

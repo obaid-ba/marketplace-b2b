@@ -1,4 +1,4 @@
-# Marketplace B2B
+# TijaraLink
 
 Plateforme de gestion des achats et des ventes entre **fournisseurs** et **porteurs de projet** — projet d'intégration, ISET Djerba.
 
@@ -73,37 +73,33 @@ curl http://localhost:8000/api/reference/regions
 
 La réponse doit être un tableau JSON de **24 régions**. Si la base est vide, relancez `php artisan db:seed` depuis `backend/` (le seeder insère toujours les régions et les catégories).
 
-### Comptes de démonstration
+### Démonstration complète
 
-Mot de passe : `password`
-
-| Rôle | E-mail |
-|---|---|
-| Administrateur | admin@marketplace.test |
-| Fournisseur | fournisseur@marketplace.test |
-| Porteur de projet | porteur@marketplace.test |
-
-### Catalogue de démonstration (sprint 2)
-
-Fournisseurs, produits, avis et favoris des maquettes (Atlas Emballages, Djerba Pack, PalettesPlus…) :
+Toutes les pages remplies avec des données réalistes : 14 fournisseurs avec logo (dont un en attente de validation et un refusé), 42 produits et services avec photo dans toutes les catégories, demandes avec devis à comparer, commandes à chaque étape (devis et factures PDF), avis analysés par l'IA, litiges, messagerie, avis signalé, alerte d'anomalie et notifications.
 
 ```bash
 cd backend
-php artisan storage:link                            # photos des produits et logos (disque « public »)
-php artisan db:seed --class=CatalogueDemoSeeder     # relançable sans doublons
+php artisan storage:link                         # photos des produits et logos (disque « public »)
+php artisan db:seed --class=FullDemoSeeder       # relançable sans doublons
 ```
 
-Il est aussi lancé par `php artisan migrate --seed` lorsque `SEED_DEMO_DATA=true`.
-Mot de passe : `password`.
+Elle est aussi lancée par `php artisan migrate --seed` lorsque `SEED_DEMO_DATA=true`.
+Si l'API ne tourne pas sur le port 8000, mettez la bonne adresse dans `APP_URL` (sinon les photos ne s'affichent pas).
+Les images sont dans `backend/database/seeders/demo-images/` (script de génération `generate.cjs`).
 
-| Rôle | E-mail |
-|---|---|
-| Fournisseur validé (Atlas Emballages) | atlas@marketplace.test |
-| Porteur de projet avec 6 favoris (Sana Ben Salah) | sana@marketplace.test |
+Mot de passe de tous les comptes : `password`.
 
-Parcours de démo : accueil → recherche → catalogue filtré → fiche produit → fiche fournisseur → favori ;
-côté fournisseur : Mes produits → Ajouter un produit → le voir dans le catalogue.
+| Rôle | E-mail | À montrer |
+|---|---|---|
+| Administrateur | admin@tijaralink.test | tableau de bord, alerte d'anomalie, fournisseur en attente, avis signalé, litiges |
+| Porteur de projet | sana@tijaralink.test | demande avec 3 devis à comparer (résumé IA, prix du marché), commandes, messagerie |
+| Porteur de projet | karim@tijaralink.test | litige ouvert sur une commande livrée |
+| Porteur de projet | youssef@tijaralink.test | litige décidé, commande validée |
+| Fournisseur | atlas@tijaralink.test | demandes reçues, devis, produits mis en avant, avis et résumé IA |
+| Fournisseur | batisud@tijaralink.test | avis suspect signalé à l'administrateur |
 
+Parcours de démo : accueil → catalogue → fiche produit → fiche fournisseur → connexion porteur → comparer les devis → accepter ;
+côté fournisseur : demandes reçues → envoyer un devis → faire avancer une commande ; côté admin : anomalies, modération, litiges.
 ## Tests
 
 ```bash
@@ -113,6 +109,12 @@ cd frontend && npm test            # tests Vitest + Testing Library
 
 Les deux suites tournent automatiquement sur chaque pull request (GitHub Actions).
 
+## Documentation de l'API
+
+- **Swagger** : http://localhost:8000/api/docs (spécification : `/api/docs/openapi.json`).
+- **Postman** : importer `docs/api/postman_collection.json`, puis renseigner les variables `base_url` et `token` (obtenu par `POST /api/auth/login`).
+- Les deux fichiers sont générés à partir des routes réelles : relancer `php artisan api:docs` après l'ajout d'un endpoint.
+
 ## Architecture en bref
 
 - **Authentification** : `POST /api/auth/login` renvoie un jeton Sanctum, envoyé ensuite dans l'en-tête `Authorization: Bearer …`. Le même mécanisme sert au web et au mobile.
@@ -120,6 +122,12 @@ Les deux suites tournent automatiquement sur chaque pull request (GitHub Actions
 - **Paramètres du compte** : `GET /api/account`, `PATCH /api/account/profile`, `PATCH /api/account/email` et `PUT /api/account/password` (page React `/parametres`). Le changement d'e-mail repasse le compte en « e-mail à vérifier » et envoie un nouveau lien ; le changement de mot de passe exige l'ancien et révoque les autres sessions.
 - **Connexion et mot de passe** : « Se souvenir de moi » donne un jeton de 7 jours (sinon 12 h, `AUTH_SESSION_HOURS`). « Mot de passe oublié » (`POST /api/auth/forgot-password` puis `/reset-password`) envoie un lien valable 60 min et à usage unique vers la page React `/mot-de-passe/nouveau` ; changer son mot de passe ferme toutes les sessions ouvertes.
 - **Désactivation et suppression du compte** : `POST /api/account/deactivate` et `DELETE /api/account` (page React `/parametres`) exigent le mot de passe actuel et révoquent tous les jetons Sanctum. La suppression est douce : commandes, factures et avis sont conservés et le profil fournisseur disparaît du catalogue (`SupplierProfile::visibleInCatalog`).
+- **Messagerie et temps réel (S5)** : `php artisan reverb:start` (port 8080) diffuse messages, accusés de lecture et notifications ; réglages `REVERB_*` (backend) et `VITE_REVERB_*` (frontend, mêmes valeurs). Sans Reverb, tout fonctionne avec un rafraîchissement régulier. Les notifications passent par la file : lancez aussi `php artisan queue:work` (ou `QUEUE_CONNECTION=sync`).
+- **Litiges (S5)** : l'acheteur signale un problème de l'expédition à la livraison, l'admin prend en charge puis décide (`/admin/litiges`). Règles : D14 et D15 de [`docs/decisions.md`](docs/decisions.md).
+- **Utilisateurs (S5)** : `/admin/utilisateurs` pour suspendre, réactiver ou supprimer un compte (D16, D22). Toute action d'un admin passe par `AuditLogger` (table `audit_logs`).
+- **IA (S5)** : `AI_PROVIDER=simulated` (sans clé) ou `disabled`. Pour brancher un fournisseur : une classe qui implémente `App\Services\Ai\AiClient`, ajoutée à `drivers` dans `config/ai.php`. Nouvelle fonctionnalité : passer par `AiService::run()` (limite, validation, enregistrement).
+- **WhatsApp (S5)** : `WHATSAPP_PROVIDER=simulated` (rien n'est envoyé) ou `disabled` ; `WHATSAPP_SIMULATE_FAILURE=true` pour tester le repli sur l'e-mail. Pour brancher un fournisseur : une classe qui implémente `App\Services\WhatsApp\WhatsAppClient`, ajoutée à `drivers` dans `config/whatsapp.php`.
+- **Taille des fichiers** : messages 10 Mo, litiges 5 × 5 Mo. Les réglages par défaut de PHP sont plus bas (2 Mo) : mettez `upload_max_filesize=10M` et `post_max_size=32M` dans `php.ini`.
 - **Rôles** : `supplier` (fournisseur), `buyer` (porteur de projet), `admin`. Côté API, chaque groupe de routes est protégé par le middleware `role:` ; côté React, chaque espace est protégé par un `loader` de garde (`router/routes.jsx`, règles dans `router/guard.js`).
 - **Fournisseur non validé** (SCRUM-27) : tant que l'administrateur n'a pas validé son dossier, il arrive sur `/fournisseur/en-attente` (état du dossier via `GET /api/supplier/validation-status`) et peut compléter son profil sans le publier. Les pages de vente (produits, devis) passent par le middleware `supplier.validated` (403 `{ "reason": "supplier_not_validated" }`, redirection automatique côté React) ; après un refus, l'envoi d'un nouveau justificatif repasse le dossier « en attente ».
 - **Organisation du backend** : `Controllers/Api` (minces) → `Http/Requests` (validation) → `Services` (règles métier) → `Models`, réponses via `Http/Resources`.
@@ -180,7 +188,7 @@ flowchart LR
 Détail des variables, de la base TiDB, de Mailjet et de la vérification des e-mails :
 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Stack locale et override TiDB :
 [`deploy/README.md`](deploy/README.md). Décisions correspondantes :
-[`docs/decisions.md`](docs/decisions.md) (D11 à D14).
+[`docs/decisions.md`](docs/decisions.md) (D25 à D28).
 
 ## Travailler ensemble
 

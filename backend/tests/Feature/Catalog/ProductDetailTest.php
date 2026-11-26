@@ -94,6 +94,21 @@ class ProductDetailTest extends TestCase
             ->assertJson(fn ($json) => $json->where('images.0.url', fn ($url) => str_ends_with($url, 'a.jpg'))->etc());
     }
 
+    public function test_la_fiche_propose_les_autres_produits_du_fournisseur_pour_la_commande_directe(): void
+    {
+        $this->supplier->update(['delivery_days' => 3, 'payment_terms' => 'Virement']);
+        $other = Product::factory()->published()->for($this->supplier, 'supplier')->create(['category_id' => $this->product->category_id]);
+        Product::factory()->for($this->supplier, 'supplier')->create(['category_id' => $this->product->category_id]); // brouillon
+
+        $this->getJson($this->url())
+            ->assertOk()
+            ->assertJsonCount(1, 'same_supplier_products')
+            ->assertJsonPath('same_supplier_products.0.id', $other->id)
+            ->assertJsonPath('supplier.delivery_days', 3)
+            ->assertJsonPath('supplier.payment_terms', 'Virement')
+            ->assertJsonMissingPath('supplier.user_id');
+    }
+
     public function test_rupture_de_stock(): void
     {
         $this->product->update(['stock' => 0]);

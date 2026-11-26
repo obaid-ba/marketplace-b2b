@@ -86,7 +86,7 @@ describe('SupplierPublicPage', () => {
     expect(await screen.findByText('Cartons ondulés sur mesure')).toBeTruthy()
     expect(catalogApi.searchProducts).toHaveBeenCalledWith({ supplier_id: 7, page: 1, per_page: 12 }, expect.anything())
     expect(screen.getByText('Spécialiste des emballages en carton ondulé depuis 2009.')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Contacter' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Contacter' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'Ajouter aux favoris' })).toBeTruthy()
   })
 
@@ -98,15 +98,26 @@ describe('SupplierPublicPage', () => {
     expect(await screen.findByText('Livraison rapide.')).toBeTruthy()
     expect(screen.getByText('Réponse de Atlas Emballages')).toBeTruthy()
     expect(screen.getByText('Merci Sana !')).toBeTruthy()
-    expect(screen.queryByText('Résumé généré par IA')).toBeNull()
+    expect(screen.queryByText('Ce que les clients en disent')).toBeNull()
   })
 
-  it("affiche le résumé IA seulement s'il existe", async () => {
-    api.fetchSupplier.mockResolvedValue({ ...supplier, ai_summary: 'Les clients saluent la qualité des cartons.' })
+  it("affiche le résumé IA seulement s'il existe (SCRUM-83)", async () => {
+    api.fetchSupplier.mockResolvedValue({
+      ...supplier,
+      ai_summary: {
+        summary: '3 avis analysés : 2 positifs, 0 mitigé, 1 négatif.',
+        strengths: ['Livraison rapide'],
+        weaknesses: ['Prix jugés élevés'],
+        reviews_count: 3,
+        simulated: false,
+      },
+    })
     renderAt('/fournisseurs/7?tab=avis')
 
-    expect(await screen.findByText('Résumé généré par IA')).toBeTruthy()
-    expect(screen.getByText('Les clients saluent la qualité des cartons.')).toBeTruthy()
+    expect(await screen.findByText('Ce que les clients en disent')).toBeTruthy()
+    expect(screen.getByText('Résumé généré par IA')).toBeTruthy()
+    expect(screen.getByText('+ Livraison rapide')).toBeTruthy()
+    expect(screen.getByText('– Prix jugés élevés')).toBeTruthy()
   })
 
   it('affiche un état vide sans avis', async () => {

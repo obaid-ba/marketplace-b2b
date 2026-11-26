@@ -1,6 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useMatches, useNavigate } from 'react-router'
+import Logo from '@/components/Logo'
+import NotificationBell from '@/components/NotificationBell'
+import { isRealtimeConnected, useRealtime } from '@/realtime/realtime'
 import { useAuthStore } from '@/stores/auth'
+import { useMessagingStore } from '@/stores/messaging'
 import { PATHS } from '@/router/paths'
 import { initialsOf } from '@/utils/initials'
 
@@ -9,7 +13,8 @@ import { initialsOf } from '@/utils/initials'
  * (fil d'Ariane, recherche, notifications, nom affiché).
  * Utilisée par l'espace fournisseur, l'administration et l'espace porteur de projet.
  *
- * navItems : [{ label, to?, end? }] — une entrée sans `to` arrive dans un prochain sprint :
+ * navItems : [{ label, to?, end?, badge? }] — badge « messages » : nombre de messages non lus (SCRUM-59) —
+ * une entrée sans `to` arrive dans un prochain sprint :
  * elle est affichée, mais inactive (« Bientôt disponible »).
  */
 function Dot({ active }) {
@@ -21,12 +26,48 @@ function Dot({ active }) {
   )
 }
 
+const UNREAD_POLL_INTERVAL = 30_000
+
+function UnreadBadge() {
+  const unread = useMessagingStore((state) => state.unread)
+  if (unread === 0) return null
+
+  return (
+    <span
+      aria-label={`${unread} message${unread > 1 ? 's' : ''} non lu${unread > 1 ? 's' : ''}`}
+      className="ml-auto grid min-w-5 place-items-center rounded-full bg-brand-600 px-1.5 text-[11px] font-semibold text-white"
+    >
+      {unread > 99 ? '99+' : unread}
+    </span>
+  )
+}
+
+/** Tient à jour le compteur de messages non lus : temps réel, sinon toutes les 30 secondes. */
+function UnreadMessagesWatcher() {
+  const refreshUnread = useMessagingStore((state) => state.refreshUnread)
+
+  useRealtime('message.sent', refreshUnread)
+  useRealtime('conversation.read', refreshUnread)
+  useRealtime('connected', refreshUnread)
+
+  useEffect(() => {
+    refreshUnread()
+    const timer = setInterval(() => !isRealtimeConnected() && refreshUnread(), UNREAD_POLL_INTERVAL)
+    window.addEventListener('focus', refreshUnread)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('focus', refreshUnread)
+    }
+  }, [refreshUnread])
+
+  return null
+}
+
 function Sidebar({ title, homePath, navItems, onNavigate }) {
   return (
     <nav aria-label={title} className="px-4 py-6">
       <Link to={homePath} className="mb-8 flex items-center gap-3 px-2" onClick={onNavigate}>
-        <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-600 text-base font-bold text-white">M</span>
-        <span className="text-[17px] font-semibold text-ink">Marketplace B2B</span>
+        <Logo size={36} />
       </Link>
 
       <p className="mb-3 px-3 text-[11px] font-medium tracking-wide text-muted uppercase">{title}</p>
@@ -49,6 +90,7 @@ function Sidebar({ title, homePath, navItems, onNavigate }) {
                   <>
                     <Dot active={isActive} />
                     {item.label}
+                    {item.badge === 'messages' && <UnreadBadge />}
                   </>
                 )}
               </NavLink>
@@ -80,7 +122,7 @@ function BellIcon() {
   )
 }
 
-export default function SpaceLayout({ title, homePath, navItems, displayName, homeCrumb = 'Tableau de bord' }) {
+export default function SpaceLayout({ title, homePath, navItems, displayName, notificationsPath, homeCrumb = 'Tableau de bord' }) {
   const logout = useAuthStore((state) => state.logout)
   const navigate = useNavigate()
   const matches = useMatches()
@@ -97,6 +139,7 @@ export default function SpaceLayout({ title, homePath, navItems, displayName, ho
 
   return (
     <div className="min-h-screen bg-page text-ink">
+      {navItems.some((item) => item.badge === 'messages') && <UnreadMessagesWatcher />}
       {/* Barre latérale : fixe sur grand écran, tiroir sur mobile */}
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-line bg-surface lg:flex">
         <Sidebar {...sidebarProps} />
@@ -163,12 +206,16 @@ export default function SpaceLayout({ title, homePath, navItems, displayName, ho
             />
 
             {/* Centre de notifications : SCRUM-62 */}
-            <span
-              title="Notifications : bientôt disponibles"
-              className="grid h-9 w-9 place-items-center rounded-full bg-page text-muted"
-            >
-              <BellIcon />
-            </span>
+            {notificationsPath ? (
+              <NotificationBell notificationsPath={notificationsPath} />
+            ) : (
+              <span
+                title="Notifications : bientôt disponibles"
+                className="grid h-9 w-9 place-items-center rounded-full bg-page text-muted"
+              >
+                <BellIcon />
+              </span>
+            )}
 
             <div className="flex items-center gap-3">
               <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">

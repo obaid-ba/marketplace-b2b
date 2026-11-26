@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import * as catalogApi from '@/api/catalog'
+import { createBuyerOrder } from '@/api/orders'
 import * as api from '@/api/products'
 import { useAuthStore } from '@/stores/auth'
 import ProductPage from './ProductPage'
@@ -9,6 +10,7 @@ import ProductPage from './ProductPage'
 vi.mock('@/api/http', () => ({ http: { get: vi.fn() }, onAuthError: vi.fn() }))
 vi.mock('@/api/favorites', () => ({ addFavoriteSupplier: vi.fn(), removeFavoriteSupplier: vi.fn() }))
 vi.mock('@/api/catalog', () => ({ searchProducts: vi.fn() }))
+vi.mock('@/api/orders', () => ({ createBuyerOrder: vi.fn() }))
 vi.mock('@/api/products', () => ({ fetchProduct: vi.fn() }))
 
 const product = (overrides = {}) => ({
@@ -26,7 +28,8 @@ const product = (overrides = {}) => ({
     { id: 2, url: '/2.jpg' },
   ],
   category: { id: 11, name: 'Cartons et caisses', parent: { id: 1, name: 'Emballage et conditionnement' } },
-  supplier: { id: 7, company_name: 'Atlas Emballages', logo_url: null, region: 'Sfax', rating_avg: 4.6, reviews_count: 38, is_favorite: false },
+  supplier: { id: 7, company_name: 'Atlas Emballages', logo_url: null, region: 'Sfax', rating_avg: 4.6, reviews_count: 38, is_favorite: false, delivery_days: 3, payment_terms: 'Virement' },
+  same_supplier_products: [{ id: 43, title: 'Ruban adhésif', price: '4.50', unit: 'rouleau', stock: 20 }],
   latest_reviews: [{ id: 9, author: 'Sana B.', rating: 5, comment: 'Livraison rapide.', supplier_reply: null }],
   ...overrides,
 })
@@ -61,6 +64,7 @@ function login(role) {
 
 beforeEach(() => {
   window.scrollTo = vi.fn()
+  sessionStorage.clear()
   login(null)
   api.fetchProduct.mockResolvedValue(product())
   catalogApi.searchProducts.mockResolvedValue({
@@ -114,13 +118,79 @@ describe('ProductPage', () => {
     expect(new URLSearchParams(location.search).get('redirect')).toBe('/produits/3')
   })
 
-  it('un porteur voit Commander et Contacter désactivés (bientôt disponibles) et le bouton Favori', async () => {
+  it('un porteur peut commander, contacter le fournisseur et l’ajouter à ses favoris', async () => {
     login('buyer')
     renderPage()
 
-    expect((await screen.findByRole('button', { name: 'Commander' })).disabled).toBe(true)
-    expect(screen.getByRole('button', { name: 'Contacter le fournisseur' }).disabled).toBe(true)
+    expect((await screen.findByRole('button', { name: 'Commander' })).disabled).toBe(false)
+    expect(screen.getByRole('button', { name: 'Contacter le fournisseur' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'Favori' })).toBeTruthy()
+    expect(screen.getByText(/Délai moyen : 3 jours. Conditions : Virement./)).toBeTruthy()
+  })
+
+  it('commande plusieurs produits du même fournisseur après un récapitulatif', async () => {
+    login('buyer')
+    createBuyerOrder.mockResolvedValue({ order: { id: 101 } })
+    renderPage()
+
+    fireEvent.change(await screen.findByLabelText('Quantité (pièce)'), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Ruban adhésif/ }))
+    fireEvent.change(screen.getByLabelText('Quantité de Ruban adhésif'), { target: { value: '2' } })
+    expect(screen.getByText('33 TND')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Commander' }))
+    expect(screen.getByRole('dialog', { name: 'Récapitulatif de votre commande' })).toBeTruthy()
+    expect(screen.getByText(/Aucun paiement en ligne — règlement selon les conditions du fournisseur/)).toBeTruthy()
+    expect(createBuyerOrder).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer la commande' }))
+    await waitFor(() => expect(location.pathname).toBe('/orders/101'))
+    expect(createBuyerOrder).toHaveBeenCalledWith({
+      items: [
+        { product_id: 3, quantity: 10 },
+        { product_id: 43, quantity: 2 },
+      ],
+    })
+  })
+
+  it('affiche le refus de l’API et permet de modifier la sélection', async () => {
+    login('buyer')
+    createBuyerOrder.mockRejectedValue(Object.assign(new Error(), { response: { data: { message: 'Stock insuffisant.' } } }))
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Commander' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer la commande' }))
+    expect((await screen.findByRole('alert')).textContent).toBe('Stock insuffisant.')
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier ma sélection' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('retrouve la sélection d’un visiteur après sa connexion, une seule fois', async () => {
+    renderPage()
+    fireEvent.change(await screen.findByLabelText('Quantité (pièce)'), { target: { value: '7' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Ruban adhésif/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Commander' }))
+    expect(location.pathname).toBe('/connexion')
+    cleanup()
+
+    login('buyer')
+    renderPage()
+    expect(await screen.findByRole('dialog', { name: 'Récapitulatif de votre commande' })).toBeTruthy()
+    expect(screen.getByLabelText('Quantité (pièce)').value).toBe('7')
+    expect(screen.getByRole('checkbox', { name: /Ruban adhésif/ }).checked).toBe(true)
+    cleanup()
+
+    renderPage()
+    expect((await screen.findByLabelText('Quantité (pièce)')).value).toBe('1')
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('ne propose pas de commander un produit en rupture', async () => {
+    login('buyer')
+    api.fetchProduct.mockResolvedValue(product({ in_stock: false, stock: 0 }))
+    renderPage()
+    expect((await screen.findByRole('button', { name: 'Commander' })).disabled).toBe(true)
+    expect(screen.queryByRole('checkbox')).toBeNull()
   })
 
   it('contrôle la quantité entre 1 et le stock', async () => {

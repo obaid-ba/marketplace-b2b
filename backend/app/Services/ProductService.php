@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\MediaStorage;
 use App\Enums\ProductStatus;
+use App\Jobs\ModerateProductJob;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\SupplierProfile;
@@ -22,6 +23,9 @@ class ProductService
     public const MAX_IMAGES = 4;
 
     public const MAX_IMAGE_KB = 3072;
+
+    /** Durées proposées pour une mise en avant, en jours (SCRUM-40). */
+    public const FEATURE_DURATIONS = [7, 14, 30];
 
     public function __construct(private readonly MediaStorage $media) {}
 
@@ -68,6 +72,11 @@ class ProductService
 
         $product->save();
 
+        // Contrôle IA des annonces publiées (SCRUM-84) : prix anormal, contrefaçon, coordonnées…
+        if ($status === ProductStatus::PUBLISHED) {
+            ModerateProductJob::dispatch($product->id);
+        }
+
         return $product;
     }
 
@@ -82,7 +91,44 @@ class ProductService
             ]);
         }
 
-        $product->update(['status' => ProductStatus::DRAFT]);
+        // Un brouillon n'est plus visible : sa mise en avant s'arrête aussi.
+        $product->update(['status' => ProductStatus::DRAFT, 'featured_until' => null]);
+        app(HomeService::class)->forget();
+
+        return $product;
+    }
+
+    /**
+     * Met un produit publié en avant pour une durée choisie (SCRUM-40) : accueil et tête du catalogue.
+     * Relancer une mise en avant repart d'aujourd'hui ; la fin est automatique (featured_until dépassé).
+     */
+    public function feature(Product $product, int $days): Product
+    {
+        if ($product->status !== ProductStatus::PUBLISHED) {
+            throw ValidationException::withMessages([
+                'status' => 'Seul un produit publié peut être mis en avant.',
+            ]);
+        }
+
+        if (! in_array($days, self::FEATURE_DURATIONS, true)) {
+            throw ValidationException::withMessages([
+                'days' => 'Durée possible : '.implode(', ', self::FEATURE_DURATIONS).' jours.',
+            ]);
+        }
+
+        $product->update(['featured_until' => now()->addDays($days)]);
+        app(HomeService::class)->forget();
+
+        return $product;
+    }
+
+    /**
+     * Arrête la mise en avant avant son échéance (SCRUM-40).
+     */
+    public function unfeature(Product $product): Product
+    {
+        $product->update(['featured_until' => null]);
+        app(HomeService::class)->forget();
 
         return $product;
     }
