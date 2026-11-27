@@ -1,0 +1,41 @@
+# API Laravel derrière nginx + PHP-FPM. Le port est injecté au démarrage (__PORT__).
+# Render impose $PORT ; docker-compose utilise 8000.
+
+server {
+    listen __PORT__;
+    server_name _;
+
+    root /var/www/html/public;
+    index index.php;
+
+    client_max_body_size 32m;
+
+    # Journaux sur la sortie standard : Render et Docker les collectent.
+    access_log /dev/stdout;
+    error_log /dev/stderr warn;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param HTTP_PROXY "";
+        fastcgi_hide_header X-Powered-By;
+        fastcgi_read_timeout 60s;
+    }
+
+    # Fichiers privés : jamais servis directement, ils passent par l'API.
+    location ^~ /storage/ {
+        deny all;
+    }
+
+    location ~ /\.(?!well-known) {
+        deny all;
+    }
+}

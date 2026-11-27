@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Contracts\MediaStorage;
 use App\Enums\ConversationContext;
 use App\Enums\DisputeDecision;
 use App\Enums\DisputeReason;
@@ -32,6 +33,7 @@ use App\Services\QuoteService;
 use App\Services\SupplierRatingService;
 use App\Services\TenderService;
 use Illuminate\Database\Seeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -344,26 +346,54 @@ class FullDemoSeeder extends Seeder
     }
 
     /**
-     * Photos de tous les produits publiés et logos des fournisseurs, copiés sur le disque public.
+     * Photos de tous les produits publiés et logos des fournisseurs.
+     *
+     * En production (MEDIA_DRIVER=cloudinary) les images partent sur Cloudinary : le
+     * disque local de Render est éphémère, les clés "image:..." restent seules en base.
+     * En local on garde les disques Laravel, ce qui rend le seeder rejouable sans réseau.
      */
     private function seedImagesAndLogos(): void
     {
         $files = collect(self::PRODUCTS)->mapWithKeys(fn (array $row) => [$row[3] => $row[9]])->merge(self::EXISTING_IMAGES);
+        $cloudinary = config('media.driver') === 'cloudinary';
+        $media = $cloudinary ? app(MediaStorage::class) : null;
 
         foreach (Product::query()->whereIn('title', $files->keys())->get() as $product) {
-            $path = "products/demo/{$files[$product->title]}.jpg";
-            Storage::disk(ProductImage::DISK)->put($path, file_get_contents(self::IMAGES."/products/{$files[$product->title]}.jpg"));
+            if ($product->images()->exists()) {
+                continue;
+            }
+
+            $source = self::IMAGES."/products/{$files[$product->title]}.jpg";
+
+            if ($cloudinary) {
+                $path = $media->store(new UploadedFile($source, basename($source), 'image/jpeg', null, true), 'products/demo');
+            } else {
+                $path = "products/demo/{$files[$product->title]}.jpg";
+                Storage::disk(ProductImage::DISK)->put($path, file_get_contents($source));
+            }
+
             ProductImage::query()->firstOrCreate(['product_id' => $product->id, 'path' => $path], ['position' => 1]);
         }
 
         $logos = collect(self::SUPPLIERS)->filter(fn (array $row) => $row[8])->mapWithKeys(fn (array $row) => [$row[0] => $row[8]])->merge(self::EXISTING_LOGOS);
 
-        foreach ($logos as $company => $file) {
+        foreach ($logos as $company => $logo) {
             if (! isset($this->suppliers[$company])) {
                 continue;
             }
-            $path = "supplier-logos/demo/{$file}.png";
-            Storage::disk('public')->put($path, file_get_contents(self::IMAGES."/logos/{$file}.png"));
+
+            $source = self::IMAGES."/logos/{$logo}.png";
+
+            if ($cloudinary) {
+                if ($this->suppliers[$company]->logo) {
+                    continue;
+                }
+                $path = $media->store(new UploadedFile($source, basename($source), 'image/png', null, true), 'supplier-logos/demo');
+            } else {
+                $path = "supplier-logos/demo/{$logo}.png";
+                Storage::disk('public')->put($path, file_get_contents($source));
+            }
+
             $this->suppliers[$company]->forceFill(['logo' => $path])->save();
         }
     }

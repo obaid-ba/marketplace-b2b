@@ -2,11 +2,10 @@
 
 namespace App\Http\Resources;
 
+use App\Contracts\MediaStorage;
 use App\Models\SupplierProfile;
-use App\Services\SupplierProfileService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Carte « Fournisseur favori » (SCRUM-39, maquette B8) : uniquement des informations publiques.
@@ -23,7 +22,7 @@ class FavoriteSupplierResource extends JsonResource
         return [
             'id' => $this->id,
             'company_name' => $this->company_name,
-            'logo_url' => $this->logo ? Storage::disk(SupplierProfileService::LOGO_DISK)->url($this->logo) : null,
+            'logo_url' => app(MediaStorage::class)->url($this->logo),
             'region' => $this->region?->name,
             'rating_avg' => round((float) $this->rating_avg, 1),
             'reviews_count' => (int) $this->reviews_count,

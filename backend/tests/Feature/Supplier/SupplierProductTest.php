@@ -239,7 +239,7 @@ class SupplierProductTest extends TestCase
         $this->actingAsSupplier();
 
         $response = $this->postJson("/api/supplier/products/{$product->id}/images", [
-            'images' => [$this->image('a.jpg'), $this->image('b.png'), $this->image('c.webp')],
+            'images' => [$this->image('a.jpg'), $this->image('b.png'), $this->image('c.jpg')],
         ])->assertCreated();
 
         $this->assertSame([1, 2, 3], collect($response->json('product.images'))->pluck('position')->all());
@@ -267,7 +267,7 @@ class SupplierProductTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors(['images.0' => 'Chaque image doit peser au plus 3 Mo.']);
 
         $this->postJson("/api/supplier/products/{$product->id}/images", [
-            'images' => [UploadedFile::fake()->image('animation.gif')],
+            'images' => [UploadedFile::fake()->create('animation.gif', 100, 'image/gif')],
         ])->assertUnprocessable()->assertJsonValidationErrors('images.0');
     }
 
