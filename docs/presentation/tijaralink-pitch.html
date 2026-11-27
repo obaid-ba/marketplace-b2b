@@ -468,7 +468,7 @@ body.idle{cursor:none}
   <div class="a ccol fx-fade" data-b="1" data-out="2" style="left:0;top:0;width:1920px;height:1080px">
     <div class="play"><svg viewBox="0 0 24 24"><path d="M6 4v16l14-8z" fill="#fff"/></svg></div>
     <div class="t-hero" style="font-size:110px;font-weight:800">Démonstration</div>
-    <div class="t-tag" style="font-size:36px">Dans la vraie application · site web et téléphone</div>
+    <div class="t-tag" style="font-size:36px">2 min 57 · tournée dans la vraie application · site web et téléphone</div>
     <div class="demolist">
       <span class="chip lg ghost"><i data-ic="user"></i>Sana publie une demande</span>
       <span class="chip lg ghost"><i data-ic="building"></i>Atlas répond</span>
@@ -476,7 +476,7 @@ body.idle{cursor:none}
       <span class="chip lg ghost"><i data-ic="shield"></i>L'admin pilote</span>
     </div>
   </div>
-  <video class="a fx-fade" id="demo" data-b="2" src="tijaralink-demo.mp4" preload="auto" playsinline muted style="left:0;top:0;width:1920px;height:1080px"></video>
+  <video class="a fx-fade" id="demo" data-b="2" src="tijaralink-demo.mp4" preload="auto" playsinline style="left:0;top:0;width:1920px;height:1080px"></video>
   <div class="a" id="vidErr">Pas de vidéo : placez <b>tijaralink-demo.mp4</b> à côté de ce fichier, ou faites la démo en direct (Alt+Tab vers le navigateur).</div>
 </section>
 
@@ -597,7 +597,7 @@ const S=[
 { sec:5, title:'Sous le capot', beats:2,
   note:"Côté technique : Laravel pour l'API, React pour le site, React Native avec Expo pour le mobile, Gemini pour l'IA, avec un mode simulé si aucune clé n'est configurée. Plus de 800 tests automatisés protègent le tout." },
 { sec:6, title:'Démonstration', beats:2,
-  note:"Place à la démonstration : Sana publie une demande, Atlas répond, l'IA compare, l'administrateur pilote. Si la vidéo n'est pas là, passez au navigateur pour la démo en direct. Touches : P pause, J recule de 10 s, L avance de 10 s." },
+  note:"Place à la démonstration (vidéo de 2 min 57, avec le son) : Sana publie une demande, Atlas répond, l'IA compare, l'administrateur pilote. Touches : P pause / lecture, M coupe ou remet le son, J recule de 10 s, L avance de 10 s. Flèche droite pour passer à la suite." },
 { sec:7, title:'Perspectives', beats:2,
   note:"La suite : le paiement en ligne, la publication sur les stores, une IA plus poussée et l'ouverture à toute la Tunisie. Même API, même modèle de données : on ajoute des fournisseurs et des régions, pas des outils." },
 { sec:8, title:'Merci', beats:1,
@@ -606,10 +606,12 @@ const S=[
 const SECTIONS=['Titre','Histoire','Utilisateurs','Plateforme','Méthode','Technique','Démo','Perspectives','Merci'];
 const byId=id=>sceneEls.findIndex(e=>e.id===id);
 const VID=el('demo'),DEMO=byId('demoS');
-VID.muted=true;VID.addEventListener('error',()=>el('vidErr').classList.add('show'));
+VID.addEventListener('error',()=>el('vidErr').classList.add('show'));
 S[byId('agile')].fin={3(){el('mvcard').classList.add('st4')}};
 S[byId('agile')].ani={3(){const m=el('mvcard');later(()=>m.classList.add('st3'),300);later(()=>{m.classList.remove('st3');m.classList.add('st4')},1500)}};
-S[DEMO].ani={2(){try{VID.currentTime=0}catch(e){}VID.play().catch(()=>{})}};
+/* Lecture avec le son (autorisée car déclenchée par une touche ou un clic) ; sinon, en muet. */
+const playDemo=()=>VID.play().catch(()=>{VID.muted=true;VID.play().catch(()=>{})});
+S[DEMO].ani={2(){try{VID.currentTime=0}catch(e){}VID.muted=false;playDemo()}};
 el('prog').innerHTML=SECTIONS.map(()=>'<i></i>').join('');
 
 let cur={s:-1,b:0};
@@ -672,7 +674,8 @@ addEventListener('keydown',e=>{
   else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(k)){e.preventDefault();if(!e.repeat)prev()}
   else if(k==='Home'){e.preventDefault();goTo(0,1,true)}
   else if(/^[1-9]$/.test(k)){e.preventDefault();const i=S.findIndex(x=>x.sec===+k-1);if(i>=0)goTo(i,1,true)}
-  else if((k==='p'||k==='P'||k==='k'||k==='K')&&cur.s===DEMO&&cur.b===2){VID.paused?VID.play().catch(()=>{}):VID.pause()}
+  else if((k==='p'||k==='P'||k==='k'||k==='K')&&cur.s===DEMO&&cur.b===2){VID.paused?playDemo():VID.pause()}
+  else if((k==='m'||k==='M')&&cur.s===DEMO){VID.muted=!VID.muted}
   else if((k==='j'||k==='J')&&cur.s===DEMO){VID.currentTime=Math.max(0,VID.currentTime-10)}
   else if((k==='l'||k==='L')&&cur.s===DEMO){VID.currentTime=Math.min(VID.duration||0,VID.currentTime+10)}
   else if(k==='f'||k==='F'){toggleFS()}
