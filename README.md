@@ -4,12 +4,13 @@ Plateforme de gestion des achats et des ventes entre **fournisseurs** et **porte
 
 Le porteur de projet publie un besoin ou commande un produit, les fournisseurs répondent par des devis, la commande est payée puis suivie jusqu'à la facture, et l'administrateur supervise la plateforme. L'IA aide à décider sans jamais décider à la place de l'utilisateur.
 
-**Démo en ligne** (aucune installation) : application <https://marketplace-web-v2.onrender.com> · état de l'API <https://marketplace-api-v2-8gr1.onrender.com/up>
+**Démo en ligne** (aucune installation) : application <https://tijaralink-web.onrender.com> · état de l'API <https://tijaralink-api.onrender.com/up> · application Android : APK fabriqué avec EAS ([`mobile/`](mobile/README.md))
 
 | Dossier | Contenu | Stack |
 |---|---|---|
 | `backend/` | API REST | Laravel 12, PHP 8.2+, PostgreSQL (TiDB Cloud en production) / MySQL local possible, Sanctum (jetons Bearer) |
-| `frontend/` | Application web (et base de l'application mobile) | React 19, Vite, React Router, Zustand, Axios, Tailwind CSS 4 |
+| `frontend/` | Application web | React 19, Vite, React Router, Zustand, Axios, Tailwind CSS 4 |
+| `mobile/` | Application mobile (même API, même design que le site) | React Native 0.88, Expo SDK 58, React Navigation |
 | `deploy/` | Stack locale (Docker) et image de production | Docker Compose, nginx + PHP-FPM, PostgreSQL 17, Mailpit |
 | `docs/` | Décisions de l'équipe et conventions | Markdown |
 
@@ -21,6 +22,7 @@ Backlog et sprints : Jira, projet **SCRUM**.
 - PostgreSQL 14+ (recommandé, parité avec la production TiDB) ou MySQL 8 / MariaDB 10.6+
 - Node.js 20 ou plus, npm
 - Docker Desktop (optionnel) pour lancer la stack complète via `deploy/`
+- Pour le mobile : l'application **Expo Go** sur le téléphone (Play Store / App Store), téléphone et PC sur le même Wi-Fi
 
 ## Installation
 
@@ -60,6 +62,78 @@ cp .env.example .env          # VITE_API_URL=http://localhost:8000/api
 npm run dev                   # http://localhost:5173
 ```
 
+### 3. Application mobile (Expo)
+
+Le mobile utilise **la même API et la même base** que le site : tout ce qui est fait d'un côté apparaît de l'autre.
+Sur un vrai téléphone, l'API doit écouter sur le réseau et sur le port **8001** :
+
+```bash
+cd backend
+php artisan serve --host=0.0.0.0 --port=8001
+```
+
+Puis, dans un autre terminal :
+
+```bash
+cd mobile
+npm install
+npm run start:phone           # Metro sur http://<IP du PC>:8081, QR code à scanner avec Expo Go
+```
+
+`start:phone` fixe l'IP du PC (`192.168.1.83`) dans `package.json` : si `ipconfig` donne une autre adresse pour la
+carte « Wi-Fi », modifiez-la. Autres commandes : `npx expo start` (touche `a` : émulateur Android, `w` : navigateur),
+`npm run start:tunnel` (réseau qui bloque les appareils entre eux).
+
+L'adresse de l'API est trouvée toute seule : l'application reprend l'IP du PC qui sert Metro et vise le port 8001
+(émulateur Android : `10.0.2.2`, navigateur : `localhost`). Pour la forcer, créez `mobile/.env` :
+
+```bash
+EXPO_PUBLIC_API_URL=http://192.168.1.83:8001/api
+EXPO_PUBLIC_WEB_URL=http://192.168.1.83:5173
+```
+
+Pour tester dans le navigateur (`npx expo start --web`, port 8081), ajoutez l'origine au CORS du backend :
+`FRONTEND_URLS=http://localhost:5173,http://localhost:8081` dans `backend/.env`.
+
+**Écrans.** Chaque espace a 4 onglets et un onglet **Menu** qui reprend la barre latérale du site :
+
+| Visiteur | Porteur de projet | Fournisseur | Administrateur |
+|---|---|---|---|
+| Accueil, catalogue, fiche produit, connexion | Tableau de bord, mes demandes, publier une demande, mes commandes, fournisseurs favoris, mes litiges, assistant IA, messagerie, notifications, paramètres | Tableau de bord, mes produits, demandes reçues, mes devis, mes commandes, mes avis (réponse), litiges reçus, assistant IA, messagerie, notifications, profil de l'entreprise, paramètres | Tableau de bord, validation fournisseurs, utilisateurs, catégories, contrôle du catalogue, avis signalés, litiges, journal d'audit, notifications |
+
+Restent sur le site (lien direct depuis l'application) : inscription, mot de passe oublié, pièces jointes, dépôt d'un
+devis, décision d'un litige, modification du profil et des catégories. L'application se rafraîchit à chaque retour sur
+un écran, toutes les 10 s dans la messagerie et toutes les 30 s pour les badges.
+
+**APK Android** : `npm install -g eas-cli`, `eas login`, puis `eas build -p android --profile preview` depuis `mobile/`.
+
+**Organisation** : `App.js` (navigation par rôle), `src/config.js` (adresses API et site), `src/theme.js` (couleurs),
+`src/api/client.js` (jeton Sanctum, erreurs en français), `src/auth/` (session dans le trousseau du téléphone),
+`src/components/`, `src/screens/`.
+
+### Dépannage mobile : « There was a problem running the requested app »
+
+Ce message d'Expo Go veut presque toujours dire que **le téléphone ne joint pas Metro** sur le PC. Le code n'est pas en
+cause (`npx expo-doctor` pour le vérifier).
+
+1. **Un seul Metro, sur le port 8081.** Si un autre `expo start` tourne déjà (autre terminal, autre copie du projet),
+   Expo prend le port suivant (8082…), souvent bloqué par le pare-feu. Pour trouver et arrêter l'autre :
+   ```powershell
+   Get-NetTCPConnection -State Listen -LocalPort 8081,8082 | Select-Object LocalPort,OwningProcess
+   Stop-Process -Id <OwningProcess>
+   ```
+2. **Pare-feu Windows** : ouvrir 8081 (Metro) et 8001 (API) pour le profil « Privé » (PowerShell en administrateur),
+   et mettre le Wi-Fi en profil **Privé** (Paramètres → Réseau et Internet → Wi-Fi) :
+   ```powershell
+   New-NetFirewallRule -DisplayName "Expo Metro 8081" -Direction Inbound -Protocol TCP -LocalPort 8081 -Action Allow -Profile Private
+   New-NetFirewallRule -DisplayName "Laravel API 8001" -Direction Inbound -Protocol TCP -LocalPort 8001 -Action Allow -Profile Private
+   ```
+3. **Même Wi-Fi et bonne IP** dans `start:phone` (et dans `mobile/.env` s'il existe).
+4. **L'application s'ouvre mais affiche « Impossible de joindre le serveur »** : l'API n'écoute pas sur le réseau,
+   relancez-la avec `--host=0.0.0.0 --port=8001`.
+
+Si le message persiste, touchez « View error log » dans Expo Go pour voir l'erreur exacte.
+
 ### Dépannage : « Impossible de charger les régions »
 
 Ce message apparaît dans les formulaires d'inscription quand l'API ne peut pas lire les données de référence : le plus souvent, **MySQL/MariaDB n'est pas démarré** et Laravel répond `500`.
@@ -75,34 +149,23 @@ La réponse doit être un tableau JSON de **24 régions**. Si la base est vide, 
 
 ### Comptes de démonstration
 
-Mot de passe : `password`
+Créés par `php artisan migrate --seed` avec `SEED_DEMO_DATA=true` (catalogue avec photos, demandes, commandes, avis,
+litiges). Lancez aussi `php artisan storage:link` pour les photos. Les mêmes comptes servent au web et au mobile.
 
-| Rôle | E-mail |
-|---|---|
-| Administrateur | admin@marketplace.test |
-| Fournisseur | fournisseur@marketplace.test |
-| Porteur de projet | porteur@marketplace.test |
+Mot de passe de tous les comptes : `password`.
 
-### Catalogue de démonstration (sprint 2)
+| Rôle | E-mail | À montrer |
+|---|---|---|
+| Administrateur | admin@tijaralink.test | tableau de bord, fournisseur en attente, avis signalé, litiges |
+| Porteur de projet | sana@tijaralink.test | demande avec 3 devis à comparer (résumé IA), commandes, messagerie |
+| Porteur de projet | karim@tijaralink.test | litige ouvert sur une commande livrée |
+| Porteur de projet | youssef@tijaralink.test | litige décidé, commande validée |
+| Fournisseur | atlas@tijaralink.test | demandes reçues, devis, produits, avis et résumé IA |
+| Fournisseur | batisud@tijaralink.test | avis suspect signalé à l'administrateur |
+| Fournisseur en attente | fournisseur.attente@tijaralink.test | page « dossier en attente de validation » |
 
-Fournisseurs, produits, avis et favoris des maquettes (Atlas Emballages, Djerba Pack, PalettesPlus…) :
-
-```bash
-cd backend
-php artisan storage:link                            # photos des produits et logos (disque « public »)
-php artisan db:seed --class=CatalogueDemoSeeder     # relançable sans doublons
-```
-
-Il est aussi lancé par `php artisan migrate --seed` lorsque `SEED_DEMO_DATA=true`.
-Mot de passe : `password`.
-
-| Rôle | E-mail |
-|---|---|
-| Fournisseur validé (Atlas Emballages) | atlas@marketplace.test |
-| Porteur de projet avec 6 favoris (Sana Ben Salah) | sana@marketplace.test |
-
-Parcours de démo : accueil → recherche → catalogue filtré → fiche produit → fiche fournisseur → favori ;
-côté fournisseur : Mes produits → Ajouter un produit → le voir dans le catalogue.
+Parcours de démo : accueil → catalogue → fiche produit → fiche fournisseur → connexion porteur → comparer les devis →
+accepter ; côté fournisseur : Mes produits → Ajouter un produit → le voir dans le catalogue.
 
 ## Tests
 
@@ -133,62 +196,62 @@ Les deux suites tournent automatiquement sur chaque pull request (GitHub Actions
 
 ## Environnements et déploiement
 
-Trois façons d'utiliser le projet, à ne pas confondre : **consulter l'application** ne demande
-aucune installation, **modifier le code** se fait en local sur une base jetable, et la base
-**TiDB** n'existe qu'en production.
+Deux façons d'utiliser le projet, à ne pas confondre : **consulter l'application** ne demande
+aucune installation, **modifier le code** se fait en local sur une base jetable.
 
 | Environnement | Pour qui | Base de données | Mise en route |
 |---|---|---|---|
-| **Démo publique** (Render) | toute l'équipe, le jury, les testeurs | TiDB Cloud | ouvrir <https://marketplace-web-v2.onrender.com> |
-| **Local** (Docker) | développement, modifications de code | PostgreSQL 17 en conteneur | `./deploy/start.sh` |
-| **Production** | Render (mise à jour automatique) | TiDB Cloud | `git push` sur la branche suivie |
+| **Démo publique** (Render) | toute l'équipe, le jury, les testeurs | PostgreSQL Render | ouvrir <https://tijaralink-web.onrender.com> |
+| **Application mobile** | téléphones Android | (appelle l'API Render) | APK fabriqué par EAS Build, voir [`mobile/README.md`](mobile/README.md) |
+| **Local** | développement, modifications de code | MySQL (Laragon) ou PostgreSQL en conteneur | voir « Installation » ci-dessus, ou `./deploy/start.sh` |
+
+Comptes de démonstration (mot de passe `password`) : `admin@tijaralink.test`, `sana@tijaralink.test`
+(porteur de projet), `atlas@tijaralink.test` (fournisseur).
 
 ```mermaid
 flowchart LR
-  subgraph Equipe["Équipe · navigateur · rien à installer"]
-    T["Testeur / jury"]
+  T["Navigateur<br/>équipe · jury"] -->|"HTTPS"| WEB
+  M["Application Android<br/>(APK EAS)"] -->|"HTTPS /api"| API
+
+  subgraph Render["Render · plan gratuit · Francfort"]
+    WEB["Static Site<br/>tijaralink-web.onrender.com"]
+    API["API Docker<br/>tijaralink-api.onrender.com"]
+    DB[("PostgreSQL<br/>tijaralink-db")]
   end
 
-  subgraph Dev["Développeur · Docker Desktop"]
-    DV["web :5173 · api :8000<br/>db PostgreSQL (conteneur)<br/>mailpit :8025"]
-  end
-
-  subgraph Prod["Render · plan gratuit"]
-    WEB["Static Site<br/>marketplace-web-v2.onrender.com"]
-    API["API Docker<br/>marketplace-api-v2.onrender.com"]
-  end
-
-  DB[("TiDB Cloud<br/>protocole PostgreSQL")]
-  MJ["Mailjet SMTP"]
-  CL["Cloudinary"]
-
-  T -->|"HTTPS"| WEB
   WEB -->|"/api"| API
   API --> DB
-  API --> MJ
-  API --> CL
+  API -->|"IA"| G["Gemini<br/>(si AI_API_KEY)"]
 ```
 
 La base locale et la base de production sont **complètement séparées** : un `migrate:fresh`
-lancé en local ne touche jamais la démo publique, et personne n'a besoin du mot de passe TiDB
-pour travailler.
+lancé en local ne touche jamais la démo publique.
 
 ### Chaîne de déploiement
 
+Tout est décrit dans [`render.tijaralink.yaml`](render.tijaralink.yaml) (Blueprint Render) :
+base PostgreSQL, API Docker et site statique. Un `git push` sur `main` redéploie automatiquement.
+
 ```mermaid
 flowchart LR
-  P["git push<br/>feature/SCRUM-129-deploiement"] --> G["GitHub"]
+  P["git push<br/>main"] --> G["GitHub"]
   G -->|"autoDeployTrigger: commit"| B["Build Docker<br/>deploy/api/Dockerfile"]
-  B --> E["entrypoint.sh<br/>attente DB · APP_KEY<br/>migrations · seed si base vide"]
+  B --> E["entrypoint.sh<br/>attente DB · APP_KEY<br/>migrations · démo une seule fois<br/>photos de démo recopiées"]
   E --> L["Service live<br/>GET /up → 200"]
 ```
 
-Détail des variables, de la base TiDB, de Mailjet et de la vérification des e-mails :
-[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Stack locale et override TiDB :
-[`deploy/README.md`](deploy/README.md). Décisions correspondantes :
-[`docs/decisions.md`](docs/decisions.md) (D11 à D14).
+- **Base** : créée par Render et reliée à l'API sans mot de passe à copier (`fromDatabase`).
+  Remplie au premier démarrage avec la démo complète (`php artisan demo:reset`, jeton `RESET_DEMO_TOKEN`) ;
+  changer la valeur du jeton pour la recréer.
+- **Seul secret** : `AI_API_KEY` (clé Gemini), saisie dans le tableau de bord Render. Sans elle, l'IA reste en mode simulé.
+- **Plan gratuit** : l'API s'endort sans visite (premier appel ~30-60 s), pas de temps réel (rafraîchissement
+  toutes les 30 s), base gratuite supprimée par Render 30 jours après sa création.
+- **Créer le déploiement** : Render → New → Blueprint → dépôt, branche `main`, chemin `render.tijaralink.yaml`.
+
+Alternative avec TiDB Cloud, Mailjet et Cloudinary (premier déploiement de l'équipe) :
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Stack locale Docker : [`deploy/README.md`](deploy/README.md).
+Décisions correspondantes : [`docs/decisions.md`](docs/decisions.md) (D11 à D14).
 
 ## Travailler ensemble
 
 Voir [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) : branches, commits liés à Jira, pull requests. Les décisions d'équipe sont notées dans [`docs/decisions.md`](docs/decisions.md).
-# marketplace-b2b

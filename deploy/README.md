@@ -96,5 +96,5 @@ docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.tidb.yml up
 
 ## Mise en production
 
-Voir [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md) : TiDB + Render + Mailjet + Cloudinary,
-le blueprint [`render.yaml`](../render.yaml) et la procédure de vérification des e-mails.
+Déploiement actuel : blueprint [`render.tijaralink.yaml`](../render.tijaralink.yaml) (API, site et base PostgreSQL
+sur Render). Variante TiDB + Mailjet + Cloudinary et vérification des e-mails : [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).

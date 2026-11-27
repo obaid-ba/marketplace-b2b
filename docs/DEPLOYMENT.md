@@ -1,5 +1,14 @@
 # Déploiement — TiDB, Render, Mailjet, Cloudinary
 
+> **Déploiement utilisé aujourd'hui** : [`render.tijaralink.yaml`](../render.tijaralink.yaml) — base PostgreSQL
+> créée par Render, démo et photos remplies automatiquement, seul secret `AI_API_KEY`.
+> Adresses : <https://tijaralink-web.onrender.com> et <https://tijaralink-api.onrender.com>. Voir le README, section
+> « Environnements et déploiement ».
+>
+> Ce guide décrit le **premier déploiement** de l'équipe (TiDB Cloud, Mailjet, Cloudinary, adresses
+> `marketplace-*-v2`), conservé comme alternative. Son blueprint `render.yaml` a été retiré du dépôt : il est
+> disponible dans l'historique git (dernière version : commit `999b342`, `git show 999b342:render.yaml`).
+
 Branche de référence : `feature/SCRUM-129-deploiement` (ticket **SCRUM-129 / F35**).
 Objectif : une mise en production reproductible, gratuite, sans disque local persistant pour les fichiers utilisateurs.
 
@@ -41,7 +50,7 @@ flowchart LR
 | **Mailjet** | E-mails transactionnels | SMTP `in-v3.mailjet.com:587`, expéditeur validé |
 | **Cloudinary** | Stockage des fichiers | images/logos publics, documents privés servis par URL signée |
 
-Le dépôt fournit l'infrastructure dans [`deploy/`](../deploy/) et le blueprint Render [`render.yaml`](../render.yaml).
+Le dépôt fournit l'infrastructure dans [`deploy/`](../deploy/) ; le blueprint de cette variante (`render.yaml`) est dans l'historique git.
 
 > **Plan gratuit Render** : pas de worker ni de cron dédiés, pas de disque persistant,
 > `QUEUE_CONNECTION=sync`, et le service s'endort après inactivité (premier appel ~30-60 s).
