@@ -30,9 +30,12 @@ server {
         fastcgi_read_timeout 60s;
     }
 
-    # Fichiers privés : jamais servis directement, ils passent par l'API.
+    # Photos des produits et logos (disque « public », lien php artisan storage:link) : servis tels quels,
+    # jamais exécutés. Les fichiers privés (storage/app/private) ne sont pas sous ce lien : ils passent par l'API.
     location ^~ /storage/ {
-        deny all;
+        try_files $uri =404;
+        expires 7d;
+        add_header X-Content-Type-Options nosniff always;
     }
 
     location ~ /\.(?!well-known) {
