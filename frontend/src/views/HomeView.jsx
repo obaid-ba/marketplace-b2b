@@ -221,16 +221,17 @@ export default function HomeView() {
             {!loaded
               ? Array.from({ length: 8 }, (_, i) => <li key={i} className="h-24 animate-pulse rounded-2xl bg-page" aria-hidden="true" />)
               : categories.map((category) => (
-                  <li key={category.id}>
+                  <li key={category.id} className="min-w-0">
+                    {/* Téléphone : l'icône passe au-dessus du nom, pour que les noms longs tiennent sur deux colonnes. */}
                     <Link
                       to={catalogPath({ category: category.id })}
-                      className="group flex h-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition hover:-translate-y-0.5 hover:border-brand-100 hover:shadow-md"
+                      className="group flex h-full flex-col items-start gap-2 rounded-2xl border border-line bg-surface p-3 transition hover:-translate-y-0.5 hover:border-brand-100 hover:shadow-md sm:flex-row sm:items-center sm:gap-3 sm:p-4"
                     >
-                      <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white">
+                      <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white sm:h-12 sm:w-12">
                         <LineIcon name={categoryIcon(category.name)} className="h-6 w-6" />
                       </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold text-ink">{category.name}</span>
+                      <span className="min-w-0 max-w-full">
+                        <span className="block text-sm font-semibold break-words hyphens-auto text-ink">{category.name}</span>
                         <span className="mt-0.5 block text-xs text-muted">{pluralize(category.products_count ?? 0, 'produit')}</span>
                       </span>
                     </Link>

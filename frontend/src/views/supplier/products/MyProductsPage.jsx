@@ -291,7 +291,7 @@ export default function MyProductsPage() {
       )}
 
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line">
-        <div role="tablist" aria-label="Statut" className="-mb-px flex gap-6 overflow-x-auto">
+        <div role="tablist" aria-label="Statut" className="-mb-px flex max-w-full min-w-0 gap-6 overflow-x-auto">
           {TABS.map((tab) => {
             const active = status === tab.value
             return (
@@ -310,10 +310,11 @@ export default function MyProductsPage() {
             )
           })}
         </div>
-        <label className="mb-3 flex items-center gap-2 text-sm">
+        {/* La liste prend la largeur de son option la plus longue : on la limite à l'écran (téléphone). */}
+        <label className="mb-3 flex max-w-full min-w-0 items-center gap-2 text-sm">
           <span className="text-muted">Catégorie</span>
           <select
-            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm"
+            className="max-w-full min-w-0 rounded-lg border border-line bg-surface px-3 py-2 text-sm"
             value={categoryId}
             onChange={(event) => setParam({ category_id: event.target.value })}
           >
