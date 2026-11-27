@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import PageHeader from '@/components/PageHeader'
+import ColorKpiCard from '@/components/dashboard/ColorKpiCard'
+import DashboardPeriod from '@/components/dashboard/DashboardPeriod'
 import EmptyState from '@/components/dashboard/EmptyState'
 import ErrorState from '@/components/dashboard/ErrorState'
-import KpiCard from '@/components/dashboard/KpiCard'
-import PeriodPicker from '@/components/dashboard/PeriodPicker'
 import Skeleton from '@/components/dashboard/Skeleton'
 import TimeSeriesChart from '@/components/dashboard/TimeSeriesChart'
+import WelcomeBanner from '@/components/dashboard/WelcomeBanner'
 import { PATHS, adminDisputePath } from '@/router/paths'
 import AdminExportDialog from './AdminExportDialog'
 import AnomalyAlertsCard from './AnomalyAlertsCard'
@@ -17,7 +17,7 @@ import {
   useAdminDashboardStore,
 } from '@/stores/adminDashboard'
 import { formatAmount, formatCount } from '@/utils/money'
-import { defaultPeriod, formatDate } from '@/utils/period'
+import { defaultPeriod } from '@/utils/period'
 
 const plural = (count, singular, pluralForm = `${singular}s`) =>
   `${count} ${count > 1 ? pluralForm : singular}`
@@ -29,11 +29,14 @@ function waitingLabel(days) {
 function DashboardSkeleton() {
   return (
     <div role="status" className="space-y-6" aria-busy="true" aria-label="Chargement du tableau de bord">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
         {Array.from({ length: 5 }, (_, index) => (
-          <div key={index} className="card">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="mt-3 h-8 w-20" />
+          <div key={index} className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <div>
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="mt-3 h-7 w-20" />
+            </div>
           </div>
         ))}
       </div>
@@ -83,14 +86,19 @@ export default function AdminDashboardView() {
   const reported = data?.reported_reviews
   const categories = data?.top_categories ?? []
   const maxProducts = Math.max(1, ...categories.map((category) => category.products_count))
+  const ordersTrend = data?.series?.map((day) => Number(day.orders) || 0)
+  const tendersTrend = data?.series?.map((day) => Number(day.tenders) || 0)
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <WelcomeBanner
         title="Tableau de bord administrateur"
         subtitle="Vue consolidée de l'activité de la plateforme : comptes, commandes, demandes et files à traiter."
         actions={
-          <button type="button" className="btn btn-secondary" onClick={() => setExportOpen(true)}>
+          <button type="button" className="btn btn-primary gap-2 rounded-xl shadow-sm" onClick={() => setExportOpen(true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+              <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+            </svg>
             Exporter les statistiques
           </button>
         }
@@ -98,19 +106,7 @@ export default function AdminDashboardView() {
 
       <AdminExportDialog open={exportOpen} defaultRange={period} onClose={() => setExportOpen(false)} />
 
-      <section className="card" aria-labelledby="period-title">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <h2 id="period-title" className="text-sm font-semibold text-ink">
-            Période analysée
-          </h2>
-          <p className="text-xs text-muted">
-            {formatDate(period.from)} — {formatDate(period.to)}
-          </p>
-        </div>
-        <div className="mt-4">
-          <PeriodPicker from={period.from} to={period.to} onApply={setPeriod} loading={loading} />
-        </div>
-      </section>
+      <DashboardPeriod period={period} onChange={setPeriod} loading={loading} />
 
       {error && !data && <ErrorState message={error} onRetry={() => load(period)} />}
 
@@ -125,31 +121,43 @@ export default function AdminDashboardView() {
       {data && (
         <>
           <section aria-label="Indicateurs clés">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              <KpiCard
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+              <ColorKpiCard
                 label="Utilisateurs actifs"
                 value={formatCount(data.kpis.active_users)}
                 hint="Connectés dans les 30 jours précédant la période"
+                icon="users"
+                tone="violet"
               />
-              <KpiCard
+              <ColorKpiCard
                 label="Fournisseurs validés"
                 value={formatCount(data.kpis.validated_suppliers)}
                 hint="Comptes fournisseurs validés"
+                icon="check"
+                tone="mint"
               />
-              <KpiCard
+              <ColorKpiCard
                 label="Commandes"
                 value={formatCount(data.kpis.orders_count)}
                 hint="Créées sur la période"
+                icon="box"
+                tone="green"
+                trend={ordersTrend}
               />
-              <KpiCard
+              <ColorKpiCard
                 label="Revenu global"
                 value={formatAmount(data.kpis.revenue)}
                 hint="Commandes clôturées sur la période"
+                icon="cart"
+                tone="orange"
               />
-              <KpiCard
+              <ColorKpiCard
                 label="Demandes"
                 value={formatCount(data.kpis.tenders_count)}
                 hint="Demandes publiées sur la période"
+                icon="megaphone"
+                tone="blue"
+                trend={tendersTrend}
               />
             </div>
             <p className="mt-2 text-xs text-muted">
@@ -158,9 +166,12 @@ export default function AdminDashboardView() {
             </p>
           </section>
 
-          <section className="card" aria-labelledby="activity-chart-title">
+          <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm" aria-labelledby="activity-chart-title">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <h2 id="activity-chart-title" className="text-base font-semibold text-ink">
+              <h2 id="activity-chart-title" className="flex items-center gap-2 text-base font-semibold text-ink">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5 text-brand-600" aria-hidden="true">
+                  <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+                </svg>
                 Évolution de l'activité
               </h2>
               <p className="text-xs text-muted">Inscriptions, commandes et demandes</p>

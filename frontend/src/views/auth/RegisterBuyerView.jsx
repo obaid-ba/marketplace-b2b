@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { http } from '@/api/http'
 import { useAuthStore } from '@/stores/auth'
+import AuthLayout, { AuthCard } from '@/layouts/AuthLayout'
 import { PATHS } from '@/router/paths'
 
 const BUYER_TYPES = [
@@ -162,8 +163,8 @@ export default function RegisterBuyerView() {
 
   if (created) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="card w-full max-w-lg" role="status">
+      <AuthLayout>
+        <AuthCard className="max-w-lg" role="status">
           <p className="text-sm font-semibold text-emerald-600">Inscription enregistrée</p>
           <h1 className="mt-2 text-2xl font-semibold">Vérifiez votre boîte e-mail</h1>
           <p className="mt-3 text-sm text-slate-600">
@@ -179,18 +180,18 @@ export default function RegisterBuyerView() {
           <Link to={PATHS.login} className="btn-primary mt-6 w-full">
             Aller à la connexion
           </Link>
-        </div>
-      </div>
+        </AuthCard>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="card w-full max-w-2xl">
-        <Link to={PATHS.registerChoice} className="text-sm text-brand-600">
+    <AuthLayout>
+      <AuthCard className="max-w-2xl">
+        <Link to={PATHS.registerChoice} className="text-sm font-medium text-brand-600 hover:underline">
           ← Changer de type de compte
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Inscription porteur de projet</h1>
+        <h1 className="mt-5 text-[28px] font-bold tracking-tight text-ink">Inscription porteur de projet</h1>
         <p className="mt-1 text-sm text-slate-500">
           Créez votre compte acheteur pour publier vos besoins et recevoir des devis.
         </p>
@@ -458,7 +459,7 @@ export default function RegisterBuyerView() {
             </Link>
           </p>
         </form>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthLayout>
   )
 }

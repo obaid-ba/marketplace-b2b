@@ -131,7 +131,7 @@ export default function NotificationBell({ notificationsPath }) {
         onClick={() => setOpen((value) => !value)}
         aria-label={unread > 0 ? `Notifications, ${unread} non lues` : 'Notifications'}
         aria-expanded={open}
-        className="relative grid h-9 w-9 place-items-center rounded-full bg-page text-muted transition hover:bg-brand-50 hover:text-brand-600"
+        className="relative grid h-10 w-10 place-items-center rounded-full text-ink transition hover:bg-brand-50 hover:text-brand-600"
       >
         <BellIcon />
         {unread > 0 && (

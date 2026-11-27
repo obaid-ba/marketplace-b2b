@@ -6,19 +6,19 @@ import SpaceLayout from './SpaceLayout'
  * Mise en page « Espace fournisseur » (maquette Figma) : barre latérale et en-tête communs (SpaceLayout).
  */
 const NAV_ITEMS = [
-  { label: 'Tableau de bord', to: PATHS.supplier, end: true },
-  { label: 'Mes produits', to: PATHS.supplierProducts }, // SCRUM-34
-  { label: 'Demandes reçues', to: PATHS.supplierTenders }, // SCRUM-44
-  { label: 'Mes devis', to: PATHS.supplierQuotes }, // SCRUM-46
-  { label: 'Mes commandes', to: PATHS.supplierOrders }, // SCRUM-58
-  { label: 'Mes avis', to: PATHS.supplierReviews }, // SCRUM-65
-  { label: 'Litiges reçus', to: PATHS.supplierDisputes }, // SCRUM-67
-  { label: 'Assistant IA', to: PATHS.supplierAi }, // SCRUM-77 / SCRUM-78
-  { label: 'Messagerie', to: PATHS.supplierMessages, badge: 'messages' }, // SCRUM-59
-  { label: 'Notifications', to: PATHS.supplierNotifications }, // SCRUM-62
-  { label: 'Préférences de notification', to: PATHS.notificationPreferences }, // SCRUM-63
-  { label: "Profil de l'entreprise", to: PATHS.supplierProfile },
-  { label: 'Paramètres du compte', to: PATHS.account }, // SCRUM-29
+  { group: 'Ventes', label: 'Tableau de bord', to: PATHS.supplier, end: true, icon: 'home' },
+  { group: 'Ventes', label: 'Mes produits', to: PATHS.supplierProducts, icon: 'box' }, // SCRUM-34
+  { group: 'Ventes', label: 'Demandes reçues', to: PATHS.supplierTenders, icon: 'inbox' }, // SCRUM-44
+  { group: 'Ventes', label: 'Mes devis', to: PATHS.supplierQuotes, icon: 'receipt' }, // SCRUM-46
+  { group: 'Ventes', label: 'Mes commandes', to: PATHS.supplierOrders, icon: 'cart' }, // SCRUM-58
+  { group: 'Ventes', label: 'Mes avis', to: PATHS.supplierReviews, icon: 'star' }, // SCRUM-65
+  { group: 'Ventes', label: 'Litiges reçus', to: PATHS.supplierDisputes, icon: 'alert' }, // SCRUM-67
+  { group: 'Communication', label: 'Assistant IA', to: PATHS.supplierAi, icon: 'sparkles' }, // SCRUM-77 / SCRUM-78
+  { group: 'Communication', label: 'Messagerie', to: PATHS.supplierMessages, badge: 'messages', icon: 'message' }, // SCRUM-59
+  { group: 'Communication', label: 'Notifications', to: PATHS.supplierNotifications, icon: 'bell' }, // SCRUM-62
+  // Préférences de notification (SCRUM-63) : accessibles depuis les paramètres.
+  { group: 'Compte', label: "Profil de l'entreprise", to: PATHS.supplierProfile, icon: 'building' },
+  { group: 'Compte', label: 'Paramètres', to: PATHS.account, icon: 'settings' }, // SCRUM-29
 ]
 
 export default function SupplierLayout() {
@@ -30,6 +30,7 @@ export default function SupplierLayout() {
       homePath={PATHS.supplier}
       navItems={NAV_ITEMS}
       displayName={user?.supplier_company_name || user?.name}
+      helpPath={PATHS.supplierAi}
       notificationsPath={PATHS.supplierNotifications}
     />
   )

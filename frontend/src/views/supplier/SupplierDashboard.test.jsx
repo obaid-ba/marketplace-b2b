@@ -15,6 +15,8 @@ vi.mock('recharts', () => {
   return {
     ResponsiveContainer: PassThrough,
     LineChart: PassThrough,
+    AreaChart: PassThrough,
+    Area: () => null,
     Line: () => null,
     XAxis: () => null,
     YAxis: () => null,

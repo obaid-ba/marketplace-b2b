@@ -233,6 +233,9 @@ export default function AccountSettingsView() {
       <p className="mt-1 text-sm text-slate-500">
         Mettez à jour vos informations personnelles, votre mot de passe, ou quittez la plateforme.
       </p>
+      <Link to={PATHS.notificationPreferences} className="mt-2 inline-block text-sm font-medium text-brand-600">
+        Préférences de notification →
+      </Link>
 
       {!user?.email_verified && (
         <div className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">

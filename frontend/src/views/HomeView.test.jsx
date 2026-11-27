@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import HomeView from './HomeView'
 
 vi.mock('@/api/http', () => ({ http: { get: vi.fn() }, onAuthError: vi.fn() }))
-vi.mock('@/api/catalog', () => ({ fetchRegions: vi.fn() }))
+vi.mock('@/api/catalog', () => ({ fetchRegions: vi.fn(), searchProducts: vi.fn() }))
 vi.mock('@/api/home', () => ({ fetchHome: vi.fn() }))
 
 const home = {
@@ -49,6 +49,10 @@ beforeEach(() => {
   useAuthStore.setState({ user: null, token: null, loaded: true })
   homeApi.fetchHome.mockResolvedValue(home)
   catalogApi.fetchRegions.mockResolvedValue([{ id: 12, name: 'Médenine' }])
+  catalogApi.searchProducts.mockResolvedValue({
+    data: [{ id: 9, title: 'Palettes en bois', price: 18, unit: 'pièce', main_image_url: '/storage/palettes.jpg', supplier: { id: 3, company_name: 'Bois du Sud' } }],
+    meta: { total: 1 },
+  })
 })
 
 afterEach(() => {
@@ -68,6 +72,14 @@ describe('HomeView', () => {
     expect(screen.getByText('312 produits')).toBeTruthy()
     expect(screen.getByText('1 produit')).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Comment ça marche' })).toBeTruthy()
+  })
+
+  it('affiche le catalogue des produits avec leurs photos', async () => {
+    renderHome()
+
+    expect(await screen.findByText('Palettes en bois')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Catalogue des produits' })).toBeTruthy()
+    expect(catalogApi.searchProducts).toHaveBeenCalledWith({ per_page: 8, category: undefined }, expect.anything())
   })
 
   it('la recherche ouvre le catalogue filtré par mots-clés et région', async () => {
@@ -95,7 +107,7 @@ describe('HomeView', () => {
     renderHome()
 
     expect(screen.queryByRole('link', { name: "S'inscrire" })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Publier une demande' }).disabled).toBe(true)
+    expect(screen.getByRole('link', { name: 'Publier une demande' }).getAttribute('href')).toBe('/porteur/demandes/nouvelle')
     await screen.findByText('Cartons ondulés sur mesure')
   })
 

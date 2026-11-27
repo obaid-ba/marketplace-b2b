@@ -1,11 +1,13 @@
 <?php
 
+use App\Services\Ai\GeminiAiClient;
 use App\Services\Ai\SimulatedAiClient;
 
 /*
 | Service IA commun (SCRUM-119 / F25).
 |
-| provider : « simulated » (règles de calcul, aucun appel extérieur, aucune clé) ou « disabled ».
+| provider : « simulated » (règles de calcul, aucun appel extérieur, aucune clé), « gemini » (API Gemini de
+| Google, clé AI_API_KEY obligatoire) ou « disabled ».
 | Pour brancher un vrai fournisseur : écrire une classe qui implémente App\Services\Ai\AiClient,
 | puis l'ajouter à « drivers ». Le reste de l'application ne change pas.
 */
@@ -16,9 +18,10 @@ return [
     'drivers' => [
         'simulated' => SimulatedAiClient::class,
         'mock' => SimulatedAiClient::class, // ancien nom (S6), accepté dans les .env existants
+        'gemini' => GeminiAiClient::class,
     ],
 
-    // Réservés au futur fournisseur (Q8).
+    // Fournisseur réel. AI_MODEL vide : modèle par défaut du pilote (GeminiAiClient::DEFAULT_MODEL).
     'api_key' => env('AI_API_KEY'),
     'model' => env('AI_MODEL'),
     'timeout' => (int) env('AI_TIMEOUT', 30),

@@ -17,8 +17,11 @@ function BrandLogo({ inverted = false }) {
   return <Logo size={34} variant={inverted ? 'light' : 'default'} />
 }
 
-const linkClass = ({ isActive }) =>
-  `text-[15px] font-medium transition ${isActive ? 'text-brand-600' : 'text-ink hover:text-brand-600'}`
+const linkClass = ({ isActive }, vertical = false) =>
+  `text-[15px] font-medium transition ${isActive ? 'text-brand-600' : 'text-ink hover:text-brand-600'} ${
+    // Lien actif souligné en violet (barre horizontale uniquement)
+    vertical ? '' : `border-b-2 pb-1 ${isActive ? 'border-brand-600' : 'border-transparent'}`
+  }`
 
 function NavLinks({ onNavigate, vertical = false }) {
   const { pathname, hash } = useLocation()
@@ -31,7 +34,7 @@ function NavLinks({ onNavigate, vertical = false }) {
           to={PATHS.home}
           end
           onClick={onNavigate}
-          className={(state) => `${linkClass({ isActive: state.isActive && !howItWorksActive })} ${vertical ? 'block rounded-lg px-3 py-2.5 hover:bg-page' : ''}`}
+          className={(state) => `${linkClass({ isActive: state.isActive && !howItWorksActive }, vertical)} ${vertical ? 'block rounded-lg px-3 py-2.5 hover:bg-page' : ''}`}
         >
           Accueil
         </NavLink>
@@ -40,7 +43,7 @@ function NavLinks({ onNavigate, vertical = false }) {
         <NavLink
           to={PATHS.catalog}
           onClick={onNavigate}
-          className={(state) => `${linkClass(state)} ${vertical ? 'block rounded-lg px-3 py-2.5 hover:bg-page' : ''}`}
+          className={(state) => `${linkClass(state, vertical)} ${vertical ? 'block rounded-lg px-3 py-2.5 hover:bg-page' : ''}`}
         >
           Catalogue
         </NavLink>
@@ -51,7 +54,7 @@ function NavLinks({ onNavigate, vertical = false }) {
           to={PATHS.suppliers}
           end
           onClick={onNavigate}
-          className={(state) => `${linkClass(state)} ${vertical ? 'block rounded-lg px-3 py-2.5 hover:bg-page' : ''}`}
+          className={(state) => `${linkClass(state, vertical)} ${vertical ? 'block rounded-lg px-3 py-2.5 hover:bg-page' : ''}`}
         >
           Fournisseurs
         </NavLink>
@@ -60,7 +63,7 @@ function NavLinks({ onNavigate, vertical = false }) {
         <Link
           to={PATHS.howItWorks}
           onClick={onNavigate}
-          className={`${linkClass({ isActive: howItWorksActive })} ${vertical ? 'block rounded-lg px-3 py-2.5 hover:bg-page' : ''}`}
+          className={`${linkClass({ isActive: howItWorksActive }, vertical)} ${vertical ? 'block rounded-lg px-3 py-2.5 hover:bg-page' : ''}`}
         >
           Comment ça marche
         </Link>
@@ -92,10 +95,10 @@ function AccountActions({ onNavigate, stacked = false }) {
 
   return (
     <div className={stacked ? 'flex flex-col gap-2' : 'flex items-center gap-3'}>
-      <Link to={PATHS.login} onClick={onNavigate} className="btn-secondary px-5 py-2.5 font-semibold">
+      <Link to={PATHS.login} onClick={onNavigate} className="btn-secondary rounded-xl px-5 py-2.5 font-semibold">
         Connexion
       </Link>
-      <Link to={PATHS.registerChoice} onClick={onNavigate} className="btn-primary px-5 py-2.5 font-semibold">
+      <Link to={PATHS.registerChoice} onClick={onNavigate} className="btn-primary rounded-xl px-5 py-2.5 font-semibold shadow-sm">
         Créer un compte
       </Link>
     </div>

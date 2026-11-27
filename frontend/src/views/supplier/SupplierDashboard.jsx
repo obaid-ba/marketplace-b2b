@@ -1,22 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { fetchSupplierDashboard } from '@/api/supplierDashboard'
-import PageHeader from '@/components/PageHeader'
+import ActivityAreaChart from '@/components/dashboard/ActivityAreaChart'
+import ColorKpiCard from '@/components/dashboard/ColorKpiCard'
+import DashboardPeriod from '@/components/dashboard/DashboardPeriod'
 import EmptyState from '@/components/dashboard/EmptyState'
 import ErrorState from '@/components/dashboard/ErrorState'
-import KpiCard from '@/components/dashboard/KpiCard'
-import PeriodPicker from '@/components/dashboard/PeriodPicker'
 import Skeleton from '@/components/dashboard/Skeleton'
-import TimeSeriesChart from '@/components/dashboard/TimeSeriesChart'
+import WelcomeBanner from '@/components/dashboard/WelcomeBanner'
 import { PATHS, productDetailPath, supplierTenderPath } from '@/router/paths'
 import { selectUser, useAuthStore } from '@/stores/auth'
 import { formatAmount, formatCount } from '@/utils/money'
 import { defaultPeriod, formatDate } from '@/utils/period'
-
-const CHART_LINES = [
-  { key: 'orders', label: 'Commandes', color: '#12a06b' },
-  { key: 'revenue', label: 'Revenu (TND)', color: '#5b4bdb' },
-]
 
 const plural = (count, singular, pluralForm = `${singular}s`) =>
   `${count} ${count > 1 ? pluralForm : singular}`
@@ -26,9 +21,12 @@ function DashboardSkeleton() {
     <div role="status" className="space-y-6" aria-busy="true" aria-label="Chargement du tableau de bord">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }, (_, index) => (
-          <div key={index} className="card">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="mt-3 h-8 w-20" />
+          <div key={index} className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <div>
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="mt-3 h-7 w-20" />
+            </div>
           </div>
         ))}
       </div>
@@ -85,22 +83,14 @@ export default function SupplierDashboard() {
   const reviews = data?.latest_reviews ?? []
   const notifications = data?.latest_notifications ?? []
   const alert = data?.negative_review_alert
+  const revenueTrend = data?.series?.map((day) => Number(day.revenue) || 0)
+  const ordersTrend = data?.series?.map((day) => Number(day.orders) || 0)
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={`Bonjour ${user?.name ?? ''}`.trim()}
+      <WelcomeBanner
+        name={user?.name ?? ''}
         subtitle="Voici l'activité de votre entreprise : revenus, commandes, produits et demandes reçues."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link to={PATHS.supplierAi} className="btn btn-secondary">
-              Assistant IA
-            </Link>
-            <Link to={PATHS.supplierProducts} className="btn btn-primary">
-              Mes produits
-            </Link>
-          </div>
-        }
       />
 
       {alert?.active && (
@@ -118,19 +108,7 @@ export default function SupplierDashboard() {
         </div>
       )}
 
-      <section className="card" aria-labelledby="period-title">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <h2 id="period-title" className="text-sm font-semibold text-ink">
-            Période analysée
-          </h2>
-          <p className="text-xs text-muted">
-            {formatDate(period.from)} — {formatDate(period.to)}
-          </p>
-        </div>
-        <div className="mt-4">
-          <PeriodPicker from={period.from} to={period.to} onApply={setPeriod} loading={loading} />
-        </div>
-      </section>
+      <DashboardPeriod period={period} onChange={setPeriod} loading={loading} />
 
       {error && !data && <ErrorState message={error} onRetry={() => load(period)} />}
 
@@ -140,53 +118,71 @@ export default function SupplierDashboard() {
         <>
           <section aria-label="Indicateurs clés">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <KpiCard
+              <ColorKpiCard
                 label="Revenu"
                 value={formatAmount(data.kpis.revenue)}
                 hint="Commandes clôturées sur la période"
+                icon="cart"
+                tone="violet"
+                trend={revenueTrend}
               />
-              <KpiCard
+              <ColorKpiCard
                 label="Commandes"
                 value={formatCount(data.kpis.orders_count)}
                 hint={`${formatCount(data.kpis.orders_in_progress)} en cours · ${formatCount(
                   data.kpis.orders_finished,
                 )} terminées`}
+                icon="box"
+                tone="green"
+                trend={ordersTrend}
               />
-              <KpiCard
+              <ColorKpiCard
                 label="Devis acceptés"
                 value={`${formatCount(data.kpis.accepted_quote_rate)} %`}
                 hint={`${formatCount(data.kpis.quotes_count)} devis déposés`}
+                icon="target"
+                tone="orange"
               />
-              <KpiCard
+              <ColorKpiCard
                 label="Note moyenne"
                 value={data.kpis.average_rating !== null ? `${data.kpis.average_rating} / 5` : '—'}
                 hint={`${formatCount(data.kpis.reviews_count)} avis publiés`}
+                icon="star"
+                tone="mint"
               />
-              <KpiCard
+              <ColorKpiCard
                 label="Vues produits"
                 value={formatCount(data.kpis.views_count)}
                 hint="Consultations de vos fiches sur la période"
+                icon="eye"
+                tone="blue"
               />
-              <KpiCard
+              <ColorKpiCard
                 label="Notifications"
                 value={formatCount(data.kpis.unread_items)}
                 hint={`Non lues · ${plural(data.kpis.unread_messages ?? 0, 'message non lu', 'messages non lus')}`}
+                icon="bell"
+                tone="pink"
               />
             </div>
           </section>
 
-          <section className="card" aria-labelledby="activity-chart-title">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <h2 id="activity-chart-title" className="text-base font-semibold text-ink">
+          <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm" aria-labelledby="activity-chart-title">
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="activity-chart-title" className="flex items-center gap-2 text-base font-semibold text-ink">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5 text-brand-600" aria-hidden="true">
+                  <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+                </svg>
                 Activité des commandes
               </h2>
-              <p className="text-xs text-muted">Commandes et revenu par jour</p>
+              <Link to={PATHS.supplierOrders} className="text-sm font-medium text-brand-600 hover:underline">
+                Voir tout →
+              </Link>
             </div>
             {data.series?.length ? (
-              <TimeSeriesChart
-                data={data.series}
-                lines={CHART_LINES}
-                allowDecimals
+              <ActivityAreaChart
+                series={data.series}
+                valueKey="revenue"
                 ariaLabel="Évolution des commandes et du revenu sur la période"
               />
             ) : (

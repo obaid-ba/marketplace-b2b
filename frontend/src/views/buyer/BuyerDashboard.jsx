@@ -1,25 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { fetchBuyerDashboard } from '@/api/buyerDashboard'
-import PageHeader from '@/components/PageHeader'
+import ActivityAreaChart from '@/components/dashboard/ActivityAreaChart'
+import ColorKpiCard from '@/components/dashboard/ColorKpiCard'
+import DashboardPeriod from '@/components/dashboard/DashboardPeriod'
 import EmptyState from '@/components/dashboard/EmptyState'
 import ErrorState from '@/components/dashboard/ErrorState'
-import KpiCard from '@/components/dashboard/KpiCard'
-import PeriodPicker from '@/components/dashboard/PeriodPicker'
 import Skeleton from '@/components/dashboard/Skeleton'
-import TimeSeriesChart from '@/components/dashboard/TimeSeriesChart'
+import WelcomeBanner from '@/components/dashboard/WelcomeBanner'
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge'
 import { TenderStatusBadge } from '@/components/TenderBadges'
 import { PATHS, buyerTenderPath, buyerTenderQuotesPath, orderTrackingPath, supplierPublicPath } from '@/router/paths'
 import { selectUser, useAuthStore } from '@/stores/auth'
 import { formatAmount, formatCount } from '@/utils/money'
 import { defaultPeriod, formatDate } from '@/utils/period'
+import RecentActivity from './RecentActivity'
 import RecommendedSuppliers from './RecommendedSuppliers'
-
-const CHART_LINES = [
-  { key: 'orders', label: 'Commandes', color: '#12a06b' },
-  { key: 'spending', label: 'Dépenses (TND)', color: '#5b4bdb' },
-]
 
 const plural = (count, singular, pluralForm = `${singular}s`) =>
   `${count} ${count > 1 ? pluralForm : singular}`
@@ -29,9 +25,12 @@ function DashboardSkeleton() {
     <div role="status" className="space-y-6" aria-busy="true" aria-label="Chargement du tableau de bord">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }, (_, index) => (
-          <div key={index} className="card">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="mt-3 h-8 w-20" />
+          <div key={index} className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <div>
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="mt-3 h-7 w-20" />
+            </div>
           </div>
         ))}
       </div>
@@ -77,37 +76,14 @@ export default function BuyerDashboard() {
   const pendingQuotes = data?.pending_quotes ?? []
   const favorites = data?.favorite_suppliers ?? []
   const orders = data?.latest_orders ?? []
+  const spendingTrend = data?.series?.map((day) => Number(day.spending) || 0)
+  const ordersTrend = data?.series?.map((day) => Number(day.orders) || 0)
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={`Bonjour ${user?.name ?? ''}`.trim()}
-        subtitle="Suivez vos dépenses, vos commandes et l'avancement de vos demandes."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link to={PATHS.buyerAi} className="btn btn-secondary">
-              Assistant IA
-            </Link>
-            <Link to={PATHS.buyerTenders} className="btn btn-primary">
-              Mes demandes
-            </Link>
-          </div>
-        }
-      />
+      <WelcomeBanner name={user?.name ?? ''} subtitle="Gérez vos demandes, vos commandes et avancez sereinement." />
 
-      <section className="card" aria-labelledby="period-title">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <h2 id="period-title" className="text-sm font-semibold text-ink">
-            Période analysée
-          </h2>
-          <p className="text-xs text-muted">
-            {formatDate(period.from)} — {formatDate(period.to)}
-          </p>
-        </div>
-        <div className="mt-4">
-          <PeriodPicker from={period.from} to={period.to} onApply={setPeriod} loading={loading} />
-        </div>
-      </section>
+      <DashboardPeriod period={period} onChange={setPeriod} loading={loading} />
 
       {error && !data && <ErrorState message={error} onRetry={() => load(period)} />}
 
@@ -117,35 +93,79 @@ export default function BuyerDashboard() {
         <>
           <section aria-label="Indicateurs clés">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <KpiCard label="Dépenses" value={formatAmount(data.kpis.spending)} hint="Commandes passées sur la période" />
-              <KpiCard label="Commandes" value={formatCount(data.kpis.orders_count)} hint="Toutes commandes confondues" />
-              <KpiCard label="En cours" value={formatCount(data.kpis.orders_in_progress)} hint={`Commandes non clôturées · ${formatCount(data.kpis.orders_closed)} terminées`} />
-              <KpiCard label="Demandes publiées" value={formatCount(data.kpis.published_requests)} hint="Ouvertes ou en négociation" />
-              <KpiCard label="Devis en attente" value={formatCount(data.kpis.pending_quotes)} hint="Envoyés ou en négociation" />
-              <KpiCard label="Fournisseurs favoris" value={formatCount(data.kpis.favorite_suppliers)} />
+              <ColorKpiCard
+                label="Dépenses"
+                value={formatAmount(data.kpis.spending)}
+                hint="Commandes passées sur la période"
+                icon="cart"
+                tone="violet"
+                trend={spendingTrend}
+              />
+              <ColorKpiCard
+                label="Commandes"
+                value={formatCount(data.kpis.orders_count)}
+                hint="Toutes commandes confondues"
+                icon="box"
+                tone="green"
+                trend={ordersTrend}
+              />
+              <ColorKpiCard
+                label="En cours"
+                value={formatCount(data.kpis.orders_in_progress)}
+                hint={`À suivre · ${formatCount(data.kpis.orders_closed)} terminées`}
+                icon="target"
+                tone="orange"
+              />
+              <ColorKpiCard
+                label="Demandes publiées"
+                value={formatCount(data.kpis.published_requests)}
+                hint="Ouvertes ou en négociation"
+                icon="megaphone"
+                tone="blue"
+              />
+              <ColorKpiCard
+                label="Devis en attente"
+                value={formatCount(data.kpis.pending_quotes)}
+                hint="En attente de votre réponse"
+                icon="hourglass"
+                tone="pink"
+              />
+              <ColorKpiCard
+                label="Fournisseurs favoris"
+                value={formatCount(data.kpis.favorite_suppliers)}
+                hint="Vos partenaires de confiance"
+                icon="star"
+                tone="mint"
+              />
             </div>
           </section>
 
-          <section className="card" aria-labelledby="activity-chart-title">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <h2 id="activity-chart-title" className="text-base font-semibold text-ink">
-                Activité des commandes
-              </h2>
-              <p className="text-xs text-muted">Commandes et dépenses par jour</p>
-            </div>
-            {data.series?.length ? (
-              <TimeSeriesChart
-                data={data.series}
-                lines={CHART_LINES}
-                allowDecimals
-                ariaLabel="Évolution des commandes et des dépenses sur la période"
-              />
-            ) : (
-              <div className="mt-4">
-                <EmptyState title="Aucune donnée sur cette période" description="Choisissez une autre période." />
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+            <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm xl:col-span-3" aria-labelledby="activity-chart-title">
+              <div className="flex items-center justify-between gap-3">
+                <h2 id="activity-chart-title" className="flex items-center gap-2 text-base font-semibold text-ink">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5 text-brand-600" aria-hidden="true">
+                    <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+                  </svg>
+                  Activité des commandes
+                </h2>
+                <Link to={PATHS.buyerOrders} className="text-sm font-medium text-brand-600 hover:underline">
+                  Voir tout →
+                </Link>
               </div>
-            )}
-          </section>
+              {data.series?.length ? (
+                <ActivityAreaChart series={data.series} valueKey="spending" />
+              ) : (
+                <div className="mt-4">
+                  <EmptyState title="Aucune donnée sur cette période" description="Choisissez une autre période." />
+                </div>
+              )}
+            </section>
+
+            <div className="xl:col-span-2">
+              <RecentActivity orders={orders} quotes={pendingQuotes} requests={requests} allPath={PATHS.buyerOrders} />
+            </div>
+          </div>
 
           {/* Fournisseurs recommandés selon les achats passés (SCRUM-87) */}
           <RecommendedSuppliers />
@@ -279,15 +299,6 @@ export default function BuyerDashboard() {
             </section>
           </div>
 
-          {/* Emplacement des recommandations de fournisseurs (S7) */}
-          <section className="card" aria-labelledby="recommendations-title">
-            <h2 id="recommendations-title" className="text-base font-semibold text-ink">
-              Recommandations
-            </h2>
-            <div className="mt-4">
-              <EmptyState title="Bientôt disponible" description="Des fournisseurs adaptés à vos demandes seront proposés ici." />
-            </div>
-          </section>
         </>
       )}
     </div>
