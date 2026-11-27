@@ -110,6 +110,14 @@ php artisan route:cache || echo "  route:cache ignoré"
 php artisan view:cache || echo "  view:cache ignoré"
 
 # --- Schéma et données de démonstration ---
+# Réinitialisation unique : efface la base et la recrée avec les données de démo (photos comprises)
+# la première fois qu'un jeton RESET_DEMO_TOKEN est vu. Les redémarrages suivants ne touchent à rien.
+if [ -n "${RESET_DEMO_TOKEN:-}" ]; then
+    echo "▶ Réinitialisation des données de démonstration (jeton ${RESET_DEMO_TOKEN})"
+    php artisan migrate --force
+    php artisan demo:reset "${RESET_DEMO_TOKEN}" --force
+fi
+
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     echo "▶ Migrations"
     php artisan migrate --force

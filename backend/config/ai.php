@@ -13,7 +13,10 @@ use App\Services\Ai\SimulatedAiClient;
 */
 return [
 
-    'provider' => env('AI_PROVIDER', 'simulated'),
+    // Gemini sans clé (secret oublié sur Render, par exemple) : on reste en mode simulé plutôt que de couper l'IA.
+    'provider' => env('AI_PROVIDER', 'simulated') === 'gemini' && blank(env('AI_API_KEY'))
+        ? 'simulated'
+        : env('AI_PROVIDER', 'simulated'),
 
     'drivers' => [
         'simulated' => SimulatedAiClient::class,
