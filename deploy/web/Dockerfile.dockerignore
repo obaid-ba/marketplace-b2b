@@ -1,0 +1,7 @@
+# Fichiers exclus de l'image web (contexte = racine du dépôt)
+**/.git
+backend
+docs
+frontend/node_modules
+frontend/dist
+frontend/.env

@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import AuthLayout, { AuthCard, BackHome } from '@/layouts/AuthLayout'
 import { PATHS } from '@/router/paths'
 
 const CHOICES = [
@@ -18,12 +19,10 @@ const CHOICES = [
 
 export default function RegisterTypeView() {
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="card w-full max-w-2xl">
-        <Link to={PATHS.home} className="text-sm text-brand-600">
-          ← Accueil
-        </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Créer un compte</h1>
+    <AuthLayout>
+      <AuthCard className="max-w-2xl">
+        <BackHome />
+        <h1 className="mt-5 text-[28px] font-bold tracking-tight text-ink">Créer un compte</h1>
         <p className="mt-1 text-sm text-slate-500">
           Choisissez le type de compte qui vous correspond.
         </p>
@@ -48,7 +47,7 @@ export default function RegisterTypeView() {
             Se connecter
           </Link>
         </p>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthLayout>
   )
 }

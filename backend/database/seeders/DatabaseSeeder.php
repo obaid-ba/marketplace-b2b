@@ -14,74 +14,48 @@ use Illuminate\Support\Facades\Hash;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Laissez à false pour garder les 33 tables vides au démarrage.
-     * Passez à true pour insérer les données de test Jira (96+ lignes).
+     * Laissez à false pour garder les tables métier vides au démarrage.
+     * Passez SEED_DEMO_DATA=true (variable d'environnement) pour insérer les
+     * données de test Jira (96+ lignes).
+     * Les données de référence (régions, catégories) sont toujours insérées :
+     * les formulaires d'inscription ne fonctionnent pas sans elles.
      */
-    public const SEED_DEMO_DATA = false;
+    public static function demoEnabled(): bool
+    {
+        return filter_var(config('app.seed_demo_data', false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /** Arbre des catégories : catégorie principale → sous-catégories (réutilisé par FullDemoSeeder). */
+    public const CATEGORY_TREE = [
+        'BTP et matériaux' => ['Ciment et béton', 'Acier et ferraillage', 'Électricité bâtiment', 'Plomberie et sanitaire'],
+        'Informatique' => ['Ordinateurs et serveurs', 'Réseaux et sécurité', 'Développement logiciel', 'Périphériques'],
+        'Fournitures de bureau' => ['Papeterie', 'Mobilier de bureau', 'Consommables impression'],
+        'Agroalimentaire' => ['Matières premières', 'Conditionnement alimentaire', 'Produits laitiers et dérivés'],
+        'Textile' => ['Tissus industriels', 'Vêtements de travail et EPI', 'Accessoires textiles'],
+        'Services' => ['Comptabilité et audit', 'Conseil juridique', 'Nettoyage et gardiennage', 'Formation'],
+        'Équipements industriels' => ['Machines-outils', 'Pièces de rechange', 'Maintenance industrielle'],
+        'Logistique et transport' => ['Transport routier', 'Entreposage', 'Manutention et levage'],
+        'Emballage et conditionnement' => [],
+    ];
 
     public function run(): void
     {
-        if (! self::SEED_DEMO_DATA) {
+        $now = now();
+
+        // Données de référence. Idempotent : un second `db:seed` ne crée pas de doublons.
+        $regionIds = $this->seedRegions($now);
+        $subCategoryIds = $this->seedCategories($now);
+
+        if (! self::demoEnabled()) {
             return;
         }
 
-        $now = now();
         $password = Hash::make('password'); // Règle #7 : mot de passe « password »
 
-        // 1. 24 Gouvernorats réels
-        $regions = [
-            'Ariana', 'Béja', 'Ben Arous', 'Bizerte', 'Gabès', 'Gafsa',
-            'Jendouba', 'Kairouan', 'Kasserine', 'Kébili', 'Le Kef', 'Mahdia',
-            'La Manouba', 'Médenine', 'Monastir', 'Nabeul', 'Sfax', 'Sidi Bouzid',
-            'Siliana', 'Sousse', 'Tataouine', 'Tozeur', 'Tunis', 'Zaghouan',
-        ];
-        $regionIds = [];
-        foreach ($regions as $name) {
-            $regionIds[] = DB::table('regions')->insertGetId([
-                'name' => $name,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-        }
-
-        // 2. 8 Catégories principales + sous-catégories
-        $categoriesTree = [
-            'BTP et matériaux' => ['Ciment et béton', 'Acier et ferraillage', 'Électricité bâtiment', 'Plomberie et sanitaire'],
-            'Informatique' => ['Ordinateurs et serveurs', 'Réseaux et sécurité', 'Développement logiciel', 'Périphériques'],
-            'Fournitures de bureau' => ['Papeterie', 'Mobilier de bureau', 'Consommables impression'],
-            'Agroalimentaire' => ['Matières premières', 'Conditionnement alimentaire', 'Produits laitiers et dérivés'],
-            'Textile' => ['Tissus industriels', 'Vêtements de travail et EPI', 'Accessoires textiles'],
-            'Services' => ['Comptabilité et audit', 'Conseil juridique', 'Nettoyage et gardiennage', 'Formation'],
-            'Équipements industriels' => ['Machines-outils', 'Pièces de rechange', 'Maintenance industrielle'],
-            'Logistique et transport' => ['Transport routier', 'Entreposage', 'Manutention et levage'],
-        ];
-
-        $subCategoryIds = [];
-        $pos = 1;
-        foreach ($categoriesTree as $parentName => $children) {
-            $parentId = DB::table('categories')->insertGetId([
-                'parent_id' => null,
-                'name' => $parentName,
-                'position' => $pos++,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-            $subPos = 1;
-            foreach ($children as $childName) {
-                $subCategoryIds[] = DB::table('categories')->insertGetId([
-                    'parent_id' => $parentId,
-                    'name' => $childName,
-                    'position' => $subPos++,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            }
-        }
-
-        // 3. Administrateur (admin@marketplace.test)
+        // 3. Administrateur (admin@tijaralink.test)
         $adminId = DB::table('users')->insertGetId([
-            'name' => 'Admin Marketplace',
-            'email' => 'admin@marketplace.test',
+            'name' => 'Équipe TijaraLink',
+            'email' => 'admin@tijaralink.test',
             'phone' => '+216 71 000 000',
             'password' => $password,
             'role' => 'admin',
@@ -96,7 +70,7 @@ class DatabaseSeeder extends Seeder
         for ($i = 1; $i <= 8; $i++) {
             $userId = DB::table('users')->insertGetId([
                 'name' => "Fournisseur {$i}",
-                'email' => "supplier{$i}@marketplace.test",
+                'email' => "supplier{$i}@tijaralink.test",
                 'phone' => "+216 71 100 00{$i}",
                 'password' => $password,
                 'role' => 'supplier',
@@ -134,7 +108,7 @@ class DatabaseSeeder extends Seeder
         for ($i = 1; $i <= 5; $i++) {
             $userId = DB::table('users')->insertGetId([
                 'name' => "Porteur {$i}",
-                'email' => "buyer{$i}@marketplace.test",
+                'email' => "buyer{$i}@tijaralink.test",
                 'phone' => "+216 71 200 00{$i}",
                 'password' => $password,
                 'role' => 'buyer',
@@ -153,7 +127,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // 6. 40 Produits (publiés, brouillons et retirés, avec photos)
+        // 6. 40 Produits (publiés, brouillons et retirés, sans photo : l'interface affiche un dégradé)
         for ($i = 1; $i <= 40; $i++) {
             $status = match (true) {
                 $i <= 30 => ProductStatus::PUBLISHED->value,
@@ -161,7 +135,7 @@ class DatabaseSeeder extends Seeder
                 default => ProductStatus::WITHDRAWN->value,
             };
 
-            $productId = DB::table('products')->insertGetId([
+            DB::table('products')->insert([
                 'supplier_id' => $supplierIds[$i % 6],
                 'category_id' => $subCategoryIds[$i % count($subCategoryIds)],
                 'type' => $i % 5 === 0 ? 'service' : 'produit',
@@ -173,14 +147,6 @@ class DatabaseSeeder extends Seeder
                 'availability_days' => rand(1, 15),
                 'status' => $status,
                 'withdrawal_reason' => $status === ProductStatus::WITHDRAWN->value ? 'Rupture de stock temporaire' : null,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-
-            DB::table('product_images')->insert([
-                'product_id' => $productId,
-                'path' => "products/demo-{$i}.jpg",
-                'position' => 1,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -228,5 +194,75 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        // 8. Démonstration complète (catalogue avec photos, demandes, commandes, avis, litiges…).
+        $this->call(FullDemoSeeder::class);
+    }
+
+    /**
+     * Les 24 gouvernorats tunisiens. Ne réinsère rien si les régions existent déjà.
+     *
+     * @return list<int>
+     */
+    private function seedRegions(\DateTimeInterface $now): array
+    {
+        if (DB::table('regions')->exists()) {
+            return DB::table('regions')->pluck('id')->all();
+        }
+
+        $regions = [
+            'Ariana', 'Béja', 'Ben Arous', 'Bizerte', 'Gabès', 'Gafsa',
+            'Jendouba', 'Kairouan', 'Kasserine', 'Kébili', 'Le Kef', 'Mahdia',
+            'La Manouba', 'Médenine', 'Monastir', 'Nabeul', 'Sfax', 'Sidi Bouzid',
+            'Siliana', 'Sousse', 'Tataouine', 'Tozeur', 'Tunis', 'Zaghouan',
+        ];
+
+        $regionIds = [];
+        foreach ($regions as $name) {
+            $regionIds[] = DB::table('regions')->insertGetId([
+                'name' => $name,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        return $regionIds;
+    }
+
+    /**
+     * Catégories principales et sous-catégories utilisées par les formulaires.
+     * Ne réinsère rien si des catégories existent déjà.
+     *
+     * @return list<int>
+     */
+    private function seedCategories(\DateTimeInterface $now): array
+    {
+        if (DB::table('categories')->exists()) {
+            return DB::table('categories')->whereNotNull('parent_id')->pluck('id')->all();
+        }
+
+        $subCategoryIds = [];
+        $pos = 1;
+        foreach (self::CATEGORY_TREE as $parentName => $children) {
+            $parentId = DB::table('categories')->insertGetId([
+                'parent_id' => null,
+                'name' => $parentName,
+                'position' => $pos++,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $subPos = 1;
+            foreach ($children as $childName) {
+                $subCategoryIds[] = DB::table('categories')->insertGetId([
+                    'parent_id' => $parentId,
+                    'name' => $childName,
+                    'position' => $subPos++,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
+
+        return $subCategoryIds;
     }
 }

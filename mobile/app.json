@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "TijaraLink",
+    "slug": "tijaralink",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "tn.tijaralink.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#5b4bdb",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "package": "tn.tijaralink.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "TijaraLink"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#f1efff"
+        }
+      ]
+    ],
+    "scheme": "tijaralink"
+  }
+}

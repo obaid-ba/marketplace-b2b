@@ -34,7 +34,7 @@ class SupplierProfileDemoSeeder extends Seeder
             ));
 
         $this->supplier(
-            email: 'fournisseur.valide@marketplace.test',
+            email: 'fournisseur.valide@tijaralink.test',
             company: 'Atlas Emballages',
             status: ValidationStatus::VALIDATED,
             region: $regions['Sfax'],
@@ -43,7 +43,7 @@ class SupplierProfileDemoSeeder extends Seeder
         );
 
         $this->supplier(
-            email: 'fournisseur.attente@marketplace.test',
+            email: 'fournisseur.attente@tijaralink.test',
             company: 'Djerba Logistique',
             status: ValidationStatus::PENDING,
             region: $regions['Médenine'],

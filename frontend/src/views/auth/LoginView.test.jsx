@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter } from 'react-router'
 import { http } from '@/api/http'
@@ -31,6 +31,11 @@ async function fillAndSubmit({ remember = false } = {}) {
 
 const buyer = { id: 1, name: 'Karim', role: 'buyer', email_verified: true }
 
+// Le tableau de bord (graphiques) est long à charger la première fois.
+beforeAll(async () => {
+  await import('@/views/buyer/BuyerDashboard')
+}, 60000)
+
 beforeEach(() => {
   localStorage.clear()
   sessionStorage.clear()
@@ -52,7 +57,7 @@ describe('Connexion (SCRUM-25)', () => {
     const router = visitLogin()
     await fillAndSubmit()
 
-    expect(await screen.findByText('Tableau de bord porteur de projet')).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /Bonjour/ })).toBeTruthy()
     expect(router.state.location.pathname).toBe('/porteur')
     expect(http.post).toHaveBeenCalledWith('/auth/login', {
       email: 'karim@test.tn',
@@ -66,7 +71,7 @@ describe('Connexion (SCRUM-25)', () => {
     vi.mocked(http.post).mockResolvedValue({ data: { token: 't1', user: buyer } })
     visitLogin()
     await fillAndSubmit()
-    await screen.findByText('Tableau de bord porteur de projet')
+    await screen.findByRole('heading', { name: /Bonjour/ })
 
     expect(sessionStorage.getItem('mb2b_token')).toBe('t1')
     expect(localStorage.getItem('mb2b_token')).toBeNull()
@@ -76,7 +81,7 @@ describe('Connexion (SCRUM-25)', () => {
     vi.mocked(http.post).mockResolvedValue({ data: { token: 't2', user: buyer } })
     visitLogin()
     await fillAndSubmit({ remember: true })
-    await screen.findByText('Tableau de bord porteur de projet')
+    await screen.findByRole('heading', { name: /Bonjour/ })
 
     expect(http.post).toHaveBeenCalledWith('/auth/login', expect.objectContaining({ remember: true }))
     expect(localStorage.getItem('mb2b_token')).toBe('t2')

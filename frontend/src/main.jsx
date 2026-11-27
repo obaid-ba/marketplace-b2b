@@ -5,6 +5,7 @@ import { router } from './router'
 import { PATHS, loginPath } from './router/paths'
 import { onAuthError } from './api/http'
 import { selectIsAuthenticated, useAuthStore } from './stores/auth'
+import { startRealtime } from './realtime/realtime'
 import './style.css'
 
 // 401 : jeton expiré ou révoqué → retour à la connexion.
@@ -27,6 +28,18 @@ onAuthError((status, error) => {
     router.navigate(PATHS.forbidden)
   }
 })
+
+startRealtime()
+
+// Application installable et page hors ligne (PWA, SCRUM-88) : uniquement en production, pour ne pas
+// servir d'anciens fichiers pendant le développement.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Sans service worker, l'application fonctionne normalement (simplement pas hors ligne).
+    })
+  })
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

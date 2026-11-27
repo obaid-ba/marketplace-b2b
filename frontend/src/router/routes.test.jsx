@@ -2,10 +2,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter } from 'react-router'
 import { http } from '@/api/http'
+import { useAdminDashboardStore } from '@/stores/adminDashboard'
 import { useAuthStore } from '@/stores/auth'
 import { createRoutes } from './routes'
 
 vi.mock('@/api/http', () => ({ http: { get: vi.fn(), post: vi.fn() }, onAuthError: vi.fn() }))
+
+vi.mock('recharts', () => {
+  const PassThrough = ({ children }) => children ?? null
+  return {
+    ResponsiveContainer: PassThrough,
+    LineChart: PassThrough,
+    Line: () => null,
+    XAxis: () => null,
+    YAxis: () => null,
+    CartesianGrid: () => null,
+    Tooltip: () => null,
+    Legend: () => null,
+  }
+})
 
 function visit(path) {
   const router = createMemoryRouter(createRoutes(), { initialEntries: [path] })
@@ -24,8 +39,19 @@ function apiError(status, data) {
 
 const VERIFY_LINK = '/email/verifier?id=1&hash=abc&expires=1999999999&signature=sig'
 
+const ADMIN_DASHBOARD = {
+  period: { from: '2027-01-01', to: '2027-01-31', days: 31, timezone: 'Africa/Tunis' },
+  kpis: { active_users: 4, validated_suppliers: 2, orders_count: 10, revenue: '1200.00', tenders_count: 3 },
+  series: [],
+  validation_queue: { count: 0, items: [] },
+  urgent_disputes: { count: 0, items: [] },
+  top_categories: [],
+  anomaly_alerts: [],
+}
+
 beforeEach(() => {
   useAuthStore.setState({ user: null, token: null, loaded: true })
+  useAdminDashboardStore.getState().reset()
   vi.mocked(http.get).mockReset()
 })
 
@@ -68,8 +94,10 @@ describe('routes', () => {
   it('affiche le tableau de bord du bon rôle', async () => {
     signIn({ name: 'Amel', role: 'supplier', supplier_validation_status: 'validé' })
     visit('/fournisseur')
-    expect(await screen.findByText('Tableau de bord fournisseur')).toBeTruthy()
-    expect(screen.getByText('Bonjour Amel')).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Bonjour Amel' })).toBeTruthy()
+    expect(
+      screen.getByText("Voici l'activité de votre entreprise : revenus, commandes, produits et demandes reçues."),
+    ).toBeTruthy()
   })
 
   it("refuse l'espace d'un autre rôle", async () => {
@@ -78,9 +106,35 @@ describe('routes', () => {
     expect(await screen.findByText('Accès refusé')).toBeTruthy()
   })
 
+  it("affiche le tableau de bord de l'administration", async () => {
+    signIn({ name: 'Nadia', role: 'admin' })
+    vi.mocked(http.get).mockResolvedValue({ data: ADMIN_DASHBOARD })
+    visit('/admin')
+
+    expect(await screen.findByRole('heading', { name: 'Tableau de bord administrateur' })).toBeTruthy()
+    expect(await screen.findByText('Utilisateurs actifs')).toBeTruthy()
+  })
+
+  it('ouvre la validation des fournisseurs dans le back-office', async () => {
+    signIn({ name: 'Nadia', role: 'admin' })
+    vi.mocked(http.get).mockResolvedValue({
+      data: { data: [], current_page: 1, last_page: 1, total: 0 },
+    })
+    visit('/admin/fournisseurs')
+
+    expect(await screen.findByRole('heading', { name: 'Validation des fournisseurs' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Validation fournisseurs' })).toBeTruthy()
+  })
+
   it('affiche la page 404 pour une adresse inconnue', async () => {
     visit('/nimporte-quoi')
     expect(await screen.findByText('Page introuvable')).toBeTruthy()
+  })
+
+  it('ouvre les paramètres du compte à un utilisateur connecté', async () => {
+    signIn({ name: 'Karim', first_name: 'Karim', last_name: 'Ben Salah', role: 'buyer' })
+    visit('/parametres')
+    expect(await screen.findByRole('heading', { name: 'Paramètres du compte' })).toBeTruthy()
   })
 })
 

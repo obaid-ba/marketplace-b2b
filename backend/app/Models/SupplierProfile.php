@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\UserStatus;
 use App\Enums\ValidationStatus;
 use Database\Factories\SupplierProfileFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,6 +48,8 @@ class SupplierProfile extends Model
         'rejection_reason',
         'validated_by',
         'validated_at',
+        'rating_avg',
+        'reviews_count',
     ];
 
     /**
@@ -78,6 +82,28 @@ class SupplierProfile extends Model
     }
 
     /**
+     * Profils visibles dans le catalogue et les recherches : validés, publiés, dont le
+     * compte est actif et non supprimé. Un fournisseur suspendu (SCRUM-118), désactivé
+     * ou supprimé (SCRUM-30 / SCRUM-98) disparaît donc aussi de ces listes.
+     *
+     * @param  Builder<SupplierProfile>  $query
+     */
+    public function scopeVisibleInCatalog(Builder $query): void
+    {
+        $query->where('validation_status', ValidationStatus::VALIDATED->value)
+            ->where('is_published', true)
+            ->whereHas('user', fn (Builder $user) => $user->where('status', UserStatus::ACTIVE->value));
+    }
+
+    /**
+     * Peut recevoir de nouvelles commandes : validé par l'admin et compte actif, non supprimé (SCRUM-118).
+     */
+    public function canSell(): bool
+    {
+        return $this->validation_status === ValidationStatus::VALIDATED && (bool) $this->user?->isActive();
+    }
+
+    /**
      * Documents justificatifs du fournisseur.
      */
     public function documents(): HasMany
@@ -102,10 +128,54 @@ class SupplierProfile extends Model
     }
 
     /**
+     * Produits et services du fournisseur (tous statuts).
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class, 'supplier_id');
+    }
+
+    public function tenderRecipients(): HasMany
+    {
+        return $this->hasMany(TenderRecipient::class, 'supplier_id');
+    }
+
+    public function tenders(): HasMany
+    {
+        return $this->hasMany(Tender::class);
+    }
+
+    public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class, 'supplier_id');
+    }
+
+    public function favoritedBy(): HasMany
+    {
+        return $this->hasMany(Favorite::class, 'supplier_id');
+    }
+
+    /**
      * Administrateur ayant validé ou refusé le profil.
      */
     public function validator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'validated_by');
+    }
+
+    /**
+     * Commandes reçues par le fournisseur.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'supplier_id');
+    }
+
+    /**
+     * Avis clients reçus par le fournisseur (SCRUM-65).
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'supplier_id');
     }
 }

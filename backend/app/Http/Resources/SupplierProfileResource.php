@@ -2,12 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Contracts\MediaStorage;
 use App\Enums\ValidationStatus;
 use App\Models\SupplierProfile;
-use App\Services\SupplierProfileService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Profil de l'entreprise vu par son propriétaire (SCRUM-28).
@@ -24,7 +23,7 @@ class SupplierProfileResource extends JsonResource
         return [
             'id' => $this->id,
             'company_name' => $this->company_name,
-            'logo_url' => $this->logo ? Storage::disk(SupplierProfileService::LOGO_DISK)->url($this->logo) : null,
+            'logo_url' => app(MediaStorage::class)->url($this->logo),
             'description' => $this->description,
             'sector' => $this->sector,
             'region_id' => $this->region_id,
