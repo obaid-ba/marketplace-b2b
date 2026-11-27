@@ -138,4 +138,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Données de démonstration
+    |--------------------------------------------------------------------------
+    |
+    | Pilote l'insertion des comptes et contenus de démonstration par
+    | DatabaseSeeder (les données de référence sont toujours insérées).
+    |
+    */
+
+    'seed_demo_data' => env('SEED_DEMO_DATA', false),
+
 ];

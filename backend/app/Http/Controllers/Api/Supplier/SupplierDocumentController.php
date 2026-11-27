@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Supplier;
 
 use App\Enums\ValidationStatus;
+use App\Contracts\MediaStorage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Supplier\StoreSupplierDocumentRequest;
 use App\Http\Resources\SupplierDocumentResource;
@@ -10,8 +11,7 @@ use App\Models\SupplierDocument;
 use App\Services\SupplierProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Documents justificatifs depuis le profil de l'entreprise (SCRUM-28)
@@ -46,15 +46,16 @@ class SupplierDocumentController extends Controller
     }
 
     /**
-     * Téléchargement d'un justificatif (stocké sur le disque privé).
+     * Téléchargement d'un justificatif : flux local en développement, redirection vers
+     * l'URL signée Cloudinary en production.
      */
-    public function download(SupplierDocument $document): StreamedResponse
+    public function download(SupplierDocument $document): Response
     {
         Gate::authorize('view', $document);
 
-        $disk = Storage::disk(SupplierProfileService::DOCUMENT_DISK);
-        abort_unless($disk->exists($document->file_path), 404, 'Fichier introuvable.');
-
-        return $disk->download($document->file_path, SupplierDocumentResource::fileNameFor($document));
+        return app(MediaStorage::class)->download(
+            $document->file_path,
+            SupplierDocumentResource::fileNameFor($document),
+        );
     }
 }

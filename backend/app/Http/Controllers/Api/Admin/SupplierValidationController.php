@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Contracts\MediaStorage;
 use App\Enums\ValidationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SupplierDocumentResource;
@@ -9,13 +10,12 @@ use App\Models\AuditLog;
 use App\Models\SupplierDocument;
 use App\Models\SupplierProfile;
 use App\Notifications\SupplierValidationNotification;
-use App\Services\SupplierProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class SupplierValidationController extends Controller
 {
@@ -76,7 +76,7 @@ class SupplierValidationController extends Controller
     /**
      * Consultation sécurisée d'un document justificatif pour un dossier fournisseur.
      */
-    public function showDocument(SupplierProfile $supplier, SupplierDocument $document): StreamedResponse|JsonResponse
+    public function showDocument(SupplierProfile $supplier, SupplierDocument $document): Response
     {
         return $this->serveDocument($document);
     }
@@ -84,32 +84,28 @@ class SupplierValidationController extends Controller
     /**
      * Téléchargement / streaming sécurisé d'un document justificatif (SCRUM-31 / F05).
      */
-    public function downloadDocument(SupplierDocument $document): StreamedResponse|JsonResponse
+    public function downloadDocument(SupplierDocument $document): Response
     {
         return $this->serveDocument($document);
     }
 
     /**
-     * Sert le document justificatif stocké sur le disque privé.
+     * Sert le document justificatif : flux local en développement, redirection signée en production.
      */
-    private function serveDocument(SupplierDocument $document): StreamedResponse|JsonResponse
+    private function serveDocument(SupplierDocument $document): Response
     {
         Gate::authorize('view', $document);
 
-        foreach ([SupplierProfileService::DOCUMENT_DISK, 'public'] as $disk) {
-            /** @var \Illuminate\Filesystem\FilesystemAdapter $storage */
-            $storage = Storage::disk($disk);
-            if ($storage->exists($document->file_path)) {
-                return $storage->response(
-                    $document->file_path,
-                    SupplierDocumentResource::fileNameFor($document)
-                );
-            }
+        try {
+            return app(MediaStorage::class)->download(
+                $document->file_path,
+                SupplierDocumentResource::fileNameFor($document),
+            );
+        } catch (NotFoundHttpException $exception) {
+            return response()->json([
+                'message' => 'Le fichier demandé est introuvable sur le serveur.',
+            ], 404);
         }
-
-        return response()->json([
-            'message' => 'Le fichier demandé est introuvable sur le serveur.',
-        ], 404);
     }
 
     /**

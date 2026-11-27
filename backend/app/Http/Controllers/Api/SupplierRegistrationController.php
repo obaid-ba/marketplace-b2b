@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Contracts\MediaStorage;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Enums\ValidationStatus;
@@ -14,7 +15,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
@@ -73,7 +73,11 @@ class SupplierRegistrationController extends Controller
                 ];
 
                 foreach ($requiredDocuments as $field => $type) {
-                    $path = $request->file($field)->store("supplier-documents/{$profile->id}", 'local');
+                    $path = app(MediaStorage::class)->store(
+                        $request->file($field),
+                        "supplier-documents/{$profile->id}",
+                        private: true,
+                    );
                     $storedFiles[] = $path;
 
                     $profile->documents()->create([
@@ -85,7 +89,11 @@ class SupplierRegistrationController extends Controller
                 }
 
                 foreach ($request->file('certifications', []) as $certification) {
-                    $path = $certification->store("supplier-documents/{$profile->id}", 'local');
+                    $path = app(MediaStorage::class)->store(
+                        $certification,
+                        "supplier-documents/{$profile->id}",
+                        private: true,
+                    );
                     $storedFiles[] = $path;
 
                     $profile->documents()->create([
@@ -99,7 +107,9 @@ class SupplierRegistrationController extends Controller
                 return [$user, $profile];
             });
         } catch (Throwable $exception) {
-            Storage::disk('local')->delete($storedFiles);
+            foreach ($storedFiles as $path) {
+                app(MediaStorage::class)->delete($path, private: true);
+            }
 
             throw $exception;
         }

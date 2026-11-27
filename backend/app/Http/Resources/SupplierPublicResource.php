@@ -2,12 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Contracts\MediaStorage;
 use App\Models\SupplierProfile;
 use App\Services\ReviewInsightService;
-use App\Services\SupplierProfileService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Fiche publique d'un fournisseur (SCRUM-37). Jamais de documents, de coordonnées privées,
@@ -26,7 +25,7 @@ class SupplierPublicResource extends JsonResource
         return [
             'id' => $this->id,
             'company_name' => $this->company_name,
-            'logo_url' => $this->logo ? Storage::disk(SupplierProfileService::LOGO_DISK)->url($this->logo) : null,
+            'logo_url' => app(MediaStorage::class)->url($this->logo),
             'description' => $this->description,
             'sector' => $this->sector,
             'region' => $this->region?->name,

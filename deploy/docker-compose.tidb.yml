@@ -1,0 +1,52 @@
+# ⚠️  Option avancée — à utiliser en connaissance de cause.
+#
+# Branche l'API et le worker sur la base **TiDB de production** (celle de Render)
+# au lieu du PostgreSQL local du service `db`.
+#
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.tidb.yml up -d --build
+#
+# Renseignez d'abord TIDB_* dans deploy/.env (voir deploy/.env.example) : sans
+# ces variables la commande échoue, pour éviter de viser une base vide sans le
+# voir. Le mot de passe TiDB est un secret de production : ne le commitez jamais
+# et ne le partagez pas dans un canal d'équipe.
+#
+# Ce que ce fichier change :
+#   - api et worker lisent DB_* depuis TIDB_* (pgsql + TLS obligatoire) ;
+#   - le service `db` (PostgreSQL local) n'est plus démarré (profil `local-db`) ;
+#   - `SEED_DEMO_DATA` est forcé à false : on n'écrase pas la base partagée.
+#
+# Rappel : les migrations tournent au démarrage (RUN_MIGRATIONS=true), donc
+# chaque `up` rejoue les migrations sur la base de production.
+
+services:
+  api:
+    depends_on: !reset
+      mailpit:
+        condition: service_started
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: "${TIDB_HOST:?TIDB_HOST manquant, renseignez deploy/.env}"
+      DB_PORT: "${TIDB_PORT:-5432}"
+      DB_DATABASE: "${TIDB_DATABASE:?TIDB_DATABASE manquant, renseignez deploy/.env}"
+      DB_USERNAME: "${TIDB_USERNAME:?TIDB_USERNAME manquant, renseignez deploy/.env}"
+      DB_PASSWORD: "${TIDB_PASSWORD:?TIDB_PASSWORD manquant, renseignez deploy/.env}"
+      DB_SSLMODE: require
+      SEED_DEMO_DATA: "false"
+
+  worker:
+    depends_on: !reset
+      api:
+        condition: service_started
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: "${TIDB_HOST:?TIDB_HOST manquant, renseignez deploy/.env}"
+      DB_PORT: "${TIDB_PORT:-5432}"
+      DB_DATABASE: "${TIDB_DATABASE:?TIDB_DATABASE manquant, renseignez deploy/.env}"
+      DB_USERNAME: "${TIDB_USERNAME:?TIDB_USERNAME manquant, renseignez deploy/.env}"
+      DB_PASSWORD: "${TIDB_PASSWORD:?TIDB_PASSWORD manquant, renseignez deploy/.env}"
+      DB_SSLMODE: require
+
+  # PostgreSQL local : conservé dans le fichier pour que `down` reste cohérent,
+  # mais désactivé par défaut dans ce mode.
+  db:
+    profiles: ["local-db"]

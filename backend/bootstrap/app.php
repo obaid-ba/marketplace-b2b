@@ -25,6 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ['prefix' => 'api', 'middleware' => ['auth:sanctum']],
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Render (et la plupart des hébergeurs) termine le TLS et transmet l'IP réelle via
+        // X-Forwarded-*. Sans cela, $request->ip() renvoie l'IP du proxy : les limiteurs de
+        // débit (connexion, mot de passe oublié) deviennent globaux.
+        $middleware->trustProxies(at: '*');
+
         // Usage dans les routes : ->middleware('role:supplier') ou 'role:admin,buyer'
         // 'supplier.validated' : pages de vente réservées aux fournisseurs validés (SCRUM-27).
         // En-têtes de sécurité sur toutes les réponses de l'API (SCRUM-90).

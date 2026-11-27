@@ -12,7 +12,12 @@ return new class extends Migration
     {
         Schema::table('users', fn (Blueprint $table) => $table->timestamp('whatsapp_opted_in_at')->nullable());
 
-        Schema::table('notification_preferences', fn (Blueprint $table) => $table->enum('channel', ['email', 'site', 'whatsapp'])->change());
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE notification_preferences DROP CONSTRAINT IF EXISTS notification_preferences_channel_check');
+            DB::statement("ALTER TABLE notification_preferences ALTER COLUMN channel TYPE varchar(255), ALTER COLUMN channel SET NOT NULL");
+        } else {
+            Schema::table('notification_preferences', fn (Blueprint $table) => $table->enum('channel', ['email', 'site', 'whatsapp'])->change());
+        }
 
         // Ni numéro ni texte : seulement ce qu'il faut pour suivre les envois et les replis.
         Schema::create('whatsapp_deliveries', function (Blueprint $table) {
@@ -33,7 +38,12 @@ return new class extends Migration
     {
         Schema::dropIfExists('whatsapp_deliveries');
         DB::table('notification_preferences')->where('channel', 'whatsapp')->delete();
-        Schema::table('notification_preferences', fn (Blueprint $table) => $table->enum('channel', ['email', 'site'])->change());
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE notification_preferences DROP CONSTRAINT IF EXISTS notification_preferences_channel_check');
+            DB::statement("ALTER TABLE notification_preferences ALTER COLUMN channel TYPE varchar(255), ALTER COLUMN channel SET NOT NULL");
+        } else {
+            Schema::table('notification_preferences', fn (Blueprint $table) => $table->enum('channel', ['email', 'site'])->change());
+        }
         Schema::table('users', fn (Blueprint $table) => $table->dropColumn('whatsapp_opted_in_at'));
     }
 };

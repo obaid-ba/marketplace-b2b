@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\MediaStorage;
 use App\Enums\ProductStatus;
 use App\Jobs\ModerateProductJob;
 use App\Models\Product;
@@ -9,7 +10,6 @@ use App\Models\ProductImage;
 use App\Models\SupplierProfile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -26,6 +26,8 @@ class ProductService
 
     /** Durées proposées pour une mise en avant, en jours (SCRUM-40). */
     public const FEATURE_DURATIONS = [7, 14, 30];
+
+    public function __construct(private readonly MediaStorage $media) {}
 
     /**
      * @param  array<string, mixed>  $data  données validées par SaveProductRequest
@@ -149,7 +151,10 @@ class ProductService
 
         $paths = $product->images()->pluck('path')->all();
         $product->forceDelete();
-        Storage::disk(ProductImage::DISK)->delete($paths);
+
+        foreach ($paths as $path) {
+            $this->media->delete($path);
+        }
 
         return true;
     }
@@ -171,13 +176,16 @@ class ProductService
         try {
             DB::transaction(function () use ($product, $files, $existing, &$stored) {
                 foreach (array_values($files) as $index => $file) {
-                    $path = $file->store("products/{$product->id}", ProductImage::DISK);
+                    $path = $this->media->store($file, "products/{$product->id}");
                     $stored[] = $path;
                     $product->images()->create(['path' => $path, 'position' => $existing + $index + 1]);
                 }
             });
         } catch (\Throwable $e) {
-            Storage::disk(ProductImage::DISK)->delete($stored);
+            foreach ($stored as $path) {
+                $this->media->delete($path);
+            }
+
             throw $e;
         }
 
@@ -222,7 +230,7 @@ class ProductService
             );
         });
 
-        Storage::disk(ProductImage::DISK)->delete($image->path);
+        $this->media->delete($image->path);
 
         return $product->load('images');
     }

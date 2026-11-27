@@ -2,17 +2,19 @@
 
 namespace App\Models;
 
+use App\Contracts\MediaStorage;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 /**
  * Photo d'un produit (entité 9). position 1 = image principale.
  */
 class ProductImage extends Model
 {
-    /** Disque public : les photos sont affichées dans le catalogue sans authentification. */
+    /**
+     * Disque Laravel utilisé par le pilote « local » (voir App\Services\Media\LocalMediaStorage).
+     * Conservé pour les tests qui bouchonnent ce disque.
+     */
     public const DISK = 'public';
 
     /**
@@ -40,12 +42,10 @@ class ProductImage extends Model
     }
 
     /**
-     * Adresse publique de l'image (les données de démo peuvent contenir une URL complète).
+     * Adresse publique de l'image (disque local en développement, CDN Cloudinary en production).
      */
     public function url(): string
     {
-        return Str::startsWith($this->path, ['http://', 'https://'])
-            ? $this->path
-            : Storage::disk(self::DISK)->url($this->path);
+        return (string) app(MediaStorage::class)->url($this->path);
     }
 }
