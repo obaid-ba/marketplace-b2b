@@ -34,6 +34,11 @@
         }
       ]
     ],
-    "scheme": "tijaralink"
+    "scheme": "tijaralink",
+    "extra": {
+      "eas": {
+        "projectId": "d8697f2a-6aa3-4180-8e93-bfcdb1fdc866"
+      }
+    }
   }
 }

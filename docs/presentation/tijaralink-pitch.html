@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TijaraLink · Pitch</title>
+<style>
+:root{
+  --bg:#F7F6FB;--panel:#FFFFFF;--line:#E4E3EE;--ink:#14142B;--ink2:#5F6078;
+  --acc:#5B4BDB;--acc-s:#EEEDFD;--acc2:#F58A3D;--acc2-s:#FFF0E6;
+  --ok:#12A06B;--ok-s:#E3F6EE;--warn:#B4540F;--warn-s:#FFF0E6;--bad:#C2322F;--bad-s:#FDECEC;
+  --cbg:#ECEEF1;--cline:#D8DCE1;--cink:#2A2D31;--cink2:#5E636B;--cmut:#8C9198;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  --hand:"Segoe Print","Bradley Hand","Marker Felt","Chalkboard SE","Comic Sans MS",cursive;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#0B0B12}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none}
+body.idle{cursor:none}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;background:var(--bg);color:var(--ink)}
+.scene{position:absolute;left:0;top:0;width:1920px;height:1080px;opacity:0;visibility:hidden;background:var(--bg);transition:opacity .45s ease-out,visibility 0s linear .45s}
+.scene.active{opacity:1;visibility:visible;transition:opacity .45s ease-out,visibility 0s}
+.scene.cool{background:var(--cbg);color:var(--cink)}
+.a{position:absolute}
+.caption{position:absolute;left:120px;top:84px;font-size:56px;line-height:1.15;font-weight:700;letter-spacing:-.02em}
+.ic{width:26px;height:26px;flex:none}
+
+/* beats */
+[data-b]{opacity:0;transform:translateY(18px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+[data-b].fx-scale{transform:scale(.96)}
+[data-b].fx-right{transform:translateX(60px)}
+[data-b].fx-left{transform:translateX(-40px)}
+[data-b].fx-fade{transform:none}
+[data-b].on{opacity:1;transform:none}
+.out{opacity:0!important;transform:scale(.97)!important}
+.seq{opacity:0;transform:translateY(10px);transition:opacity .35s var(--ease),transform .35s var(--ease)}
+.seq.show{opacity:1;transform:none}
+.away{opacity:0!important;transition:opacity .3s ease-out}
+.typing::after{content:"";display:inline-block;width:3px;height:1em;background:currentColor;margin-left:3px;vertical-align:-.14em;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* shared UI */
+.panel{background:#fff;border:2px solid var(--line);border-radius:16px}
+.cool .panel{border-color:var(--cline)}
+.chip{display:inline-flex;align-items:center;gap:10px;height:50px;padding:0 22px;border-radius:999px;font-size:24px;font-weight:600;white-space:nowrap;line-height:1}
+.chip .ic{width:24px;height:24px}
+.chip.lg{height:58px;font-size:28px;padding:0 26px}
+.chip.sm{height:42px;font-size:22px;padding:0 16px;gap:8px}
+.chip.sm .ic{width:20px;height:20px}
+.ghost{background:#fff;border:2px solid var(--line);color:var(--ink2)}
+.soft{background:var(--acc-s);color:var(--acc)}
+.st-plan{background:#F1F0F6;color:var(--ink2)}
+.st-ok{background:var(--ok-s);color:var(--ok)}
+.st-wait{background:var(--warn-s);color:var(--warn)}
+.st-bad{background:var(--bad-s);color:var(--bad)}
+.btn{display:inline-flex;align-items:center;gap:12px;height:72px;padding:0 36px;border-radius:14px;background:var(--acc);color:#fff;font-size:28px;font-weight:600;transition:transform .15s ease-out,background-color .2s,opacity .3s}
+.btn .ic{width:28px;height:28px}
+.btn.pressed{transform:scale(.95);background:#4A3BC4}
+.btn.done{opacity:.5}
+.logo{width:150px;height:150px;border-radius:36px;background:linear-gradient(135deg,#6D5FE0,#4A3BC4);display:flex;align-items:center;justify-content:center}
+.logo svg{width:100%;height:100%}
+.logo.sm{width:72px;height:72px;border-radius:18px}
+.brand{font-weight:800;letter-spacing:-.03em}
+.brand b{color:var(--acc);font-weight:800}
+
+/* scene 1 : le bureau et le téléphone */
+.desk{left:150px;top:200px;width:1620px;height:816px;background:#DDE1E6;border-radius:28px}
+.cup{left:1010px;top:780px;width:130px;height:130px;border-radius:50%;background:#9AA1AA;box-shadow:inset 0 0 0 16px #F4F5F7}
+.cup::after{content:"";position:absolute;right:-30px;top:46px;width:40px;height:38px;border-radius:0 18px 18px 0;border:12px solid #F4F5F7;border-left:0}
+.notepad{left:330px;top:262px;width:560px;height:680px;background:#fff;border-radius:6px;padding:40px 44px;transform:rotate(-3deg);color:var(--cink)}
+.np-t{font-size:32px;font-weight:700}
+.np-s{font-size:22px;color:var(--cink2);margin-top:6px}
+.np-row{display:flex;align-items:center;gap:16px;height:64px;border-bottom:1.5px solid #E1E4E8;font-size:24px}
+.np-row:first-of-type{margin-top:24px}
+.np-row .n{width:30px;color:var(--cmut)}
+.np-row .q{margin-left:auto;font-family:var(--hand);font-size:26px;color:#6A5A2F}
+.phone{left:1240px;top:218px;width:440px;height:780px;background:#2A2D31;border-radius:56px;padding:14px}
+.screen{position:relative;width:100%;height:100%;background:#F5F6F8;border-radius:44px;overflow:hidden}
+.wa-h{height:110px;padding:52px 26px 0;background:#fff;border-bottom:1.5px solid #E1E4E8;font-size:24px;font-weight:700;color:var(--cink)}
+.wa-body{padding:20px 18px;display:flex;flex-direction:column;gap:12px}
+.bub{max-width:330px;padding:12px 16px;border-radius:16px;font-size:21px;line-height:1.3;color:var(--cink)}
+.bub.me{align-self:flex-end;background:#DCF2D8;border-bottom-right-radius:4px}
+.bub.them{align-self:flex-start;background:#fff;border:1.5px solid #E1E4E8;border-bottom-left-radius:4px}
+.bub .who{display:block;font-size:17px;font-weight:700;color:var(--cmut);margin-bottom:2px}
+
+/* scene 2 : trois formats */
+.doc3{width:400px;height:480px;padding:32px;display:flex;flex-direction:column;gap:14px;color:var(--cink)}
+.doc3 .ic{width:56px;height:56px;color:var(--cmut)}
+.doc3 .t{font-size:30px;font-weight:700}
+.doc3 .s{font-size:22px;color:var(--cink2);line-height:1.4}
+.doc3 .v{margin-top:auto;font-size:40px;font-weight:800}
+.hand{font-family:var(--hand);color:#5A5130}
+.sticky{left:1460px;top:640px;width:330px;height:300px}
+.sticky .note{width:100%;height:100%;background:#F1E6B2;transform:rotate(4deg);border-radius:4px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--hand);font-size:46px;color:#5A5130;box-shadow:0 10px 24px rgba(20,24,32,.08);padding:20px}
+
+/* scene 3 : le tableur */
+.sheetx{left:220px;top:200px;width:1480px;height:620px;overflow:hidden;color:var(--cink)}
+.sx-top{height:86px;display:flex;align-items:center;gap:16px;padding:0 32px;border-bottom:2px solid var(--cline);font-size:28px;font-weight:700}
+.sx-top .ic{color:#1D9E55}
+.sxrow{display:grid;grid-template-columns:320px 260px 220px 260px 1fr;height:84px;align-items:center;padding:0 32px;border-bottom:1.5px solid #E6E9ED;font-size:26px}
+.sxrow.h{height:64px;font-size:21px;font-weight:700;color:var(--cink2);text-transform:uppercase;letter-spacing:.05em;background:#F7F8FA}
+.q{color:var(--bad);font-weight:700}
+.blocked{left:560px;top:860px;display:flex;justify-content:center;width:800px}
+
+/* scenes 4-6 : TijaraLink */
+.req{left:820px;top:150px;width:980px;height:800px;padding:44px 52px;display:flex;flex-direction:column;gap:22px}
+.kicker{font-size:22px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.08em}
+.r-title{font-size:44px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.r-desc{font-size:26px;line-height:1.45;color:var(--ink2)}
+.r-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 28px}
+.r-l{font-size:20px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.r-v{font-size:28px;font-weight:600}
+.ai{border:2px dashed #C9C2FA;background:#FBFAFF;border-radius:14px;padding:22px 26px;display:flex;flex-direction:column;gap:14px}
+.ai-h{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:var(--acc)}
+.ai-chips{display:flex;flex-wrap:wrap;gap:12px}
+.cap2{font-size:44px;line-height:1.25;font-weight:500;color:var(--ink2)}
+.logo-t{font-size:72px;margin-top:40px;white-space:nowrap}
+
+.cmp{left:120px;top:200px;width:1680px;height:440px;padding:0;overflow:hidden}
+.crow{display:grid;grid-template-columns:420px 260px 240px 260px 1fr;align-items:center;height:96px;padding:0 40px;border-bottom:1.5px solid var(--line);font-size:28px;transition:background-color .5s ease-out}
+.crow.h{height:72px;font-size:21px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
+.crow.best{background:var(--ok-s)}
+.crow .sup{display:flex;align-items:center;gap:16px;font-weight:700}
+.av{width:52px;height:52px;border-radius:14px;background:var(--acc-s);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800}
+.stars{color:#F5A524;letter-spacing:2px}
+.sum{left:120px;top:680px;width:1680px;height:300px;padding:30px 40px;display:flex;flex-direction:column;gap:16px}
+.sum .bt{font-size:28px;line-height:1.45}
+.sum .srcs{display:flex;gap:12px}
+
+.track{left:120px;top:220px;width:1680px;height:330px;padding:40px 60px}
+.tl{position:absolute;left:150px;right:150px;top:140px;height:8px;border-radius:4px;background:var(--acc-s)}
+.tl i{display:block;height:100%;width:0;background:var(--acc);border-radius:4px;transition:width .5s ease-out}
+.tstep{position:absolute;top:112px;width:240px;margin-left:-120px;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center}
+.tdot{width:64px;height:64px;border-radius:50%;background:#fff;border:4px solid var(--acc-s);display:flex;align-items:center;justify-content:center;color:#fff;transition:background-color .3s,border-color .3s}
+.tdot .ic{width:30px;height:30px;opacity:0;transition:opacity .2s}
+.tstep.done .tdot{background:var(--acc);border-color:var(--acc)}
+.tstep.done .tdot .ic{opacity:1}
+.tstep .l{font-size:26px;font-weight:700}
+.tstep .d{font-size:21px;color:var(--ink2)}
+.docs{left:120px;top:600px;width:820px;height:380px;padding:36px 40px;display:flex;flex-direction:column;gap:18px}
+.dline{display:flex;align-items:center;gap:16px;height:72px;border:2px solid var(--line);border-radius:12px;padding:0 22px;font-size:26px;font-weight:600}
+.dline .ic{color:var(--bad)}
+.dline .chip{margin-left:auto}
+.review{left:980px;top:600px;width:820px;height:380px;padding:36px 40px;display:flex;flex-direction:column;gap:16px}
+.review .big{font-size:56px;letter-spacing:6px;color:#F5A524}
+.review .q{font-size:28px;line-height:1.45;color:var(--ink);font-weight:500}
+.review .who{font-size:22px;color:var(--ink2)}
+
+/* scene 7 */
+.s7l{left:120px;top:240px;width:600px;padding:36px;background:var(--cbg);border-radius:16px;display:flex;flex-direction:column;gap:22px;color:var(--cink)}
+.lbl{font-size:22px;font-weight:700;color:var(--cmut);text-transform:uppercase;letter-spacing:.08em}
+.mini{background:#fff;border:2px solid var(--cline);border-radius:12px;padding:22px 26px;display:flex;gap:20px;align-items:center}
+.mini .ic{width:44px;height:44px;color:var(--cmut)}
+.mini .t{font-size:24px;font-weight:600}
+.mini .s{font-size:22px;color:var(--cmut);margin-top:4px}
+.mini .s.bad{color:var(--bad);font-weight:600}
+.s7r{left:820px;top:200px;width:960px;height:700px;padding:44px 52px;display:flex;flex-direction:column;gap:22px;border:3px solid var(--acc)!important;box-shadow:0 20px 50px rgba(91,75,219,.14)}
+.okl{display:flex;align-items:center;gap:18px;font-size:30px;font-weight:600;height:84px;border-bottom:1.5px solid var(--line)}
+.okl .ic{width:36px;height:36px;color:var(--ok)}
+.fin{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:48px}
+.fin-l{font-size:84px;font-weight:800;letter-spacing:-.03em;width:1500px;text-align:center;line-height:1.1}
+.fin-b{display:flex;align-items:center;gap:20px;font-size:44px;font-weight:700;color:var(--ink2)}
+
+/* deck */
+.ccol{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.t-hero{font-size:136px;margin-top:48px;line-height:1}
+.t-tag{font-size:46px;font-weight:500;color:var(--ink2);margin-top:28px}
+.team{font-size:30px;font-weight:600;color:var(--ink);margin-top:64px}
+.t-meta{font-size:26px;color:var(--ink2);margin-top:80px;padding:14px 28px;border:2px solid var(--line);border-radius:999px;background:#fff}
+.sub{position:absolute;left:120px;top:164px;width:1680px;font-size:34px;line-height:1.3;color:var(--ink2);font-weight:500}
+.persona{width:540px;height:170px;padding:30px 34px;display:flex;gap:24px;align-items:center}
+.av2{width:96px;height:96px;border-radius:50%;background:var(--acc-s);color:var(--acc);display:flex;align-items:center;justify-content:center;flex:none}
+.av2 .ic{width:48px;height:48px}
+.pn{font-size:32px;font-weight:700}
+.pd{font-size:24px;color:var(--ink2);margin-top:6px;line-height:1.3}
+.defi{width:405px;height:500px;padding:36px;display:flex;flex-direction:column;gap:18px}
+.dn{width:68px;height:68px;border-radius:14px;background:var(--acc);color:#fff;font-size:34px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.dn .ic{width:36px;height:36px}
+.dt{font-size:34px;font-weight:700;line-height:1.15;letter-spacing:-.01em}
+.dd{font-size:26px;line-height:1.4;color:var(--ink2)}
+.dfor{margin-top:auto;align-self:flex-start}
+.hubsvg{position:absolute;left:0;top:0;width:1920px;height:1080px}
+.hubsvg line{stroke:#CFC8F4;stroke-width:3;stroke-dasharray:10 10}
+.sat{width:420px;height:116px;padding:0 28px;display:flex;align-items:center;gap:20px}
+.sat .ic{width:44px;height:44px;color:var(--acc)}
+.sat .st{font-size:27px;white-space:nowrap;font-weight:700}
+.sat .ss{font-size:22px;color:var(--ink2);margin-top:4px}
+.core{left:760px;top:470px;width:400px;height:210px;background:linear-gradient(135deg,#6D5FE0,#4A3BC4);color:#fff;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;box-shadow:0 20px 50px rgba(91,75,219,.25)}
+.core .ct{font-size:40px;font-weight:800;letter-spacing:-.02em}
+.chiprow{left:0;width:1920px;display:flex;justify-content:center;gap:18px}
+.step{width:390px;height:150px;padding:26px 30px}
+.step .k{font-size:22px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.08em}
+.step .t{font-size:30px;font-weight:700;margin-top:8px}
+.arr{width:40px;height:150px;display:flex;align-items:center;justify-content:center;color:#B9B2EE}
+.arr .ic{width:34px;height:34px}
+.board{left:120px;top:410px;width:1680px;height:600px;padding:0}
+.bh{position:absolute;left:32px;top:24px;right:32px;display:flex;align-items:baseline;gap:24px}
+.bh .t{font-size:30px;font-weight:700}
+.bh .d{font-size:24px;color:var(--ink2)}
+.col{position:absolute;top:96px;width:310px;height:480px;background:#F7F6FB;border-radius:12px}
+.col .h{position:absolute;left:16px;top:14px;font-size:22px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
+.tk{position:absolute;width:286px;height:160px;background:#fff;border:2px solid var(--line);border-radius:10px;padding:14px 18px;display:flex;flex-direction:column;justify-content:space-between}
+.tk .k{font-size:22px;color:var(--ink2);font-weight:600}
+.tk .tt{font-size:25px;font-weight:600;line-height:1.2}
+.tk .chip{align-self:flex-start}
+.mv{border:3px solid var(--acc);box-shadow:0 14px 34px rgba(91,75,219,.18);transition:transform .7s cubic-bezier(.3,.7,.2,1),border-color .4s;z-index:2}
+.mv.st3{transform:translateX(326px)}
+.mv.st4{transform:translateX(652px);border-color:var(--ok);box-shadow:0 14px 34px rgba(18,160,107,.16)}
+.mv .w2,.mv .w3{display:none}
+.mv.st3 .w1,.mv.st4 .w1,.mv.st4 .w2{display:none}
+.mv.st3 .w2{display:inline-flex}
+.mv.st4 .w3{display:inline-flex}
+.stack{width:405px;height:430px;padding:34px;display:flex;flex-direction:column;gap:16px}
+.sico{width:72px;height:72px;border-radius:14px;background:var(--acc-s);color:var(--acc);display:flex;align-items:center;justify-content:center}
+.sico .ic{width:38px;height:38px}
+.stack .t{font-size:32px;font-weight:700;line-height:1.15}
+.stack .d{font-size:24px;line-height:1.4;color:var(--ink2)}
+.stack .tags{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px}
+.kpi{width:390px;height:210px;padding:30px 34px;display:flex;flex-direction:column;justify-content:center}
+.kpi .v{font-size:76px;font-weight:800;letter-spacing:-.03em;color:var(--acc);font-variant-numeric:tabular-nums}
+.kpi .l{font-size:26px;color:var(--ink2);margin-top:6px}
+.play{width:150px;height:150px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;box-shadow:0 20px 50px rgba(91,75,219,.25)}
+.play svg{width:64px;height:64px;margin-left:10px}
+.demolist{display:flex;gap:18px;margin-top:56px}
+#demo{background:#000;object-fit:contain}
+#vidErr{left:360px;top:440px;width:1200px;padding:40px;text-align:center;font-size:30px;color:#fff;background:rgba(0,0,0,.6);border-radius:12px;display:none}
+#vidErr.show{display:block}
+#stage.vid #prog{opacity:0}
+.scal{width:405px;height:400px;padding:36px;display:flex;flex-direction:column;gap:18px}
+.scal .t{font-size:32px;font-weight:700;line-height:1.15}
+.scal .d{font-size:25px;line-height:1.4;color:var(--ink2)}
+.bigline{left:120px;width:1680px;text-align:center;font-size:36px;line-height:1.35;font-weight:600;color:var(--ink)}
+.bigline em{font-style:normal;color:var(--acc)}
+
+/* chrome */
+#prog{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);display:flex;gap:10px;z-index:50}
+#prog i{display:block;width:56px;height:5px;border-radius:3px;background:rgba(20,20,43,.12);transition:background-color .3s}
+#prog i.cur{background:var(--acc)}
+#prog.cool i.cur{background:#8C9198}
+#notes{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);width:min(920px,92vw);background:rgba(20,20,30,.94);color:#F4F4F8;font:17px/1.5 Inter,system-ui,sans-serif;padding:14px 20px 16px;border-radius:12px;display:none;z-index:100}
+#notes.show{display:block}
+#notes b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#B9B2F4;margin-bottom:4px}
+
+@media (prefers-reduced-motion: reduce){
+  #stage,#stage *{transition-property:opacity,background-color,color,border-color!important}
+  [data-b],[data-b].fx-scale,[data-b].fx-right,[data-b].fx-left,[data-b].on,.seq,.out{transform:none!important}
+}
+#stage.instant,#stage.instant *{transition:none!important;animation:none!important}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- ============ TITRE ============ -->
+<section class="scene" id="titre">
+  <div class="a ccol fx-fade" data-b="1" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="logo" data-logo></div>
+    <div class="t-hero brand">Tijara<b>Link</b></div>
+    <div class="t-tag">La marketplace B2B qui relie porteurs de projet et fournisseurs tunisiens</div>
+    <div class="team">Aouida Basmala · Souissi Oumayma · Ben Ali Obaid-Allah · Ben Khmis Ahmed · Grolli Aziz</div>
+    <div class="t-meta" style="margin-top:40px">Projet d'intégration · ISET Djerba · 2026</div>
+  </div>
+</section>
+
+<!-- ============ HISTOIRE 1 ============ -->
+<section class="scene cool" id="s1">
+  <div class="a fx-fade" data-b="1" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="a desk"></div>
+    <div class="a notepad">
+      <div class="np-t">Fournisseurs à appeler</div>
+      <div class="np-s">2 000 cartons · export huile d'olive</div>
+      <div class="np-row"><span class="n">1</span>Atlas Emballages<span class="q">rappeler ?</span></div>
+      <div class="np-row"><span class="n">2</span>Djerba Pack<span class="q">pas de réponse</span></div>
+      <div class="np-row"><span class="n">3</span>PalettesPlus<span class="q">messagerie</span></div>
+      <div class="np-row"><span class="n">4</span>Cousin d'un ami ?<span class="q">??</span></div>
+    </div>
+    <div class="a cup"></div>
+    <div class="a phone"><div class="screen">
+      <div class="wa-h">Fournisseurs cartons</div>
+      <div class="wa-body">
+        <div class="bub me seq">Bonjour, il me faut 2 000 cartons double cannelure pour le 15. Votre prix ?</div>
+        <div class="bub them seq"><span class="who">Atlas</span>Je vous envoie ça ce soir</div>
+        <div class="bub them seq"><span class="who">Djerba Pack</span>Appelez-moi plutôt</div>
+        <div class="bub them seq"><span class="who">PalettesPlus</span>📷 devis.jpg</div>
+        <div class="bub me seq">Et le délai de livraison ?</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="caption" data-b="1">Sfax · lundi, 9 h</div>
+</section>
+
+<!-- ============ HISTOIRE 2 ============ -->
+<section class="scene cool" id="s2">
+  <div class="caption" data-b="1">Jeudi : trois devis, trois formats</div>
+  <div class="a panel doc3" data-b="1" style="left:120px;top:240px;transition-delay:100ms"><i data-ic="doc"></i><div class="t">PDF par e-mail</div><div class="s">Atlas Emballages · conditions en page 3</div><div class="v">3 900 TND</div></div>
+  <div class="a panel doc3" data-b="1" style="left:560px;top:240px;transition-delay:250ms"><i data-ic="image"></i><div class="t">Photo d'un devis papier</div><div class="s">PalettesPlus · délai illisible</div><div class="v hand">4 2?0 TND</div></div>
+  <div class="a panel doc3" data-b="1" style="left:1000px;top:240px;transition-delay:400ms"><i data-ic="phone"></i><div class="t">Prix donné au téléphone</div><div class="s">Djerba Pack · « à confirmer »</div><div class="v">≈ 4 100 TND</div></div>
+  <div class="a sticky" data-b="2"><div class="note">Lequel est le plus fiable ?</div></div>
+</section>
+
+<!-- ============ HISTOIRE 3 ============ -->
+<section class="scene cool" id="s3">
+  <div class="caption" data-b="1">Deux semaines plus tard</div>
+  <div class="a panel sheetx fx-scale" data-b="1">
+    <div class="sx-top"><i data-ic="grid"></i>suivi-commandes-final-v3.xlsx</div>
+    <div class="sxrow h"><span>Fournisseur</span><span>Prix</span><span>Délai</span><span>Commande</span><span>Livraison</span></div>
+    <div class="sxrow"><b>Atlas Emballages</b><span>3 900 TND</span><span>10 j</span><span>envoyée ?</span><span class="q">?</span></div>
+    <div class="sxrow"><b>Djerba Pack</b><span class="q">?</span><span>8 j</span><span>—</span><span>—</span></div>
+    <div class="sxrow"><b>PalettesPlus</b><span>4 2?0 TND</span><span class="q">?</span><span>—</span><span>—</span></div>
+  </div>
+  <div class="a blocked" data-b="2"><span class="chip lg st-bad"><i data-ic="alert"></i>Export retardé · aucune trace de la commande</span></div>
+</section>
+
+<!-- ============ HISTOIRE 4 : AVEC TIJARALINK ============ -->
+<section class="scene" id="s4">
+  <div class="a" data-b="1" style="left:160px;top:300px"><div class="logo" data-logo></div><div class="logo-t brand">Avec Tijara<b>Link</b></div></div>
+  <div class="a cap2" data-b="2" style="left:160px;top:624px;width:600px">Une seule demande, envoyée aux bons fournisseurs</div>
+  <div class="a panel req fx-right" data-b="2">
+    <div class="kicker">Publier une demande</div>
+    <div class="r-title">Cartons pour l'export d'huile d'olive</div>
+    <div class="r-desc">2 000 cartons double cannelure, impression une couleur, livraison à Sfax.</div>
+    <div class="r-grid">
+      <div><div class="r-l">Budget</div><div class="r-v">4 500 TND</div></div>
+      <div><div class="r-l">Échéance</div><div class="r-v">25 décembre</div></div>
+    </div>
+    <div class="ai" data-b="3">
+      <div class="ai-h"><i data-ic="spark"></i>Suggestions de l'IA</div>
+      <div class="ai-chips">
+        <span class="chip sm soft seq"><i data-ic="tag"></i>Emballage et conditionnement</span>
+        <span class="chip sm ghost seq">cartons</span><span class="chip sm ghost seq">double cannelure</span><span class="chip sm ghost seq">export</span>
+      </div>
+      <div class="ai-chips">
+        <span class="chip sm st-ok seq"><i data-ic="check"></i>Atlas Emballages · 92 %</span>
+        <span class="chip sm st-ok seq"><i data-ic="check"></i>Djerba Pack · 81 %</span>
+        <span class="chip sm st-ok seq"><i data-ic="check"></i>PalettesPlus · 72 %</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HISTOIRE 5 : COMPARER ============ -->
+<section class="scene" id="s5">
+  <div class="caption" data-b="1">Les devis arrivent, comparables</div>
+  <div class="a panel cmp fx-scale" data-b="1">
+    <div class="crow h"><span>Fournisseur</span><span>Montant</span><span>Délai</span><span>Note</span><span>Conditions</span></div>
+    <div class="crow seq" id="q1"><span class="sup"><span class="av">AE</span>Atlas Emballages</span><b>3 900 TND</b><span>10 jours</span><span class="stars">★★★★★</span><span>Paiement à 30 jours</span></div>
+    <div class="crow seq"><span class="sup"><span class="av">DP</span>Djerba Pack</span><b>4 100 TND</b><span>8 jours</span><span class="stars">★★★★☆</span><span>Livraison incluse</span></div>
+    <div class="crow seq"><span class="sup"><span class="av">PP</span>PalettesPlus</span><b>4 250 TND</b><span>12 jours</span><span class="stars">★★★★☆</span><span>Acompte 30 %</span></div>
+  </div>
+  <div class="a panel sum fx-scale" data-b="2">
+    <div class="ai-h"><i data-ic="spark"></i>Résumé des devis par l'IA (Gemini)</div>
+    <div class="bt"><span id="sumv" data-type="Atlas est le moins cher et le mieux noté ; Djerba Pack livre deux jours plus tôt. Question à poser : l'impression est-elle comprise dans les trois offres ?"></span></div>
+    <div class="srcs"><span class="chip sm ghost seq"><i data-ic="doc"></i>3 devis analysés</span><span class="chip sm ghost seq"><i data-ic="user"></i>L'acheteur décide</span></div>
+  </div>
+</section>
+
+<!-- ============ HISTOIRE 6 : COMMANDER ET SUIVRE ============ -->
+<section class="scene" id="s6">
+  <div class="caption" data-b="1">Commander et suivre chaque étape</div>
+  <div class="a panel track fx-scale" data-b="1">
+    <div class="tl"><i id="tlbar"></i></div>
+    <div class="tstep" style="left:150px"><div class="tdot"><i data-ic="check"></i></div><div class="l">Validée</div><div class="d">devis accepté</div></div>
+    <div class="tstep" style="left:495px"><div class="tdot"><i data-ic="check"></i></div><div class="l">En préparation</div><div class="d">Atlas Emballages</div></div>
+    <div class="tstep" style="left:840px"><div class="tdot"><i data-ic="check"></i></div><div class="l">Expédiée</div><div class="d">notification reçue</div></div>
+    <div class="tstep" style="left:1185px"><div class="tdot"><i data-ic="check"></i></div><div class="l">Livrée</div><div class="d">Sfax</div></div>
+    <div class="tstep" style="left:1530px"><div class="tdot"><i data-ic="check"></i></div><div class="l">Clôturée</div><div class="d">facture émise</div></div>
+  </div>
+  <div class="a panel docs" data-b="2">
+    <div class="kicker">Documents de la commande</div>
+    <div class="dline"><i data-ic="doc"></i>Devis-COM-1042.pdf<span class="chip sm st-ok">Généré</span></div>
+    <div class="dline"><i data-ic="doc"></i>Facture-COM-1042.pdf<span class="chip sm st-ok">Généré</span></div>
+    <div class="dline"><i data-ic="chat"></i>Messagerie avec le fournisseur<span class="chip sm soft">3 messages</span></div>
+  </div>
+  <div class="a panel review" data-b="3">
+    <div class="kicker">Avis vérifié</div>
+    <div class="big">★★★★★</div>
+    <div class="q">« Livraison rapide et carton conforme au plan. Je recommande. »</div>
+    <div class="who">Sana B. · Huilerie du Sahel · commande livrée</div>
+  </div>
+</section>
+
+<!-- ============ HISTOIRE 7 : AVANT / APRÈS ============ -->
+<section class="scene" id="s7">
+  <div class="a s7l fx-left" data-b="1" data-out="2">
+    <div class="lbl">Avant</div>
+    <div class="mini"><i data-ic="phone"></i><div><div class="t">Appels et messages</div><div class="s">3 fournisseurs, 3 canaux</div></div></div>
+    <div class="mini"><i data-ic="image"></i><div><div class="t">Devis en PDF, photo, oral</div><div class="s">impossibles à comparer</div></div></div>
+    <div class="mini"><i data-ic="grid"></i><div><div class="t">Suivi dans un tableur</div><div class="s bad">Commande introuvable</div></div></div>
+  </div>
+  <div class="a panel s7r fx-right" data-b="1" data-out="2">
+    <div class="kicker">Avec TijaraLink</div>
+    <div class="okl"><i data-ic="check"></i>Une demande, des fournisseurs validés notifiés</div>
+    <div class="okl"><i data-ic="check"></i>Des devis comparables, résumés par l'IA</div>
+    <div class="okl"><i data-ic="check"></i>Une commande suivie étape par étape</div>
+    <div class="okl"><i data-ic="check"></i>Factures PDF, messagerie et avis au même endroit</div>
+    <div class="okl" style="border:0"><i data-ic="check"></i>Sur le site comme sur le téléphone</div>
+  </div>
+  <div class="a fin fx-fade" data-b="2" style="left:0;top:0;width:1920px;height:1080px;transition-delay:.55s">
+    <div class="fin-l">Une demande. Des devis clairs. Une commande suivie.</div>
+    <div class="fin-b"><div class="logo sm" data-logo></div><span class="brand">Tijara<b>Link</b></span></div>
+  </div>
+</section>
+
+<!-- ============ UTILISATEURS ============ -->
+<section class="scene" id="users">
+  <div class="caption" data-b="1">Centré utilisateur</div>
+  <div class="sub" data-b="1">Trois profils, une seule plateforme. Quatre parcours traités de bout en bout.</div>
+  <div class="a panel persona" data-b="1" style="left:120px;top:226px;transition-delay:150ms"><div class="av2"><i data-ic="user"></i></div><div><div class="pn">Porteurs de projet</div><div class="pd">Trouver, comparer, commander</div></div></div>
+  <div class="a panel persona" data-b="1" style="left:690px;top:226px;transition-delay:270ms"><div class="av2"><i data-ic="building"></i></div><div><div class="pn">Fournisseurs</div><div class="pd">Être visible, répondre, livrer</div></div></div>
+  <div class="a panel persona" data-b="1" style="left:1260px;top:226px;transition-delay:390ms"><div class="av2"><i data-ic="shield"></i></div><div><div class="pn">Administrateurs</div><div class="pd">Valider, modérer, piloter</div></div></div>
+
+  <div class="a panel defi" data-b="2" style="left:120px;top:450px"><div class="dn"><i data-ic="grid"></i></div><div class="dt">Catalogue et demandes</div><div class="dd">Recherche par catégorie et région, demandes de devis avec pièces jointes.</div><span class="chip sm soft dfor"><i data-ic="user"></i>Porteur</span></div>
+  <div class="a panel defi" data-b="2" style="left:545px;top:450px;transition-delay:110ms"><div class="dn"><i data-ic="spark"></i></div><div class="dt">Devis et aide de l'IA</div><div class="dd">Fournisseurs pertinents suggérés, devis résumés, prix du marché.</div><span class="chip sm soft dfor"><i data-ic="users"></i>Porteur ↔ Fournisseur</span></div>
+  <div class="a panel defi" data-b="2" style="left:970px;top:450px;transition-delay:220ms"><div class="dn"><i data-ic="truck"></i></div><div class="dt">Commandes et confiance</div><div class="dd">Suivi par étapes, factures PDF, messagerie, avis, litiges.</div><span class="chip sm soft dfor"><i data-ic="users"></i>Porteur ↔ Fournisseur</span></div>
+  <div class="a panel defi" data-b="2" style="left:1395px;top:450px;transition-delay:330ms"><div class="dn"><i data-ic="chart"></i></div><div class="dt">Pilotage et modération</div><div class="dd">Tableaux de bord, validation des fournisseurs, avis signalés, audit.</div><span class="chip sm soft dfor"><i data-ic="shield"></i>Administrateur</span></div>
+</section>
+
+<!-- ============ PLATEFORME ============ -->
+<section class="scene" id="plat">
+  <div class="caption" data-b="1">Une plateforme, trois écrans</div>
+  <div class="sub" data-b="1">Le même backend sert le site web, l'application mobile et l'IA : les données sont identiques partout.</div>
+  <svg class="hubsvg fx-fade" data-b="1" viewBox="0 0 1920 1080" style="transition-delay:200ms"><line x1="960" y1="575" x2="480" y2="358"/><line x1="960" y1="575" x2="1440" y2="358"/><line x1="960" y1="575" x2="330" y2="575"/><line x1="960" y1="575" x2="1590" y2="575"/><line x1="960" y1="575" x2="480" y2="792"/><line x1="960" y1="575" x2="1440" y2="792"/></svg>
+  <div class="a panel sat" data-b="1" style="left:270px;top:300px;transition-delay:250ms"><i data-ic="monitor"></i><div><div class="st">Site web React</div><div class="ss">3 espaces selon le rôle</div></div></div>
+  <div class="a panel sat" data-b="1" style="left:1230px;top:300px;transition-delay:330ms"><i data-ic="phone"></i><div><div class="st">Application mobile</div><div class="ss">React Native · Expo</div></div></div>
+  <div class="a panel sat" data-b="1" style="left:120px;top:517px;transition-delay:410ms"><i data-ic="spark"></i><div><div class="st">IA Gemini</div><div class="ss">suggère, résume, modère</div></div></div>
+  <div class="a panel sat" data-b="1" style="left:1380px;top:517px;transition-delay:490ms"><i data-ic="bolt"></i><div><div class="st">Temps réel</div><div class="ss">messages et notifications</div></div></div>
+  <div class="a panel sat" data-b="1" style="left:270px;top:734px;transition-delay:570ms"><i data-ic="doc"></i><div><div class="st">Devis et factures PDF</div><div class="ss">générés automatiquement</div></div></div>
+  <div class="a panel sat" data-b="1" style="left:1230px;top:734px;transition-delay:650ms"><i data-ic="mail"></i><div><div class="st">E-mail et WhatsApp</div><div class="ss">alertes aux bons moments</div></div></div>
+  <div class="a core fx-scale" data-b="1"><div class="logo sm" data-logo></div><div class="ct">API Laravel</div></div>
+  <div class="a chiprow" data-b="2" style="top:920px">
+    <span class="chip lg soft"><i data-ic="lock"></i>Droits par rôle</span>
+    <span class="chip lg soft"><i data-ic="check"></i>Fournisseurs validés</span>
+    <span class="chip lg soft"><i data-ic="chart"></i>Mêmes chiffres partout</span>
+    <span class="chip lg soft"><i data-ic="shield"></i>Actions admin tracées</span>
+  </div>
+</section>
+
+<!-- ============ MÉTHODE ============ -->
+<section class="scene" id="agile">
+  <div class="caption" data-b="1">Méthodologie agile · Scrum</div>
+  <div class="a panel step" data-b="1" style="left:120px;top:214px"><div class="k">Cadrer</div><div class="t">Sprint 0</div><div class="dd" style="font-size:24px;margin-top:4px">besoins, modèle de données</div></div>
+  <div class="a arr" data-b="1" style="left:510px;top:214px;transition-delay:60ms"><i data-ic="chev"></i></div>
+  <div class="a panel step" data-b="1" style="left:550px;top:214px;transition-delay:110ms"><div class="k">Formaliser</div><div class="t">Backlog Jira</div><div class="dd" style="font-size:24px;margin-top:4px">user stories SCRUM-xx</div></div>
+  <div class="a arr" data-b="1" style="left:940px;top:214px;transition-delay:170ms"><i data-ic="chev"></i></div>
+  <div class="a panel step" data-b="1" style="left:980px;top:214px;transition-delay:220ms"><div class="k">Livrer</div><div class="t">7 sprints</div><div class="dd" style="font-size:24px;margin-top:4px">une démo par itération</div></div>
+  <div class="a arr" data-b="1" style="left:1370px;top:214px;transition-delay:280ms"><i data-ic="chev"></i></div>
+  <div class="a panel step" data-b="1" style="left:1410px;top:214px;transition-delay:330ms"><div class="k">Vérifier</div><div class="t">Tests automatisés</div><div class="dd" style="font-size:24px;margin-top:4px">à chaque fusion (CI)</div></div>
+
+  <div class="a panel board fx-scale" data-b="2"><div class="bh"><span class="t">Jira · projet SCRUM</span><span class="d">Chaque fonctionnalité = un ticket · une branche · une revue</span></div><div class="col" style="left:32px"><span class="h">À faire</span></div><div class="col" style="left:358px"><span class="h">En cours</span></div><div class="col" style="left:684px"><span class="h">En revue</span></div><div class="col" style="left:1010px"><span class="h">Testé</span></div><div class="col" style="left:1336px"><span class="h">Terminé</span></div><div class="tk" style="left:44px;top:150px"><span class="k">SCRUM-129</span><span class="tt">Déploiement en ligne</span><span class="chip sm st-plan">S7</span></div><div class="tk" style="left:370px;top:150px"><span class="k">SCRUM-87</span><span class="tt">Fournisseurs recommandés</span><span class="chip sm st-plan">S7</span></div><div class="tk" style="left:44px;top:326px"><span class="k">SCRUM-133</span><span class="tt">Alertes WhatsApp</span><span class="chip sm st-plan">S7</span></div><div class="tk" style="left:1022px;top:326px"><span class="k">SCRUM-121</span><span class="tt">Tableau de bord porteur</span><span class="chip sm st-wait">CI verte</span></div><div class="tk" style="left:1348px;top:150px"><span class="k">SCRUM-41</span><span class="tt">Publier une demande</span><span class="chip sm st-ok"><i data-ic="check"></i>Livré · S3</span></div><div class="tk" style="left:1348px;top:326px"><span class="k">SCRUM-48</span><span class="tt">Suivi des commandes</span><span class="chip sm st-ok"><i data-ic="check"></i>Livré · S4</span></div><div class="tk mv" id="mvcard" style="left:696px;top:150px"><span class="k">SCRUM-124</span><span class="tt">Assistants IA</span><span class="chip sm st-plan w1">Revue de code</span><span class="chip sm st-wait w2">Tests verts</span><span class="chip sm st-ok w3"><i data-ic="check"></i>Livré · S6</span></div></div>
+</section>
+
+<!-- ============ TECHNIQUE ============ -->
+<section class="scene" id="tech">
+  <div class="caption" data-b="1">Sous le capot</div>
+  <div class="sub" data-b="1">Des outils éprouvés, choisis pour être maintenus après le projet.</div>
+  <div class="a panel stack" data-b="1" style="left:120px;top:270px"><div class="sico"><i data-ic="db"></i></div><div class="t">Backend</div><div class="d">API REST, rôles, files de tâches, PDF, temps réel.</div><div class="tags"><span class="chip sm ghost">Laravel 12</span><span class="chip sm ghost">Sanctum</span><span class="chip sm ghost">Reverb</span><span class="chip sm ghost">MySQL</span></div></div>
+  <div class="a panel stack" data-b="1" style="left:545px;top:270px;transition-delay:110ms"><div class="sico"><i data-ic="monitor"></i></div><div class="t">Site web</div><div class="d">Trois espaces, tableaux de bord, design commun.</div><div class="tags"><span class="chip sm ghost">React 19</span><span class="chip sm ghost">Vite</span><span class="chip sm ghost">Tailwind</span><span class="chip sm ghost">Recharts</span></div></div>
+  <div class="a panel stack" data-b="1" style="left:970px;top:270px;transition-delay:220ms"><div class="sico"><i data-ic="phone"></i></div><div class="t">Mobile</div><div class="d">Mêmes données, synchronisées avec le site.</div><div class="tags"><span class="chip sm ghost">React Native</span><span class="chip sm ghost">Expo</span><span class="chip sm ghost">Android · iOS</span></div></div>
+  <div class="a panel stack" data-b="1" style="left:1395px;top:270px;transition-delay:330ms"><div class="sico"><i data-ic="spark"></i></div><div class="t">Intelligence artificielle</div><div class="d">Sorties structurées, validées, journalisées ; mode simulé sans clé.</div><div class="tags"><span class="chip sm ghost">Gemini</span><span class="chip sm ghost">Limites par heure</span></div></div>
+  <div class="a panel kpi" data-b="2" style="left:120px;top:760px"><div class="v">816</div><div class="l">tests automatisés (505 + 311)</div></div>
+  <div class="a panel kpi" data-b="2" style="left:545px;top:760px;transition-delay:110ms"><div class="v">3</div><div class="l">rôles, droits vérifiés côté API</div></div>
+  <div class="a panel kpi" data-b="2" style="left:970px;top:760px;transition-delay:220ms"><div class="v">42</div><div class="l">produits de démonstration</div></div>
+  <div class="a panel kpi" data-b="2" style="left:1395px;top:760px;transition-delay:330ms"><div class="v">8</div><div class="l">sprints, de S0 à S7</div></div>
+</section>
+
+<!-- ============ DÉMO ============ -->
+<section class="scene" id="demoS">
+  <div class="a ccol fx-fade" data-b="1" data-out="2" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="play"><svg viewBox="0 0 24 24"><path d="M6 4v16l14-8z" fill="#fff"/></svg></div>
+    <div class="t-hero" style="font-size:110px;font-weight:800">Démonstration</div>
+    <div class="t-tag" style="font-size:36px">Dans la vraie application · site web et téléphone</div>
+    <div class="demolist">
+      <span class="chip lg ghost"><i data-ic="user"></i>Sana publie une demande</span>
+      <span class="chip lg ghost"><i data-ic="building"></i>Atlas répond</span>
+      <span class="chip lg ghost"><i data-ic="spark"></i>L'IA compare</span>
+      <span class="chip lg ghost"><i data-ic="shield"></i>L'admin pilote</span>
+    </div>
+  </div>
+  <video class="a fx-fade" id="demo" data-b="2" src="tijaralink-demo.mp4" preload="auto" playsinline muted style="left:0;top:0;width:1920px;height:1080px"></video>
+  <div class="a" id="vidErr">Pas de vidéo : placez <b>tijaralink-demo.mp4</b> à côté de ce fichier, ou faites la démo en direct (Alt+Tab vers le navigateur).</div>
+</section>
+
+<!-- ============ PERSPECTIVES ============ -->
+<section class="scene" id="persp">
+  <div class="caption" data-b="1">Perspectives</div>
+  <div class="sub" data-b="1">Passer de la démonstration à un vrai service, sans changer de plateforme.</div>
+  <div class="a panel scal" data-b="1" style="left:120px;top:290px;transition-delay:150ms"><div class="sico"><i data-ic="lock"></i></div><div class="t">Paiement en ligne</div><div class="d">Acompte et solde payés dans la plateforme, à la validation de la commande.</div></div>
+  <div class="a panel scal" data-b="1" style="left:545px;top:290px;transition-delay:260ms"><div class="sico"><i data-ic="phone"></i></div><div class="t">Sur les stores</div><div class="d">Application publiée sur Play Store et App Store, avec notifications push.</div></div>
+  <div class="a panel scal" data-b="1" style="left:970px;top:290px;transition-delay:370ms"><div class="sico"><i data-ic="spark"></i></div><div class="t">IA plus loin</div><div class="d">Recommandations personnalisées et détection des fraudes à grande échelle.</div></div>
+  <div class="a panel scal" data-b="1" style="left:1395px;top:290px;transition-delay:480ms"><div class="sico"><i data-ic="pin"></i></div><div class="t">Toute la Tunisie</div><div class="d">Des 8 gouvernorats de la démo aux 24, puis au Maghreb.</div></div>
+  <div class="a bigline" data-b="2" style="top:790px">Même API, même modèle de données : <em>on ajoute des fournisseurs et des régions, pas des outils.</em></div>
+</section>
+
+<!-- ============ MERCI ============ -->
+<section class="scene" id="merci">
+  <div class="a ccol fx-fade" data-b="1" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="logo" data-logo></div>
+    <div class="t-hero" style="font-weight:800">Merci.</div>
+    <div class="t-tag">Une demande. Des devis clairs. Une commande suivie.</div>
+    <div class="team">Aouida Basmala · Souissi Oumayma · Ben Ali Obaid-Allah · Ben Khmis Ahmed · Grolli Aziz</div>
+    <div class="t-meta" style="margin-top:40px">Questions ?</div>
+  </div>
+</section>
+
+<div id="prog"></div>
+</div>
+
+<div id="notes"><b id="notesHead"></b><span id="notesText"></span></div>
+
+<script>
+(()=>{
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const el=id=>document.getElementById(id);
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- icônes ---------- */
+const P={
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2A5 5 0 0 1 21.5 19"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  building:'<path d="M5 21V4h10v17M15 9h4v12M9 8h2M9 12h2M9 16h2M3 21h18"/>',
+  shield:'<path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  db:'<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+  chart:'<path d="M4 20V11M10 20V4M16 20v-8M22 20H2"/>',
+  chev:'<path d="M9 5l7 7-7 7"/>',
+  pin:'<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  doc:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5L12 13l8.5-6.5"/>',
+  alert:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>',
+  image:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
+  phone:'<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/>',
+  monitor:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  grid:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16"/>',
+  tag:'<path d="M3 12V4h8l9 9-8 8z"/><path d="M7.5 8.5h.01"/>',
+  truck:'<path d="M2 6h11v10H2zM13 9h4l3 3v4h-7"/><circle cx="6.5" cy="17.5" r="2"/><circle cx="16.5" cy="17.5" r="2"/>'
+};
+const ic=(n,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[n]}</svg>`;
+/* Emblème TijaraLink (même dessin que le site) */
+const LOGO='<svg viewBox="0 0 64 64"><path d="M17 22h30" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M32 22v26" stroke="#fff" stroke-width="7" stroke-linecap="round"/><circle cx="17" cy="22" r="6.5" fill="#fff"/><circle cx="47" cy="22" r="6.5" fill="#f58a3d"/><circle cx="47" cy="22" r="2.6" fill="#fff"/></svg>';
+$$('[data-logo]').forEach(e=>e.innerHTML=LOGO);
+$$('i[data-ic]').forEach(i=>{const t=document.createElement('template');t.innerHTML=ic(i.dataset.ic,i.className);i.replaceWith(t.content.firstChild)});
+
+/* ---------- moteur ---------- */
+const stage=el('stage');
+const sceneEls=$$('.scene');
+let timers=[];
+const later=(fn,ms)=>{timers.push(setTimeout(fn,ms))};
+function clearAll(){timers.forEach(clearTimeout);timers=[]}
+function type(node,text,speed,cb){
+  node.textContent='';node.classList.add('typing');let i=0;
+  const step=()=>{i++;node.textContent=text.slice(0,i);if(i<text.length)later(step,speed);else{node.classList.remove('typing');cb&&cb()}};
+  later(step,speed);
+}
+const STATE=['st3','st4','on','out','show','away','done','best','typing'];
+const steps=()=>$$('#s6 .tstep');
+function setTrack(n){steps().forEach((s,i)=>s.classList.toggle('done',i<n));el('tlbar').style.width=(n<=1?0:(n-1)/4*100)+'%'}
+
+const S=[
+{ sec:0, title:'Titre', beats:1,
+  note:"Bonjour. Nous vous présentons TijaraLink, une marketplace B2B qui relie les porteurs de projet aux fournisseurs tunisiens. Commençons par une histoire." },
+{ sec:1, title:'Histoire · Sfax, lundi 9 h', beats:2,
+  note:"Sana dirige une huilerie à Sfax. Pour exporter son huile d'olive, il lui faut 2 000 cartons. Elle appelle, elle écrit à trois fournisseurs. Les réponses arrivent au compte-gouttes, sur des canaux différents.",
+  fin:{2(){$$('#s1 .seq').forEach(e=>e.classList.add('show'))}},
+  ani:{2(){$$('#s1 .seq').forEach((e,i)=>later(()=>e.classList.add('show'),200+i*650))}} },
+{ sec:1, title:'Histoire · Trois devis, trois formats', beats:2,
+  note:"Jeudi, elle a trois devis : un PDF, une photo de devis papier, un prix donné au téléphone. Impossible de les comparer sereinement." },
+{ sec:1, title:'Histoire · Deux semaines plus tard', beats:2,
+  note:"Deux semaines plus tard, le suivi tient dans un tableur plein de points d'interrogation. Personne ne sait si la commande est partie : l'export est retardé." },
+{ sec:1, title:'Histoire · Avec TijaraLink', beats:3,
+  note:"Avec TijaraLink, Sana publie une seule demande. L'IA lui propose la bonne catégorie et les mots-clés, et notifie automatiquement les fournisseurs validés les plus pertinents.",
+  fin:{3(){$$('#s4 .seq').forEach(e=>e.classList.add('show'))}},
+  ani:{3(){$$('#s4 .seq').forEach((e,i)=>later(()=>e.classList.add('show'),300+i*160))}} },
+{ sec:1, title:'Histoire · Comparer', beats:2,
+  note:"Les devis arrivent dans le même format : montant, délai, note du fournisseur, conditions. L'IA les résume et suggère les questions à poser, mais c'est l'acheteur qui décide.",
+  fin:{1(){$$('#s5 .crow.seq').forEach(e=>e.classList.add('show'));el('q1').classList.add('best')},2(){const s=el('sumv');s.textContent=s.dataset.type;$$('#s5 .srcs .seq').forEach(e=>e.classList.add('show'))}},
+  ani:{
+    1(){$$('#s5 .crow.seq').forEach((e,i)=>later(()=>e.classList.add('show'),400+i*450));later(()=>el('q1').classList.add('best'),400+3*450+300)},
+    2(){const s=el('sumv');later(()=>type(s,s.dataset.type,22,()=>$$('#s5 .srcs .seq').forEach((e,i)=>later(()=>e.classList.add('show'),150+i*180))),500)}
+  } },
+{ sec:1, title:'Histoire · Commander et suivre', beats:3,
+  reset(){setTrack(0)},
+  note:"Elle accepte le devis d'Atlas. La commande passe par chaque étape, avec une notification à chaque changement. Devis et facture sont générés en PDF, et à la fin elle laisse un avis vérifié.",
+  fin:{1(){setTrack(5)}},
+  ani:{1(){for(let n=1;n<=5;n++)later(()=>setTrack(n),400+n*420)}} },
+{ sec:1, title:'Histoire · Avant / après', beats:2,
+  note:"Avant : des appels, des formats impossibles à comparer, un tableur. Après : une demande, des devis clairs, une commande suivie, sur le site comme sur le téléphone." },
+{ sec:2, title:'Centré utilisateur', beats:2,
+  note:"Trois profils : les porteurs de projet, les fournisseurs et les administrateurs. Nous avons traité quatre parcours de bout en bout : catalogue et demandes, devis avec l'IA, commandes et confiance, pilotage et modération." },
+{ sec:3, title:'Une plateforme, trois écrans', beats:2,
+  note:"Au centre, une seule API Laravel. Elle sert le site React, l'application mobile et l'IA Gemini, avec le temps réel, les PDF et les alertes. Chaque rôle ne voit que ce qui le concerne, et chaque action d'un administrateur est tracée." },
+{ sec:4, title:'Méthodologie agile', beats:3,
+  note:"Nous avons travaillé en Scrum : un sprint de cadrage puis sept sprints de livraison, un backlog Jira, une branche et une revue par ticket, et des tests automatiques à chaque fusion. Ici, les assistants IA passent de la revue de code aux tests, puis sont livrés." },
+{ sec:5, title:'Sous le capot', beats:2,
+  note:"Côté technique : Laravel pour l'API, React pour le site, React Native avec Expo pour le mobile, Gemini pour l'IA, avec un mode simulé si aucune clé n'est configurée. Plus de 800 tests automatisés protègent le tout." },
+{ sec:6, title:'Démonstration', beats:2,
+  note:"Place à la démonstration : Sana publie une demande, Atlas répond, l'IA compare, l'administrateur pilote. Si la vidéo n'est pas là, passez au navigateur pour la démo en direct. Touches : P pause, J recule de 10 s, L avance de 10 s." },
+{ sec:7, title:'Perspectives', beats:2,
+  note:"La suite : le paiement en ligne, la publication sur les stores, une IA plus poussée et l'ouverture à toute la Tunisie. Même API, même modèle de données : on ajoute des fournisseurs et des régions, pas des outils." },
+{ sec:8, title:'Merci', beats:1,
+  note:"Merci. Nous sommes prêts pour vos questions, et la plateforme est ouverte si vous voulez voir un écran précis." }
+];
+const SECTIONS=['Titre','Histoire','Utilisateurs','Plateforme','Méthode','Technique','Démo','Perspectives','Merci'];
+const byId=id=>sceneEls.findIndex(e=>e.id===id);
+const VID=el('demo'),DEMO=byId('demoS');
+VID.muted=true;VID.addEventListener('error',()=>el('vidErr').classList.add('show'));
+S[byId('agile')].fin={3(){el('mvcard').classList.add('st4')}};
+S[byId('agile')].ani={3(){const m=el('mvcard');later(()=>m.classList.add('st3'),300);later(()=>{m.classList.remove('st3');m.classList.add('st4')},1500)}};
+S[DEMO].ani={2(){try{VID.currentTime=0}catch(e){}VID.play().catch(()=>{})}};
+el('prog').innerHTML=SECTIONS.map(()=>'<i></i>').join('');
+
+let cur={s:-1,b:0};
+function generic(sc,k){
+  $$(`[data-b="${k}"]`,sc).forEach(e=>e.classList.add('on'));
+  $$(`[data-out="${k}"]`,sc).forEach(e=>e.classList.add('out'));
+}
+function resetScene(s){
+  const sc=sceneEls[s];
+  $$('*',sc).forEach(e=>e.classList.remove(...STATE));
+  $$('[data-type]',sc).forEach(e=>e.textContent='');
+  S[s].reset&&S[s].reset();
+}
+function setActive(s){sceneEls.forEach((e,i)=>e.classList.toggle('active',i===s))}
+function goTo(s,b,animate){
+  clearAll();
+  const changed=s!==cur.s;
+  cur={s,b};
+  const D=S[s],sc=sceneEls[s];
+  stage.classList.add('instant');
+  resetScene(s);
+  for(let k=1;k<b;k++){generic(sc,k);D.fin&&D.fin[k]&&D.fin[k]()}
+  if(!animate){generic(sc,b);D.fin&&D.fin[b]&&D.fin[b]()}
+  if(!animate||!changed)setActive(s);
+  chrome();
+  void stage.offsetWidth;
+  stage.classList.remove('instant');
+  if(animate){
+    if(changed)setActive(s);
+    const run=()=>{generic(sc,b);D.ani&&D.ani[b]&&D.ani[b]()};
+    if(changed)later(run,200);else run();
+  }
+}
+function next(){const D=S[cur.s];if(cur.b<D.beats)goTo(cur.s,cur.b+1,true);else if(cur.s<S.length-1)goTo(cur.s+1,1,true)}
+function prev(){if(cur.b>1)goTo(cur.s,cur.b-1,false);else if(cur.s>0)goTo(cur.s-1,S[cur.s-1].beats,false)}
+
+const prog=el('prog'),notes=el('notes');
+function chrome(){
+  $$('#prog i').forEach((e,i)=>e.classList.toggle('cur',i===S[cur.s].sec));
+  prog.classList.toggle('cool',sceneEls[cur.s].classList.contains('cool'));
+  const onVid=cur.s===DEMO&&cur.b===2;
+  if(!onVid)VID.pause();
+  stage.classList.toggle('vid',onVid);
+  el('notesHead').textContent=`${S[cur.s].sec+1} / ${SECTIONS.length} · ${S[cur.s].title}`;
+  el('notesText').textContent=S[cur.s].note;
+}
+
+function fit(){const W=innerWidth,H=innerHeight,k=Math.min(W/1920,H/1080);stage.style.transform=`translate(${(W-1920*k)/2}px,${(H-1080*k)/2}px) scale(${k})`}
+addEventListener('resize',fit);document.addEventListener('fullscreenchange',fit);fit();
+
+function toggleFS(){
+  const d=document,de=d.documentElement;
+  if(!(d.fullscreenElement||d.webkitFullscreenElement)){(de.requestFullscreen||de.webkitRequestFullscreen).call(de)}
+  else{(d.exitFullscreen||d.webkitExitFullscreen).call(d)}
+}
+addEventListener('keydown',e=>{
+  if(e.altKey||e.ctrlKey||e.metaKey)return;
+  const k=e.key;
+  if(['ArrowRight','ArrowDown',' ','Spacebar','PageDown','Enter'].includes(k)){e.preventDefault();if(!e.repeat)next()}
+  else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(k)){e.preventDefault();if(!e.repeat)prev()}
+  else if(k==='Home'){e.preventDefault();goTo(0,1,true)}
+  else if(/^[1-9]$/.test(k)){e.preventDefault();const i=S.findIndex(x=>x.sec===+k-1);if(i>=0)goTo(i,1,true)}
+  else if((k==='p'||k==='P'||k==='k'||k==='K')&&cur.s===DEMO&&cur.b===2){VID.paused?VID.play().catch(()=>{}):VID.pause()}
+  else if((k==='j'||k==='J')&&cur.s===DEMO){VID.currentTime=Math.max(0,VID.currentTime-10)}
+  else if((k==='l'||k==='L')&&cur.s===DEMO){VID.currentTime=Math.min(VID.duration||0,VID.currentTime+10)}
+  else if(k==='f'||k==='F'){toggleFS()}
+  else if(k==='n'||k==='N'){notes.classList.toggle('show')}
+});
+addEventListener('click',e=>{if(e.button===0)next()});
+let idleT;addEventListener('mousemove',()=>{document.body.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>document.body.classList.add('idle'),2000)});
+
+window.__deck={goTo,next,prev,get cur(){return cur}};
+goTo(0,1,false);
+})();
+</script>
+</body>
+</html>
