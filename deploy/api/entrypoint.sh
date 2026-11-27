@@ -23,6 +23,17 @@ if [ -z "$APP_KEY" ]; then
     export APP_KEY
 fi
 
+# --- Clé générée par Render (generateValue) : 32 octets en base64, sans le préfixe Laravel ---
+case "$APP_KEY" in
+    base64:*) ;;
+    *)
+        if [ "${#APP_KEY}" -eq 44 ] && [ "$(printf '%s' "$APP_KEY" | base64 -d 2>/dev/null | wc -c)" -eq 32 ]; then
+            APP_KEY="base64:${APP_KEY}"
+            export APP_KEY
+        fi
+        ;;
+esac
+
 # --- Validation de la clé (détecte les placeholders type REPLACE_WITH_...) ---
 case "$APP_KEY" in
     base64:*)
@@ -140,6 +151,11 @@ fi
 
 if [ "${MEDIA_DRIVER:-local}" = "local" ]; then
     php artisan storage:link >/dev/null 2>&1 || true
+    # Disque éphémère (Render gratuit) : les photos et logos de démonstration sont recopiés depuis le dépôt
+    # à chaque démarrage, pour que les chemins enregistrés en base restent valides après une mise en veille.
+    mkdir -p storage/app/public/products/demo storage/app/public/supplier-logos/demo
+    cp -n database/seeders/demo-images/products/*.jpg storage/app/public/products/demo/ 2>/dev/null || true
+    cp -n database/seeders/demo-images/logos/*.png storage/app/public/supplier-logos/demo/ 2>/dev/null || true
 fi
 
 # --- Cache applicatif : évite de servir des données figées après un seed/migrate ---

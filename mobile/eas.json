@@ -10,8 +10,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://marketplace-api-v2-8gr1.onrender.com/api",
-        "EXPO_PUBLIC_WEB_URL": "https://marketplace-web-v2.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://tijaralink-api.onrender.com/api",
+        "EXPO_PUBLIC_WEB_URL": "https://tijaralink-web.onrender.com"
       }
     },
     "production": {
@@ -19,8 +19,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://marketplace-api-v2-8gr1.onrender.com/api",
-        "EXPO_PUBLIC_WEB_URL": "https://marketplace-web-v2.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://tijaralink-api.onrender.com/api",
+        "EXPO_PUBLIC_WEB_URL": "https://tijaralink-web.onrender.com"
       }
     }
   }

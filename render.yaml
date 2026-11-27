@@ -76,18 +76,6 @@ envVarGroups:
       # les migrations tournent au démarrage du conteneur (entrypoint.sh, idempotentes).
       - key: RUN_MIGRATIONS
         value: "true"
-      # IA (F25) : Gemini. La clé AI_API_KEY est un secret à saisir dans le Dashboard Render.
-      # Sans clé, mettre AI_PROVIDER=simulated (règles de calcul, aucun appel extérieur).
-      - key: AI_PROVIDER
-        value: gemini
-      - key: AI_API_KEY
-        sync: false
-      - key: AI_MODEL
-        value: gemini-3.5-flash-lite
-      # Réinitialisation unique de la base de démo (photos comprises) : effacée puis recréée au
-      # premier démarrage qui voit ce jeton, jamais ensuite. Changer la valeur pour recommencer.
-      - key: RESET_DEMO_TOKEN
-        value: "2026-11-27-photos"
       # Données de démonstration : insérées uniquement si la table `users` est vide.
       - key: SEED_DEMO_DATA
         value: "true"
@@ -103,7 +91,6 @@ services:
     healthCheckPath: /up
     # preDeployCommand non disponible sur le plan gratuit (instances payantes uniquement) :
     # les migrations sont lancées par deploy/api/entrypoint.sh via RUN_MIGRATIONS=true.
-    branch: main
     autoDeployTrigger: commit
     envVars:
       - fromGroup: marketplace-api-env
@@ -116,7 +103,6 @@ services:
     rootDir: frontend
     buildCommand: npm ci --no-audit --no-fund && npm run build
     staticPublishPath: ./dist
-    branch: main
     autoDeployTrigger: commit
     envVars:
       - key: VITE_API_URL

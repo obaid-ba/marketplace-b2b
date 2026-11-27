@@ -1,0 +1,141 @@
+# Déploiement TijaraLink sur Render (plan gratuit) — un seul compte suffit.
+#
+# Crée trois éléments :
+#   - tijaralink-db  : base PostgreSQL gérée par Render (gratuite, 1 Go, expire après 30 jours sur le plan gratuit)
+#   - tijaralink-api : API Laravel (Docker), https://tijaralink-api.onrender.com
+#   - tijaralink-web : site React (statique), https://tijaralink-web.onrender.com
+#
+# Mise en place : Render → New → Blueprint → ce dépôt, branche main, chemin « render.tijaralink.yaml ».
+# Seul secret à saisir : AI_API_KEY (clé Gemini). Sans elle, l'IA fonctionne en mode simulé.
+# Si Render attribue d'autres adresses (nom déjà pris), mettre à jour les quatre URL ci-dessous.
+
+databases:
+  - name: tijaralink-db
+    plan: free
+    region: frankfurt
+    databaseName: tijaralink
+    user: tijaralink
+
+services:
+  - type: web
+    name: tijaralink-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./deploy/api/Dockerfile
+    healthCheckPath: /up
+    autoDeployTrigger: commit
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: APP_NAME
+        value: TijaraLink
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      # Clé de chiffrement générée par Render ; l'entrypoint ajoute le préfixe « base64: » attendu par Laravel.
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        value: https://tijaralink-api.onrender.com
+      - key: APP_LOCALE
+        value: fr
+      - key: APP_FALLBACK_LOCALE
+        value: en
+      - key: APP_TIMEZONE
+        value: Africa/Tunis
+      - key: FRONTEND_URL
+        value: https://tijaralink-web.onrender.com
+      - key: FRONTEND_URLS
+        value: https://tijaralink-web.onrender.com
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
+      # Base PostgreSQL de Render (connexion interne).
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        value: ""
+      - key: DB_HOST
+        fromDatabase:
+          name: tijaralink-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: tijaralink-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: tijaralink-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: tijaralink-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tijaralink-db
+          property: password
+      - key: DB_SSLMODE
+        value: prefer
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      # Pas de serveur temps réel sur le plan gratuit : messages et notifications se rafraîchissent toutes les 30 s.
+      - key: BROADCAST_CONNECTION
+        value: "null"
+      - key: SANCTUM_TOKEN_EXPIRATION
+        value: "10080"
+      # Photos et logos sur le disque du conteneur : les photos de démonstration sont recopiées à chaque démarrage.
+      - key: MEDIA_DRIVER
+        value: local
+      - key: FILESYSTEM_DISK
+        value: local
+      # E-mails écrits dans les journaux (aucun compte e-mail nécessaire ; les comptes de démo sont déjà vérifiés).
+      - key: MAIL_MAILER
+        value: log
+      - key: MAIL_FROM_ADDRESS
+        value: no-reply@tijaralink.tn
+      - key: MAIL_FROM_NAME
+        value: TijaraLink
+      # IA : Gemini si AI_API_KEY est saisie dans le Dashboard, sinon mode simulé (voir backend/config/ai.php).
+      - key: AI_PROVIDER
+        value: gemini
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: RUN_MIGRATIONS
+        value: "true"
+      # Base remplie une seule fois avec la démo complète (photos comprises) ; changer la valeur pour la recréer.
+      - key: SEED_DEMO_DATA
+        value: "false"
+      - key: RESET_DEMO_TOKEN
+        value: "tijaralink-demo-1"
+
+  - type: web
+    name: tijaralink-web
+    runtime: static
+    branch: main
+    rootDir: frontend
+    buildCommand: npm ci --no-audit --no-fund && npm run build
+    staticPublishPath: ./dist
+    autoDeployTrigger: commit
+    envVars:
+      - key: VITE_API_URL
+        value: https://tijaralink-api.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
